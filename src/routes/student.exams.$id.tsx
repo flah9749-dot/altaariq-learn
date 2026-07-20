@@ -59,11 +59,14 @@ function TakeExamPage() {
     if (!exam) return;
     startFn({ data: { exam_id: id } }).then((r: any) => {
       setAttemptId(r.attempt_id);
-      // Load prior answers
+      // Load prior answers + review marks
       supabase.from("attempt_answers").select("question_id,answer").eq("attempt_id", r.attempt_id).then(({ data }) => {
         const m: Record<string, any> = {};
         (data ?? []).forEach((a: any) => { m[a.question_id] = a.answer; });
         setAnswers(m);
+      });
+      supabase.from("exam_attempts").select("review_marks").eq("id", r.attempt_id).maybeSingle().then(({ data }) => {
+        if (Array.isArray(data?.review_marks)) setReviewMarks(new Set(data!.review_marks as string[]));
       });
     }).catch((e: any) => { toast.error(e?.message ?? "فشل بدء الامتحان"); nav({ to: "/student/exams" }); });
   }, [exam, id]);
@@ -108,10 +111,23 @@ function TakeExamPage() {
   const setAnswer = (qid: string, val: any) => {
     setAnswers((p) => ({ ...p, [qid]: val }));
     if (attemptId) {
+      setSaveState("saving");
       const timeSpent = Math.floor((Date.now() - questionStartAt.current) / 1000);
-      saveFn({ data: { attempt_id: attemptId, question_id: qid, answer: val, time_spent_sec: timeSpent } }).catch(() => {});
+      saveFn({ data: { attempt_id: attemptId, question_id: qid, answer: val, time_spent_sec: timeSpent } })
+        .then(() => setSaveState("saved"))
+        .catch(() => setSaveState("idle"));
     }
   };
+
+  const toggleReview = (qid: string) => {
+    setReviewMarks((p) => {
+      const n = new Set(p);
+      if (n.has(qid)) n.delete(qid); else n.add(qid);
+      if (attemptId) marksFn({ data: { attempt_id: attemptId, marks: Array.from(n) } }).catch(() => {});
+      return n;
+    });
+  };
+
 
   const goto = (i: number) => { questionStartAt.current = Date.now(); setCurrent(i); };
 
