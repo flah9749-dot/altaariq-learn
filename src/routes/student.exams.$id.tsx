@@ -157,6 +157,12 @@ function TakeExamPage() {
             <p className="text-xs text-muted-foreground">السؤال {current + 1} من {shuffled.length}</p>
           </div>
           <div className="mr-auto flex items-center gap-2">
+            {saveState !== "idle" && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                {saveState === "saving" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 text-success" />}
+                {saveState === "saving" ? "جاري الحفظ..." : "تم الحفظ"}
+              </span>
+            )}
             <div className={`flex items-center gap-1 font-mono text-lg ${lowTime ? "text-destructive animate-pulse" : ""}`}>
               <Clock className="h-4 w-4" />{formatDuration(remaining)}
             </div>
@@ -167,7 +173,7 @@ function TakeExamPage() {
         </CardContent>
         <div className="px-4 pb-3">
           <Progress value={progressPct} className="h-2" />
-          <p className="text-xs text-muted-foreground mt-1">{answeredCount} / {shuffled.length} إجابة</p>
+          <p className="text-xs text-muted-foreground mt-1">{answeredCount} / {shuffled.length} إجابة · {reviewMarks.size} للمراجعة</p>
         </div>
       </Card>
 
@@ -179,9 +185,13 @@ function TakeExamPage() {
 
       <Card>
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge>{current + 1}</Badge>
             <Badge variant="outline">{q?.points} درجة</Badge>
+            <Button size="sm" variant={reviewMarks.has(q?.id) ? "default" : "outline"} className="mr-auto"
+              onClick={() => toggleReview(q.id)}>
+              {reviewMarks.has(q?.id) ? <><BookmarkCheck className="h-4 w-4 ml-1" />معلَّم للمراجعة</> : <><Bookmark className="h-4 w-4 ml-1" />علِّم للمراجعة</>}
+            </Button>
           </div>
           <p className="text-lg font-medium">{q?.text}</p>
           {q?.image_url && <img src={q.image_url} alt="" className="max-h-80 rounded-lg border" />}
@@ -202,19 +212,31 @@ function TakeExamPage() {
 
       <Card>
         <CardContent className="p-4">
-          <p className="text-sm font-medium mb-2">لوحة الأسئلة</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium">لوحة الأسئلة</p>
+            <div className="flex gap-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-success/20 border border-success/40"/>مجابة</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-warning/20 border border-warning/40"/>للمراجعة</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-muted border"/>لم تُجب</span>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-1.5">
-            {shuffled.map((sq: any, i: number) => (
-              <button
-                key={sq.id}
-                onClick={() => goto(i)}
-                className={`w-9 h-9 rounded-lg text-sm font-medium border transition-colors ${
-                  i === current ? "bg-primary text-primary-foreground border-primary" :
-                  answers[sq.id] != null && answers[sq.id] !== "" ? "bg-success/20 border-success/40 text-success" :
-                  "bg-muted border-border"
-                }`}
-              >{i + 1}</button>
-            ))}
+            {shuffled.map((sq: any, i: number) => {
+              const answered = answers[sq.id] != null && answers[sq.id] !== "";
+              const marked = reviewMarks.has(sq.id);
+              return (
+                <button key={sq.id} onClick={() => goto(i)}
+                  className={`w-9 h-9 rounded-lg text-sm font-medium border transition-colors relative ${
+                    i === current ? "bg-primary text-primary-foreground border-primary" :
+                    marked ? "bg-warning/20 border-warning/40 text-warning-foreground" :
+                    answered ? "bg-success/20 border-success/40 text-success" :
+                    "bg-muted border-border"
+                  }`}>
+                  {i + 1}
+                  {marked && <Bookmark className="h-2.5 w-2.5 absolute top-0.5 right-0.5" />}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -227,6 +249,7 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
     const o = q?.question_options ?? [];
     return shuffleOptions ? [...o].sort(() => Math.random() - 0.5) : [...o].sort((a: any, b: any) => a.order_index - b.order_index);
   }, [q, shuffleOptions]);
+
 
   switch (q?.type) {
     case "mcq":
