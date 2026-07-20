@@ -105,10 +105,8 @@ export const getFileUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     // increment counter
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.rpc("increment_file_download", { _file_id: data.id }).catch(async () => {
-      const { data: cur } = await supabaseAdmin.from("files").select("download_count").eq("id", data.id).maybeSingle();
-      await supabaseAdmin.from("files").update({ download_count: (cur?.download_count ?? 0) + 1 }).eq("id", data.id);
-    });
+    const { data: cur } = await supabaseAdmin.from("files").select("download_count").eq("id", data.id).maybeSingle();
+    await supabaseAdmin.from("files").update({ download_count: (cur?.download_count ?? 0) + 1 }).eq("id", data.id);
     return { url: signed.signedUrl };
   });
 
