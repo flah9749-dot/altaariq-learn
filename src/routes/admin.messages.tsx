@@ -44,7 +44,8 @@ function AdminMessagesPage() {
         .order("created_at", { ascending: false }).limit(1000);
       const map = new Map<string, { last: any; unread: number }>();
       for (const m of data ?? []) {
-        const other = m.sender_id === user!.id ? m.recipient_id : m.sender_id;
+        const other = (m.sender_id === user!.id ? m.recipient_id : m.sender_id) as string | null;
+        if (!other) continue;
         const cur = map.get(other) ?? { last: null, unread: 0 };
         if (!cur.last) cur.last = m;
         if (m.recipient_id === user!.id && !m.read) cur.unread++;
