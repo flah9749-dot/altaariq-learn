@@ -77,23 +77,24 @@ function TakeExamPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining]);
 
+  const ac = (exam?.anti_cheat ?? {}) as { track_leaves?: boolean; block_copy?: boolean; block_paste?: boolean };
+
   // Anti-cheat: track leaves
   useEffect(() => {
-    if (!attemptId || !exam?.anti_cheat?.track_leaves) return;
+    if (!attemptId || !ac.track_leaves) return;
     const onVis = () => { if (document.hidden) leaveFn({ data: { attempt_id: attemptId } }).catch(() => {}); };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
-  }, [attemptId, exam?.anti_cheat, leaveFn]);
+  }, [attemptId, ac.track_leaves, leaveFn]);
 
   // Anti-cheat: copy/paste blocking
   useEffect(() => {
-    if (!exam?.anti_cheat) return;
-    const onCopy = (e: ClipboardEvent) => { if (exam.anti_cheat.block_copy) e.preventDefault(); };
-    const onPaste = (e: ClipboardEvent) => { if (exam.anti_cheat.block_paste) e.preventDefault(); };
+    const onCopy = (e: ClipboardEvent) => { if (ac.block_copy) e.preventDefault(); };
+    const onPaste = (e: ClipboardEvent) => { if (ac.block_paste) e.preventDefault(); };
     document.addEventListener("copy", onCopy);
     document.addEventListener("paste", onPaste);
     return () => { document.removeEventListener("copy", onCopy); document.removeEventListener("paste", onPaste); };
-  }, [exam?.anti_cheat]);
+  }, [ac.block_copy, ac.block_paste]);
 
   const shuffled = useMemo(() => {
     if (!questions) return [];
