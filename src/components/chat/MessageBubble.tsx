@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fileIconFor, humanSize, formatChatDetailedTime, isImageMime } from "@/lib/message-utils";
 import { Check, CheckCheck, Download, Reply, Trash2 } from "lucide-react";
@@ -104,32 +104,33 @@ export function MessageBubble({ m, own, onReply, onDelete }: Props) {
   );
 }
 
-function AttachmentImage({ m }: { m: any }) {
+function useSignedUrl(path: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
-  useState(() => {
-    supabase.storage.from("chat-files").createSignedUrl(m.attachment_url, 3600).then(({ data }) => data && setUrl(data.signedUrl));
-    return undefined;
-  });
+  useEffect(() => {
+    if (!path) return;
+    let cancelled = false;
+    supabase.storage.from("chat-files").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled && data) setUrl(data.signedUrl);
+    });
+    return () => { cancelled = true; };
+  }, [path]);
+  return url;
+}
+
+function AttachmentImage({ m }: { m: any }) {
+  const url = useSignedUrl(m.attachment_url);
   return url
     ? <img src={url} alt={m.attachment_name ?? ""} loading="lazy" className="max-h-64 object-cover w-full" />
     : <div className="h-32 w-64 bg-muted animate-pulse" />;
 }
 
 function AttachmentAudio({ m }: { m: any }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useState(() => {
-    supabase.storage.from("chat-files").createSignedUrl(m.attachment_url, 3600).then(({ data }) => data && setUrl(data.signedUrl));
-    return undefined;
-  });
+  const url = useSignedUrl(m.attachment_url);
   return url ? <audio src={url} controls className="max-w-full" /> : <div className="h-10 w-56 bg-muted animate-pulse rounded" />;
 }
 
 function AttachmentVideo({ m }: { m: any }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useState(() => {
-    supabase.storage.from("chat-files").createSignedUrl(m.attachment_url, 3600).then(({ data }) => data && setUrl(data.signedUrl));
-    return undefined;
-  });
+  const url = useSignedUrl(m.attachment_url);
   return url
     ? <video src={url} controls className="max-h-64 w-full rounded" />
     : <div className="h-40 w-64 bg-muted animate-pulse rounded" />;

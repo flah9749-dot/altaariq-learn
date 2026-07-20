@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth-context";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageComposer } from "@/components/chat/MessageComposer";
 import { CameraDialog } from "@/components/chat/CameraDialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,30 +211,28 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         </div>
       )}
 
-      <ScrollArea className="flex-1" ref={scrollRef as any}>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 space-y-2 bg-gradient-to-b from-muted/20 to-background min-h-[300px]">
-          {isLoading ? (
-            <div className="p-4 space-y-2">
-              <Skeleton className="h-12 w-64" /><Skeleton className="h-12 w-72 ms-auto" /><Skeleton className="h-12 w-56" />
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 space-y-2 bg-gradient-to-b from-muted/20 to-background min-h-[300px]">
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-12 w-64" /><Skeleton className="h-12 w-72 ms-auto" /><Skeleton className="h-12 w-56" />
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground text-sm">
+            <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
+            {search ? "لا توجد نتائج" : "ابدأ المحادثة بإرسال رسالة"}
+          </div>
+        ) : grouped.map((g) => (
+          <div key={g.day} className="space-y-2">
+            <div className="text-center">
+              <Badge variant="secondary" className="text-[10px]">{g.day}</Badge>
             </div>
-          ) : visible.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground text-sm">
-              <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              {search ? "لا توجد نتائج" : "ابدأ المحادثة بإرسال رسالة"}
-            </div>
-          ) : grouped.map((g) => (
-            <div key={g.day} className="space-y-2">
-              <div className="text-center">
-                <Badge variant="secondary" className="text-[10px]">{g.day}</Badge>
-              </div>
-              {g.items.map((m: any) => (
-                <MessageBubble key={m.id} m={m} own={m.sender_id === user?.id} onReply={setReply} onDelete={(x) => del.mutate(x)} />
-              ))}
-            </div>
-          ))}
-          {send.isPending && <div className="flex justify-end px-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/></div>}
-        </div>
-      </ScrollArea>
+            {g.items.map((m: any) => (
+              <MessageBubble key={m.id} m={m} own={m.sender_id === user?.id} onReply={setReply} onDelete={(x) => del.mutate(x)} />
+            ))}
+          </div>
+        ))}
+        {send.isPending && <div className="flex justify-end px-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/></div>}
+      </div>
 
       <div onKeyDown={notifyTyping}>
         <MessageComposer
