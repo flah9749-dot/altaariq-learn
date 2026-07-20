@@ -17,9 +17,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentIndexRouteImport } from './routes/student.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
+import { Route as StudentPointsRouteImport } from './routes/student.points'
 import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
+import { Route as StudentAchievementsRouteImport } from './routes/student.achievements'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
@@ -30,6 +32,7 @@ import { Route as AdminLeaderboardRouteImport } from './routes/admin.leaderboard
 import { Route as AdminFilesRouteImport } from './routes/admin.files'
 import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminCompetitionsRouteImport } from './routes/admin.competitions'
 import { Route as AdminClassesRouteImport } from './routes/admin.classes'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as StudentExamsIdRouteImport } from './routes/student.exams.$id'
@@ -81,6 +84,11 @@ const StudentRewardsRoute = StudentRewardsRouteImport.update({
   path: '/rewards',
   getParentRoute: () => StudentRoute,
 } as any)
+const StudentPointsRoute = StudentPointsRouteImport.update({
+  id: '/points',
+  path: '/points',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentMessagesRoute = StudentMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -94,6 +102,11 @@ const StudentExamsRoute = StudentExamsRouteImport.update({
 const StudentDashboardRoute = StudentDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentAchievementsRoute = StudentAchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
   getParentRoute: () => StudentRoute,
 } as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
@@ -144,6 +157,11 @@ const AdminExamsRoute = AdminExamsRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompetitionsRoute = AdminCompetitionsRouteImport.update({
+  id: '/competitions',
+  path: '/competitions',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminClassesRoute = AdminClassesRouteImport.update({
@@ -206,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/student': typeof StudentRouteWithChildren
   '/admin/ai': typeof AdminAiRoute
   '/admin/classes': typeof AdminClassesRoute
+  '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
@@ -216,9 +235,11 @@ export interface FileRoutesByFullPath {
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
+  '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -237,6 +258,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/admin/ai': typeof AdminAiRoute
   '/admin/classes': typeof AdminClassesRoute
+  '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
@@ -247,9 +269,11 @@ export interface FileRoutesByTo {
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
+  '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
@@ -271,6 +295,7 @@ export interface FileRoutesById {
   '/student': typeof StudentRouteWithChildren
   '/admin/ai': typeof AdminAiRoute
   '/admin/classes': typeof AdminClassesRoute
+  '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
@@ -281,9 +306,11 @@ export interface FileRoutesById {
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
+  '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -306,6 +333,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/admin/ai'
     | '/admin/classes'
+    | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
@@ -316,9 +344,11 @@ export interface FileRouteTypes {
     | '/admin/rewards'
     | '/admin/settings'
     | '/admin/students'
+    | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
+    | '/student/points'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -337,6 +367,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/admin/ai'
     | '/admin/classes'
+    | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
@@ -347,9 +378,11 @@ export interface FileRouteTypes {
     | '/admin/rewards'
     | '/admin/settings'
     | '/admin/students'
+    | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
+    | '/student/points'
     | '/student/rewards'
     | '/admin'
     | '/student'
@@ -370,6 +403,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/admin/ai'
     | '/admin/classes'
+    | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
@@ -380,9 +414,11 @@ export interface FileRouteTypes {
     | '/admin/rewards'
     | '/admin/settings'
     | '/admin/students'
+    | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
+    | '/student/points'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -462,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentRewardsRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/student/points': {
+      id: '/student/points'
+      path: '/points'
+      fullPath: '/student/points'
+      preLoaderRoute: typeof StudentPointsRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/messages': {
       id: '/student/messages'
       path: '/messages'
@@ -481,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/student/dashboard'
       preLoaderRoute: typeof StudentDashboardRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/achievements': {
+      id: '/student/achievements'
+      path: '/achievements'
+      fullPath: '/student/achievements'
+      preLoaderRoute: typeof StudentAchievementsRouteImport
       parentRoute: typeof StudentRoute
     }
     '/admin/students': {
@@ -551,6 +601,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/competitions': {
+      id: '/admin/competitions'
+      path: '/competitions'
+      fullPath: '/admin/competitions'
+      preLoaderRoute: typeof AdminCompetitionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/classes': {
@@ -679,6 +736,7 @@ const AdminStudentsRouteWithChildren = AdminStudentsRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminAiRoute: typeof AdminAiRoute
   AdminClassesRoute: typeof AdminClassesRoute
+  AdminCompetitionsRoute: typeof AdminCompetitionsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminExamsRoute: typeof AdminExamsRouteWithChildren
   AdminFilesRoute: typeof AdminFilesRoute
@@ -695,6 +753,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAiRoute: AdminAiRoute,
   AdminClassesRoute: AdminClassesRoute,
+  AdminCompetitionsRoute: AdminCompetitionsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminExamsRoute: AdminExamsRouteWithChildren,
   AdminFilesRoute: AdminFilesRoute,
@@ -737,17 +796,21 @@ const StudentExamsRouteWithChildren = StudentExamsRoute._addFileChildren(
 )
 
 interface StudentRouteChildren {
+  StudentAchievementsRoute: typeof StudentAchievementsRoute
   StudentDashboardRoute: typeof StudentDashboardRoute
   StudentExamsRoute: typeof StudentExamsRouteWithChildren
   StudentMessagesRoute: typeof StudentMessagesRoute
+  StudentPointsRoute: typeof StudentPointsRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
   StudentIndexRoute: typeof StudentIndexRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
+  StudentAchievementsRoute: StudentAchievementsRoute,
   StudentDashboardRoute: StudentDashboardRoute,
   StudentExamsRoute: StudentExamsRouteWithChildren,
   StudentMessagesRoute: StudentMessagesRoute,
+  StudentPointsRoute: StudentPointsRoute,
   StudentRewardsRoute: StudentRewardsRoute,
   StudentIndexRoute: StudentIndexRoute,
 }

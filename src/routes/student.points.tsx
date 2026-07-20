@@ -46,7 +46,7 @@ function PointsPage() {
             </div>
             <div className="text-right">
               <p className="text-sm opacity-80">المستوى الحالي</p>
-              <p className="text-2xl font-bold mt-1" style={{ color: currentLvl?.color }}>{currentLvl?.name ?? `مستوى ${level}`}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: currentLvl?.color ?? undefined }}>{currentLvl?.name ?? `مستوى ${level}`}</p>
             </div>
           </div>
           {nextLvl && (

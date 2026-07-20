@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, MessageSquare, Award, LogOut } from "lucide-react";
+import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ const nav = [
   { title: "الرئيسية", url: "/student/dashboard", icon: Home },
   { title: "الامتحانات", url: "/student/exams", icon: FileText },
   { title: "الجوائز", url: "/student/rewards", icon: Award },
+  { title: "نقاطي", url: "/student/points", icon: Star },
+  { title: "الإنجازات", url: "/student/achievements", icon: Trophy },
   { title: "الرسائل", url: "/student/messages", icon: MessageSquare },
 ];
 
