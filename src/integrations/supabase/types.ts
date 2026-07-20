@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          active: boolean
+          color: string | null
+          condition_type: string | null
+          condition_value: number | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          name: string
+          points_reward: number | null
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          condition_type?: string | null
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          name: string
+          points_reward?: number | null
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          condition_type?: string | null
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          name?: string
+          points_reward?: number | null
+        }
+        Relationships: []
+      }
       activity_log: {
         Row: {
           action: string
@@ -294,6 +336,45 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          active: boolean
+          color: string | null
+          condition_type: string | null
+          condition_value: number | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          condition_type?: string | null
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          condition_type?: string | null
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classes: {
         Row: {
           created_at: string
@@ -309,6 +390,96 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      competition_participants: {
+        Row: {
+          competition_id: string
+          created_at: string
+          id: string
+          is_winner: boolean
+          rank: number | null
+          score: number
+          student_id: string
+        }
+        Insert: {
+          competition_id: string
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          rank?: number | null
+          score?: number
+          student_id: string
+        }
+        Update: {
+          competition_id?: string
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          rank?: number | null
+          score?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_participants_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competition_participants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitions: {
+        Row: {
+          active: boolean
+          bonus_points: number
+          created_at: string
+          description: string | null
+          ends_at: string
+          id: string
+          name: string
+          prize: string | null
+          starts_at: string
+          type: string
+          updated_at: string
+          winners_count: number
+        }
+        Insert: {
+          active?: boolean
+          bonus_points?: number
+          created_at?: string
+          description?: string | null
+          ends_at: string
+          id?: string
+          name: string
+          prize?: string | null
+          starts_at: string
+          type?: string
+          updated_at?: string
+          winners_count?: number
+        }
+        Update: {
+          active?: boolean
+          bonus_points?: number
+          created_at?: string
+          description?: string | null
+          ends_at?: string
+          id?: string
+          name?: string
+          prize?: string | null
+          starts_at?: string
+          type?: string
+          updated_at?: string
+          winners_count?: number
         }
         Relationships: []
       }
@@ -586,6 +757,42 @@ export type Database = {
           },
         ]
       }
+      levels: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          min_points: number
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          min_points?: number
+          name: string
+          order_index: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          min_points?: number
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           body: string
@@ -720,26 +927,71 @@ export type Database = {
         }
         Relationships: []
       }
-      points_log: {
+      point_rules: {
         Row: {
+          active: boolean
           created_at: string
           id: string
+          key: string
+          kind: string
+          label: string
+          points: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          kind?: string
+          label: string
+          points?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          kind?: string
+          label?: string
+          points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      points_log: {
+        Row: {
+          awarded_by: string | null
+          created_at: string
+          id: string
+          kind: string
           points: number
           reason: string | null
+          ref_id: string | null
+          ref_type: string | null
           student_id: string
         }
         Insert: {
+          awarded_by?: string | null
           created_at?: string
           id?: string
+          kind?: string
           points: number
           reason?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
           student_id: string
         }
         Update: {
+          awarded_by?: string | null
           created_at?: string
           id?: string
+          kind?: string
           points?: number
           reason?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
           student_id?: string
         }
         Relationships: [
@@ -891,6 +1143,90 @@ export type Database = {
           },
         ]
       }
+      reward_catalog: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          points_cost: number
+          stock: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          points_cost?: number
+          stock?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          points_cost?: number
+          stock?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reward_redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          points_spent: number
+          reward_id: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_spent: number
+          reward_id: string
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          points_spent?: number
+          reward_id?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "reward_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_redemptions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rewards: {
         Row: {
           created_at: string
@@ -946,6 +1282,78 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      student_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_achievements_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_badges_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
@@ -1076,6 +1484,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recompute_student_level: {
+        Args: { _student_id: string }
+        Returns: undefined
       }
     }
     Enums: {
