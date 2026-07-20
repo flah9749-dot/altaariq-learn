@@ -345,3 +345,173 @@ export const gradeEssay = createServerFn({ method: "POST" })
     }).eq("id", data.attempt_id);
     return { ok: true, score, percentage: pct };
   });
+
+// ---------------- Phase 4: Approve / edit / reopen / AI grade ----------------
+
+async function logActivity(supabaseAdmin: any, userId: string, action: string, entity_type: string, entity_id: string, details: any = {}) {
+  try { await supabaseAdmin.from("activity_log").insert({ user_id: userId, action, entity_type, entity_id, details }); } catch { /* ignore */ }
+}
+
+async function awardAttemptPoints(supabaseAdmin: any, attempt: any): Promise<number> {
+  const { data: cfg } = await supabaseAdmin.from("settings").select("value").eq("key", "points_config").maybeSingle();
+  const c = cfg?.value ?? { per_percent: 1, bonus_pass: 10, bonus_excellent: 25 };
+  const pct = Number(attempt.percentage) || 0;
+  let pts = Math.round(pct * (c.per_percent ?? 1));
+  if (pct >= 50) pts += Number(c.bonus_pass ?? 0);
+  if (pct >= 85) pts += Number(c.bonus_excellent ?? 0);
+  return pts;
+}
+
+export const approveAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    admin_notes: z.string().nullable().optional(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: att } = await supabaseAdmin.from("exam_attempts")
+      .select("id,student_id,exam_id,percentage,approved,points_awarded,exams(title)").eq("id", data.attempt_id).maybeSingle();
+    if (!att) throw new Error("المحاولة غير موجودة");
+    if (att.approved) throw new Error("النتيجة معتمدة مسبقًا");
+
+    const pts = await awardAttemptPoints(supabaseAdmin, att);
+    await supabaseAdmin.from("exam_attempts").update({
+      approved: true, approved_at: new Date().toISOString(), approved_by: context.userId,
+      admin_notes: data.admin_notes ?? null, points_awarded: pts, status: "graded",
+    }).eq("id", data.attempt_id);
+
+    if (pts > 0) {
+      await supabaseAdmin.from("points_log").insert({
+        student_id: att.student_id, points: pts,
+        reason: `اعتماد نتيجة امتحان: ${att.exams?.title ?? ""}`,
+      });
+      const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
+      const total = (Number(stu?.points) || 0) + pts;
+      const level = Math.max(1, Math.floor(total / 100) + 1);
+      await supabaseAdmin.from("students").update({ points: total, level }).eq("id", att.student_id);
+    }
+
+    await logActivity(supabaseAdmin, context.userId, "approve_attempt", "exam_attempt", att.id, { points_awarded: pts });
+    return { ok: true, points_awarded: pts };
+  });
+
+export const updateAttemptScore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    score: z.number().min(0),
+    admin_notes: z.string().nullable().optional(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: att } = await supabaseAdmin.from("exam_attempts").select("total,approved").eq("id", data.attempt_id).maybeSingle();
+    if (!att) throw new Error("المحاولة غير موجودة");
+    if (att.approved) throw new Error("لا يمكن تعديل نتيجة معتمدة، افتحها للتعديل أولًا");
+    const total = Number(att.total) || 0;
+    const pct = total > 0 ? Math.round((data.score / total) * 10000) / 100 : 0;
+    await supabaseAdmin.from("exam_attempts").update({
+      score: data.score, percentage: pct, grade: computeGrade(pct),
+      admin_notes: data.admin_notes ?? null,
+    }).eq("id", data.attempt_id);
+    await logActivity(supabaseAdmin, context.userId, "edit_score", "exam_attempt", data.attempt_id, { new_score: data.score });
+    return { ok: true };
+  });
+
+export const reopenAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Revert points if any
+    const { data: att } = await supabaseAdmin.from("exam_attempts").select("id,student_id,points_awarded,approved").eq("id", data.attempt_id).maybeSingle();
+    if (!att) throw new Error("المحاولة غير موجودة");
+    if ((Number(att.points_awarded) || 0) > 0) {
+      const pts = -Number(att.points_awarded);
+      await supabaseAdmin.from("points_log").insert({ student_id: att.student_id, points: pts, reason: "إعادة فتح امتحان — إلغاء النقاط" });
+      const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
+      const total = Math.max(0, (Number(stu?.points) || 0) + pts);
+      await supabaseAdmin.from("students").update({ points: total, level: Math.max(1, Math.floor(total / 100) + 1) }).eq("id", att.student_id);
+    }
+    await supabaseAdmin.from("exam_attempts").update({
+      status: "in_progress", approved: false, approved_at: null, approved_by: null,
+      points_awarded: 0, submitted_at: null, needs_review: false,
+    }).eq("id", data.attempt_id);
+    await logActivity(supabaseAdmin, context.userId, "reopen_attempt", "exam_attempt", data.attempt_id);
+    return { ok: true };
+  });
+
+export const aiSuggestEssayGrade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    question_id: z.string().uuid(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: q } = await supabaseAdmin.from("questions").select("text,points,explanation,correct_answer").eq("id", data.question_id).maybeSingle();
+    const { data: a } = await supabaseAdmin.from("attempt_answers").select("answer").eq("attempt_id", data.attempt_id).eq("question_id", data.question_id).maybeSingle();
+    if (!q || !a) throw new Error("لم يتم العثور على السؤال أو الإجابة");
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("مفتاح الذكاء الاصطناعي غير مهيأ");
+
+    const studentAns = typeof a.answer === "string" ? a.answer : JSON.stringify(a.answer);
+    const prompt = `أنت مصحّح خبير في مادة الدراسات الاجتماعية.
+السؤال: ${q.text}
+الدرجة الكلية: ${q.points}
+الإجابة النموذجية/الشرح: ${q.correct_answer ?? q.explanation ?? "غير محدد"}
+إجابة الطالب: ${studentAns}
+
+أعطِ درجة رقمية بين 0 و ${q.points} (يُسمح بالكسور)، وتغذية راجعة قصيرة بالعربية.
+أعِد الرد بصيغة JSON فقط: {"score": number, "feedback": "..."}`;
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!resp.ok) throw new Error(`فشل الاتصال بالذكاء الاصطناعي (${resp.status})`);
+    const j = await resp.json();
+    let parsed: any = {};
+    try { parsed = JSON.parse(j.choices?.[0]?.message?.content ?? "{}"); } catch { /* ignore */ }
+    const score = Math.max(0, Math.min(Number(q.points), Number(parsed.score) || 0));
+    const feedback = String(parsed.feedback ?? "");
+
+    await supabaseAdmin.from("attempt_answers").update({
+      ai_suggested_points: score, ai_feedback: feedback,
+    }).eq("attempt_id", data.attempt_id).eq("question_id", data.question_id);
+
+    return { score, feedback };
+  });
+
+export const saveReviewMarks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    marks: z.array(z.string()),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase.from("exam_attempts").update({ review_marks: data.marks }).eq("id", data.attempt_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const sendWhatsAppLog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ student_id: z.string().uuid(), exam_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await logActivity(supabaseAdmin, context.userId, "send_whatsapp_result", "student", data.student_id, { exam_id: data.exam_id });
+    return { ok: true };
+  });
