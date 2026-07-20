@@ -179,7 +179,9 @@ export type Database = {
       }
       attempt_answers: {
         Row: {
+          ai_feedback: string | null
           ai_reasoning: string | null
+          ai_suggested_points: number | null
           answer: Json | null
           attempt_id: string
           awarded_points: number | null
@@ -190,7 +192,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_feedback?: string | null
           ai_reasoning?: string | null
+          ai_suggested_points?: number | null
           answer?: Json | null
           attempt_id: string
           awarded_points?: number | null
@@ -201,7 +205,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_feedback?: string | null
           ai_reasoning?: string | null
+          ai_suggested_points?: number | null
           answer?: Json | null
           attempt_id?: string
           awarded_points?: number | null
@@ -248,6 +254,10 @@ export type Database = {
       }
       exam_attempts: {
         Row: {
+          admin_notes: string | null
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           device_info: Json | null
           exam_id: string
@@ -257,6 +267,8 @@ export type Database = {
           leave_events: number
           needs_review: boolean
           percentage: number
+          points_awarded: number
+          review_marks: Json
           score: number
           started_at: string
           status: string
@@ -269,6 +281,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           device_info?: Json | null
           exam_id: string
@@ -278,6 +294,8 @@ export type Database = {
           leave_events?: number
           needs_review?: boolean
           percentage?: number
+          points_awarded?: number
+          review_marks?: Json
           score?: number
           started_at?: string
           status?: string
@@ -290,6 +308,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           device_info?: Json | null
           exam_id?: string
@@ -299,6 +321,8 @@ export type Database = {
           leave_events?: number
           needs_review?: boolean
           percentage?: number
+          points_awarded?: number
+          review_marks?: Json
           score?: number
           started_at?: string
           status?: string
