@@ -173,3 +173,10 @@
     font-family: var(--font-sans);
   }
 }
+
+@media print {
+  body { background: white !important; }
+  [data-sidebar], header, .print\:hidden { display: none !important; }
+  main { padding: 0 !important; }
+}
+
