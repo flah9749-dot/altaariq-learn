@@ -31,6 +31,7 @@ import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminClassesRouteImport } from './routes/admin.classes'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
+import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id'
 
 const StudentRoute = StudentRouteImport.update({
   id: '/student',
@@ -142,6 +143,11 @@ const AdminAiRoute = AdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStudentsIdRoute = AdminStudentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminStudentsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,13 +165,14 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/students': typeof AdminStudentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
+  '/admin/students/$id': typeof AdminStudentsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,13 +188,14 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/students': typeof AdminStudentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
+  '/admin/students/$id': typeof AdminStudentsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,13 +214,14 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/students': typeof AdminStudentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
+  '/admin/students/$id': typeof AdminStudentsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/student/rewards'
     | '/admin/'
     | '/student/'
+    | '/admin/students/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/student/rewards'
     | '/admin'
     | '/student'
+    | '/admin/students/$id'
   id:
     | '__root__'
     | '/'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/student/rewards'
     | '/admin/'
     | '/student/'
+    | '/admin/students/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -451,8 +463,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/students/$id': {
+      id: '/admin/students/$id'
+      path: '/$id'
+      fullPath: '/admin/students/$id'
+      preLoaderRoute: typeof AdminStudentsIdRouteImport
+      parentRoute: typeof AdminStudentsRoute
+    }
   }
 }
+
+interface AdminStudentsRouteChildren {
+  AdminStudentsIdRoute: typeof AdminStudentsIdRoute
+}
+
+const AdminStudentsRouteChildren: AdminStudentsRouteChildren = {
+  AdminStudentsIdRoute: AdminStudentsIdRoute,
+}
+
+const AdminStudentsRouteWithChildren = AdminStudentsRoute._addFileChildren(
+  AdminStudentsRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminAiRoute: typeof AdminAiRoute
@@ -465,7 +496,7 @@ interface AdminRouteChildren {
   AdminReportsRoute: typeof AdminReportsRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminStudentsRoute: typeof AdminStudentsRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -480,7 +511,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReportsRoute: AdminReportsRoute,
   AdminRewardsRoute: AdminRewardsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
-  AdminStudentsRoute: AdminStudentsRoute,
+  AdminStudentsRoute: AdminStudentsRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
 }
 

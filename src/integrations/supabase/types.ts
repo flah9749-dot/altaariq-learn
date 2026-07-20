@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          meta: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          meta?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          meta?: Json
+        }
+        Relationships: []
+      }
       admins: {
         Row: {
           avatar_url: string | null
@@ -446,56 +476,77 @@ export type Database = {
       }
       students: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          birth_date: string | null
           class_id: string | null
           code: string
           created_at: string
           full_name: string
+          gender: string | null
           group_id: string | null
           id: string
           is_online: boolean
           last_seen: string | null
           level: number
+          notes: string | null
           parent_name: string | null
           parent_phone: string | null
           parent_whatsapp: string | null
+          phone: string | null
           points: number
+          seat_number: string | null
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
           class_id?: string | null
           code: string
           created_at?: string
           full_name: string
+          gender?: string | null
           group_id?: string | null
           id?: string
           is_online?: boolean
           last_seen?: string | null
           level?: number
+          notes?: string | null
           parent_name?: string | null
           parent_phone?: string | null
           parent_whatsapp?: string | null
+          phone?: string | null
           points?: number
+          seat_number?: string | null
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
           class_id?: string | null
           code?: string
           created_at?: string
           full_name?: string
+          gender?: string | null
           group_id?: string | null
           id?: string
           is_online?: boolean
           last_seen?: string | null
           level?: number
+          notes?: string | null
           parent_name?: string | null
           parent_phone?: string | null
           parent_whatsapp?: string | null
+          phone?: string | null
           points?: number
+          seat_number?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
