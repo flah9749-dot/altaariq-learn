@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Loader2, AlertCircle, Bookmark, BookmarkCheck, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { startAttempt, saveAnswer, submitAttempt, recordLeave } from "@/lib/exams.functions";
+import { startAttempt, saveAnswer, submitAttempt, recordLeave, saveReviewMarks } from "@/lib/exams.functions";
 import { formatDuration } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/student/exams/$id")({
@@ -31,12 +31,15 @@ function TakeExamPage() {
   const saveFn = useServerFn(saveAnswer);
   const submitFn = useServerFn(submitAttempt);
   const leaveFn = useServerFn(recordLeave);
+  const marksFn = useServerFn(saveReviewMarks);
 
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [reviewMarks, setReviewMarks] = useState<Set<string>>(new Set());
   const [current, setCurrent] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const startedAt = useRef(Date.now());
   const questionStartAt = useRef(Date.now());
 
