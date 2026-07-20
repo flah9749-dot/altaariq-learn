@@ -130,7 +130,7 @@ function TakeExamPage() {
   const lowTime = remaining < 60;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4" style={{ userSelect: exam.anti_cheat?.block_copy ? "none" : undefined }}>
+    <div className="max-w-4xl mx-auto space-y-4" style={{ userSelect: ac.block_copy ? "none" : undefined }}>
       <Card className="sticky top-0 z-10 shadow-md">
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <div>
