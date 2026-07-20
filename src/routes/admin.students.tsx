@@ -34,6 +34,7 @@ import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export const Route = createFileRoute("/admin/students")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
@@ -58,6 +59,8 @@ function StudentsPage() {
   const delFn = useServerFn(deleteStudents);
   const toggleFn = useServerFn(toggleStudentStatus);
 
+  const debouncedSearch = useDebounce(search, 350);
+
   const { data: classes } = useQuery({
     queryKey: ["classes-list"],
     queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [],
@@ -68,7 +71,7 @@ function StudentsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["students", search, classFilter, groupFilter, statusFilter, page],
+    queryKey: ["students", debouncedSearch, classFilter, groupFilter, statusFilter, page],
     queryFn: async () => {
       let q = supabase
         .from("students")
@@ -78,14 +81,15 @@ function StudentsPage() {
       if (classFilter) q = q.eq("class_id", classFilter);
       if (groupFilter) q = q.eq("group_id", groupFilter);
       if (statusFilter) q = q.eq("status", statusFilter);
-      if (search.trim()) {
-        const s = `%${search.trim()}%`;
+      if (debouncedSearch.trim()) {
+        const s = `%${debouncedSearch.trim()}%`;
         q = q.or(`full_name.ilike.${s},code.ilike.${s},phone.ilike.${s},parent_name.ilike.${s},parent_phone.ilike.${s}`);
       }
       const { data, count, error } = await q;
       if (error) throw error;
       return { rows: (data ?? []) as unknown as StudentRow[], count: count ?? 0 };
     },
+    placeholderData: (prev) => prev,
   });
 
   const rows = data?.rows ?? [];

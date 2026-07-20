@@ -227,7 +227,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
               <Badge variant="secondary" className="text-[10px]">{g.day}</Badge>
             </div>
             {g.items.map((m: any) => (
-              <MessageBubble key={m.id} m={m} own={m.sender_id === user?.id} onReply={setReply} onDelete={(x) => del.mutate(x)} />
+              <MessageBubble key={m.id} m={m} own={m.sender_id === user?.id} onReply={setReply} onDelete={del.mutate} />
             ))}
           </div>
         ))}

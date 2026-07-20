@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fileIconFor, humanSize, formatChatDetailedTime, isImageMime } from "@/lib/message-utils";
 import { Check, CheckCheck, Download, Reply, Trash2 } from "lucide-react";
@@ -12,7 +12,7 @@ interface Props {
   onDelete?: (m: any) => void;
 }
 
-export function MessageBubble({ m, own, onReply, onDelete }: Props) {
+function MessageBubbleImpl({ m, own, onReply, onDelete }: Props) {
   const [signed, setSigned] = useState<string | null>(null);
 
   const loadUrl = async (): Promise<string | null> => {
@@ -103,6 +103,18 @@ export function MessageBubble({ m, own, onReply, onDelete }: Props) {
     </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleImpl, (a, b) =>
+  a.own === b.own &&
+  a.onReply === b.onReply &&
+  a.onDelete === b.onDelete &&
+  a.m?.id === b.m?.id &&
+  a.m?.read_at === b.m?.read_at &&
+  a.m?.delivered_at === b.m?.delivered_at &&
+  a.m?.deleted_at === b.m?.deleted_at &&
+  a.m?.body === b.m?.body &&
+  a.m?.attachment_url === b.m?.attachment_url,
+);
 
 function useSignedUrl(path: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
