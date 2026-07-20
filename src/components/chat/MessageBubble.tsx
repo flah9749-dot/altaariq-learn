@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fileIconFor, humanSize, formatChatDetailedTime, isImageMime } from "@/lib/message-utils";
 import { Check, CheckCheck, Download, Reply, Trash2 } from "lucide-react";
@@ -12,7 +12,7 @@ interface Props {
   onDelete?: (m: any) => void;
 }
 
-export function MessageBubble({ m, own, onReply, onDelete }: Props) {
+function MessageBubbleImpl({ m, own, onReply, onDelete }: Props) {
   const [signed, setSigned] = useState<string | null>(null);
 
   const loadUrl = async (): Promise<string | null> => {
