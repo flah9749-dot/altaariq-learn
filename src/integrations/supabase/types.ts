@@ -177,6 +177,57 @@ export type Database = {
           },
         ]
       }
+      attempt_answers: {
+        Row: {
+          ai_reasoning: string | null
+          answer: Json | null
+          attempt_id: string
+          awarded_points: number | null
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          time_spent_sec: number
+          updated_at: string
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          answer?: Json | null
+          attempt_id: string
+          awarded_points?: number | null
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          time_spent_sec?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_reasoning?: string | null
+          answer?: Json | null
+          attempt_id?: string
+          awarded_points?: number | null
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          time_spent_sec?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string
@@ -195,38 +246,166 @@ export type Database = {
         }
         Relationships: []
       }
-      exams: {
+      exam_attempts: {
         Row: {
           created_at: string
-          description: string | null
-          ends_at: string | null
+          device_info: Json | null
+          exam_id: string
+          grade: string | null
           id: string
-          published: boolean
-          starts_at: string | null
-          title: string
+          ip: string | null
+          leave_events: number
+          needs_review: boolean
+          percentage: number
+          score: number
+          started_at: string
+          status: string
+          student_id: string
+          submitted_at: string | null
+          time_spent_sec: number
+          total: number
           updated_at: string
+          user_agent: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
-          description?: string | null
-          ends_at?: string | null
+          device_info?: Json | null
+          exam_id: string
+          grade?: string | null
           id?: string
-          published?: boolean
-          starts_at?: string | null
-          title: string
+          ip?: string | null
+          leave_events?: number
+          needs_review?: boolean
+          percentage?: number
+          score?: number
+          started_at?: string
+          status?: string
+          student_id: string
+          submitted_at?: string | null
+          time_spent_sec?: number
+          total?: number
           updated_at?: string
+          user_agent?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
-          description?: string | null
-          ends_at?: string | null
+          device_info?: Json | null
+          exam_id?: string
+          grade?: string | null
           id?: string
+          ip?: string | null
+          leave_events?: number
+          needs_review?: boolean
+          percentage?: number
+          score?: number
+          started_at?: string
+          status?: string
+          student_id?: string
+          submitted_at?: string | null
+          time_spent_sec?: number
+          total?: number
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          anti_cheat: Json
+          attempts_allowed: number
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_minutes: number
+          ends_at: string | null
+          group_ids: string[]
+          id: string
+          num_variants: number
+          published: boolean
+          show_result_mode: string
+          shuffle_options: boolean
+          shuffle_questions: boolean
+          starts_at: string | null
+          status: string
+          subject: string | null
+          title: string
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          anti_cheat?: Json
+          attempts_allowed?: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number
+          ends_at?: string | null
+          group_ids?: string[]
+          id?: string
+          num_variants?: number
           published?: boolean
+          show_result_mode?: string
+          shuffle_options?: boolean
+          shuffle_questions?: boolean
           starts_at?: string | null
-          title?: string
+          status?: string
+          subject?: string | null
+          title: string
+          total_score?: number
           updated_at?: string
         }
-        Relationships: []
+        Update: {
+          anti_cheat?: Json
+          attempts_allowed?: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number
+          ends_at?: string | null
+          group_ids?: string[]
+          id?: string
+          num_variants?: number
+          published?: boolean
+          show_result_mode?: string
+          shuffle_options?: boolean
+          shuffle_questions?: boolean
+          starts_at?: string | null
+          status?: string
+          subject?: string | null
+          title?: string
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       files: {
         Row: {
@@ -372,6 +551,103 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_options: {
+        Row: {
+          id: string
+          image_url: string | null
+          is_correct: boolean
+          match_key: string | null
+          order_index: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          id?: string
+          image_url?: string | null
+          is_correct?: boolean
+          match_key?: string | null
+          order_index?: number
+          question_id: string
+          text: string
+        }
+        Update: {
+          id?: string
+          image_url?: string | null
+          is_correct?: boolean
+          match_key?: string | null
+          order_index?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_answer: Json | null
+          created_at: string
+          difficulty: string | null
+          exam_id: string
+          explanation: string | null
+          file_url: string | null
+          id: string
+          image_url: string | null
+          order_index: number
+          points: number
+          suggested_time_sec: number | null
+          text: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          correct_answer?: Json | null
+          created_at?: string
+          difficulty?: string | null
+          exam_id: string
+          explanation?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          order_index?: number
+          points?: number
+          suggested_time_sec?: number | null
+          text: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          correct_answer?: Json | null
+          created_at?: string
+          difficulty?: string | null
+          exam_id?: string
+          explanation?: string | null
+          file_url?: string | null
+          id?: string
+          image_url?: string | null
+          order_index?: number
+          points?: number
+          suggested_time_sec?: number | null
+          text?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
             referencedColumns: ["id"]
           },
         ]

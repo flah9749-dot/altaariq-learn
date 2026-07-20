@@ -1,0 +1,347 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { computeGrade } from "./exam-utils";
+
+const AntiCheat = z.object({
+  block_copy: z.boolean().optional(),
+  block_paste: z.boolean().optional(),
+  single_device: z.boolean().optional(),
+  track_leaves: z.boolean().optional(),
+  track_time: z.boolean().optional(),
+  track_ip: z.boolean().optional(),
+}).default({});
+
+const ExamInput = z.object({
+  title: z.string().trim().min(2).max(200),
+  description: z.string().nullable().optional(),
+  subject: z.string().nullable().optional(),
+  class_id: z.string().uuid().nullable().optional(),
+  group_ids: z.array(z.string().uuid()).default([]),
+  total_score: z.number().min(0).default(0),
+  duration_minutes: z.number().int().min(1).max(600).default(30),
+  attempts_allowed: z.number().int().min(1).max(20).default(1),
+  show_result_mode: z.enum(["immediate", "after_review"]).default("immediate"),
+  status: z.enum(["draft", "published", "scheduled", "ended"]).default("draft"),
+  published: z.boolean().default(false),
+  starts_at: z.string().nullable().optional(),
+  ends_at: z.string().nullable().optional(),
+  shuffle_questions: z.boolean().default(false),
+  shuffle_options: z.boolean().default(false),
+  num_variants: z.number().int().min(1).max(10).default(1),
+  anti_cheat: AntiCheat,
+});
+
+const QuestionInput = z.object({
+  id: z.string().uuid().optional(),
+  type: z.string(),
+  text: z.string().min(1),
+  image_url: z.string().nullable().optional(),
+  file_url: z.string().nullable().optional(),
+  points: z.number().min(0).default(1),
+  suggested_time_sec: z.number().int().nullable().optional(),
+  explanation: z.string().nullable().optional(),
+  order_index: z.number().int().default(0),
+  correct_answer: z.any().nullable().optional(),
+  difficulty: z.string().nullable().optional(),
+  options: z.array(z.object({
+    text: z.string(),
+    image_url: z.string().nullable().optional(),
+    is_correct: z.boolean().default(false),
+    order_index: z.number().int().default(0),
+    match_key: z.string().nullable().optional(),
+  })).default([]),
+});
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (!data) throw new Error("مسموح للأدمن فقط");
+}
+
+export const upsertExam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid().optional(), patch: ExamInput.partial() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const payload: any = { ...data.patch, created_by: context.userId };
+    if (data.id) {
+      const { error } = await supabaseAdmin.from("exams").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    } else {
+      if (!payload.title) payload.title = "امتحان جديد";
+      const { data: row, error } = await supabaseAdmin.from("exams").insert(payload).select("id").single();
+      if (error || !row) throw new Error(error?.message ?? "فشل الإنشاء");
+      return { id: row.id };
+    }
+  });
+
+export const deleteExam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("exams").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const publishExam = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid(), published: z.boolean() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const status = data.published ? "published" : "draft";
+    const { error } = await supabaseAdmin.from("exams").update({ published: data.published, status }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const saveQuestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ exam_id: z.string().uuid(), questions: z.array(QuestionInput) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Replace-all strategy for simplicity.
+    await supabaseAdmin.from("questions").delete().eq("exam_id", data.exam_id);
+    let totalScore = 0;
+    for (let i = 0; i < data.questions.length; i++) {
+      const q = data.questions[i];
+      totalScore += q.points ?? 0;
+      const { data: qRow, error: qErr } = await supabaseAdmin.from("questions").insert({
+        exam_id: data.exam_id,
+        type: q.type,
+        text: q.text,
+        image_url: q.image_url ?? null,
+        file_url: q.file_url ?? null,
+        points: q.points,
+        suggested_time_sec: q.suggested_time_sec ?? null,
+        explanation: q.explanation ?? null,
+        order_index: i,
+        correct_answer: q.correct_answer ?? null,
+        difficulty: q.difficulty ?? null,
+      }).select("id").single();
+      if (qErr || !qRow) throw new Error(qErr?.message ?? "فشل حفظ سؤال");
+      if (q.options && q.options.length) {
+        const optRows = q.options.map((o, oi) => ({
+          question_id: qRow.id,
+          text: o.text,
+          image_url: o.image_url ?? null,
+          is_correct: o.is_correct,
+          order_index: oi,
+          match_key: o.match_key ?? null,
+        }));
+        const { error: oErr } = await supabaseAdmin.from("question_options").insert(optRows);
+        if (oErr) throw new Error(oErr.message);
+      }
+    }
+    await supabaseAdmin.from("exams").update({ total_score: totalScore }).eq("id", data.exam_id);
+    return { ok: true, total_score: totalScore, count: data.questions.length };
+  });
+
+// ---------------- Student attempt lifecycle ----------------
+
+export const startAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ exam_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: student } = await supabase.from("students").select("id,status").eq("user_id", userId).maybeSingle();
+    if (!student) throw new Error("الطالب غير مسجل");
+    if (student.status === "suspended") throw new Error("الحساب موقوف");
+
+    const { data: exam, error: eErr } = await supabase
+      .from("exams")
+      .select("id,published,attempts_allowed,starts_at,ends_at,status")
+      .eq("id", data.exam_id).maybeSingle();
+    if (eErr || !exam) throw new Error("الامتحان غير موجود");
+    if (!exam.published) throw new Error("الامتحان غير منشور");
+    const now = Date.now();
+    if (exam.starts_at && new Date(exam.starts_at).getTime() > now) throw new Error("الامتحان لم يبدأ بعد");
+    if (exam.ends_at && new Date(exam.ends_at).getTime() < now) throw new Error("انتهى وقت الامتحان");
+
+    // Check attempts count
+    const { count } = await supabase.from("exam_attempts").select("id", { count: "exact", head: true })
+      .eq("exam_id", data.exam_id).eq("student_id", student.id);
+    // Check for existing in_progress
+    const { data: inProgress } = await supabase.from("exam_attempts").select("id,status")
+      .eq("exam_id", data.exam_id).eq("student_id", student.id).eq("status", "in_progress").maybeSingle();
+    if (inProgress) return { attempt_id: inProgress.id, resumed: true };
+    if ((count ?? 0) >= (exam.attempts_allowed ?? 1)) throw new Error("تم استنفاد عدد المحاولات المسموح بها");
+
+    const { data: att, error: aErr } = await supabase.from("exam_attempts").insert({
+      exam_id: data.exam_id, student_id: student.id, user_id: userId, status: "in_progress",
+    }).select("id").single();
+    if (aErr || !att) throw new Error(aErr?.message ?? "فشل بدء المحاولة");
+    return { attempt_id: att.id, resumed: false };
+  });
+
+export const saveAnswer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    question_id: z.string().uuid(),
+    answer: z.any(),
+    time_spent_sec: z.number().int().default(0),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase.from("attempt_answers").upsert({
+      attempt_id: data.attempt_id, question_id: data.question_id,
+      answer: data.answer, time_spent_sec: data.time_spent_sec,
+    }, { onConflict: "attempt_id,question_id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const recordLeave = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: cur } = await supabase.from("exam_attempts").select("leave_events").eq("id", data.attempt_id).maybeSingle();
+    await supabase.from("exam_attempts").update({ leave_events: (cur?.leave_events ?? 0) + 1 }).eq("id", data.attempt_id);
+    return { ok: true };
+  });
+
+function evaluateObjective(q: any, ans: any): { correct: boolean | null; points: number } {
+  const pts = Number(q.points) || 0;
+  if (ans == null) return { correct: null, points: 0 };
+  switch (q.type) {
+    case "mcq": {
+      const correctIds = (q.question_options ?? []).filter((o: any) => o.is_correct).map((o: any) => o.id).sort();
+      const given = Array.isArray(ans) ? [...ans].sort() : [ans];
+      const ok = JSON.stringify(correctIds) === JSON.stringify(given);
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "true_false": {
+      const ok = String(ans) === String(q.correct_answer);
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "complete": {
+      const norm = (s: any) => String(s ?? "").trim().toLowerCase();
+      const expected = Array.isArray(q.correct_answer) ? q.correct_answer.map(norm) : [norm(q.correct_answer)];
+      const ok = expected.includes(norm(ans));
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "order": {
+      const expected = JSON.stringify(q.correct_answer ?? []);
+      const ok = JSON.stringify(ans ?? []) === expected;
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "match": {
+      const expected = q.correct_answer ?? {};
+      let matched = 0, total = 0;
+      for (const k of Object.keys(expected)) { total++; if (String(ans?.[k]) === String(expected[k])) matched++; }
+      if (!total) return { correct: null, points: 0 };
+      const partial = pts * (matched / total);
+      return { correct: matched === total, points: Math.round(partial * 100) / 100 };
+    }
+    default:
+      return { correct: null, points: 0 };
+  }
+}
+
+export const submitAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: att, error: aErr } = await supabase.from("exam_attempts")
+      .select("id,exam_id,student_id,started_at,status").eq("id", data.attempt_id).maybeSingle();
+    if (aErr || !att) throw new Error("المحاولة غير موجودة");
+    if (att.status !== "in_progress") throw new Error("تم تسليم هذه المحاولة");
+
+    const { data: questions } = await supabase.from("questions")
+      .select("id,type,points,correct_answer,question_options(id,is_correct)")
+      .eq("exam_id", att.exam_id);
+
+    const { data: answers } = await supabase.from("attempt_answers")
+      .select("question_id,answer").eq("attempt_id", att.id);
+    const ansMap = new Map((answers ?? []).map((a: any) => [a.question_id, a.answer]));
+
+    let score = 0, total = 0, needsReview = false;
+    for (const q of questions ?? []) {
+      total += Number(q.points) || 0;
+      const ans = ansMap.get(q.id);
+      if (q.type === "essay") {
+        needsReview = true;
+        await supabase.from("attempt_answers").upsert({
+          attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+          is_correct: null, awarded_points: null,
+        }, { onConflict: "attempt_id,question_id" });
+        continue;
+      }
+      const ev = evaluateObjective(q, ans);
+      score += ev.points;
+      await supabase.from("attempt_answers").upsert({
+        attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+        is_correct: ev.correct, awarded_points: ev.points,
+      }, { onConflict: "attempt_id,question_id" });
+    }
+
+    const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
+    const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
+    const { error: upErr } = await supabase.from("exam_attempts").update({
+      status: needsReview ? "submitted" : "graded",
+      submitted_at: new Date().toISOString(),
+      score, total, percentage: pct, grade: computeGrade(pct),
+      needs_review: needsReview, time_spent_sec: timeSpent,
+    }).eq("id", att.id);
+    if (upErr) throw new Error(upErr.message);
+
+    // Save to results table (for legacy compatibility) + points
+    await supabase.from("results").insert({
+      exam_id: att.exam_id, student_id: att.student_id, score, total,
+    });
+
+    return { ok: true, score, total, percentage: pct, needs_review: needsReview };
+  });
+
+export const gradeEssay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({
+    attempt_id: z.string().uuid(),
+    question_id: z.string().uuid(),
+    awarded_points: z.number().min(0),
+    is_correct: z.boolean().nullable().optional(),
+    reasoning: z.string().nullable().optional(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("attempt_answers").update({
+      awarded_points: data.awarded_points,
+      is_correct: data.is_correct ?? null,
+      ai_reasoning: data.reasoning ?? null,
+    }).eq("attempt_id", data.attempt_id).eq("question_id", data.question_id);
+
+    // Recompute attempt total
+    const { data: rows } = await supabaseAdmin.from("attempt_answers")
+      .select("awarded_points").eq("attempt_id", data.attempt_id);
+    const score = (rows ?? []).reduce((a: number, r: any) => a + (Number(r.awarded_points) || 0), 0);
+    const { data: att } = await supabaseAdmin.from("exam_attempts").select("total").eq("id", data.attempt_id).maybeSingle();
+    const total = Number(att?.total) || 0;
+    const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
+
+    // Check if any remaining essays without points
+    const { data: pending } = await supabaseAdmin.from("attempt_answers")
+      .select("awarded_points,question_id,questions(type)")
+      .eq("attempt_id", data.attempt_id);
+    const stillNeeds = (pending ?? []).some((r: any) => r.questions?.type === "essay" && r.awarded_points == null);
+
+    await supabaseAdmin.from("exam_attempts").update({
+      score, percentage: pct, grade: computeGrade(pct),
+      status: stillNeeds ? "submitted" : "graded",
+      needs_review: stillNeeds,
+    }).eq("id", data.attempt_id);
+    return { ok: true, score, percentage: pct };
+  });
