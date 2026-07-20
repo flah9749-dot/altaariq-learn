@@ -4,6 +4,7 @@ import { Logo } from "@/components/common/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { useAuth } from "@/lib/auth-context";
 
 const nav = [
@@ -35,7 +36,8 @@ export function StudentHeader() {
           })}
         </nav>
         <div className="me-auto md:me-0 flex items-center gap-2">
-          <ThemeToggle />
+            <NotificationsBell />
+            <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2">
             <Avatar className="h-8 w-8"><AvatarImage src={profile?.avatar_url ?? undefined}/><AvatarFallback className="bg-primary text-primary-foreground text-xs">{initial}</AvatarFallback></Avatar>
             <div className="text-xs">

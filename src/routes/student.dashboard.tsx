@@ -22,12 +22,13 @@ function StudentDashboard() {
     queryKey: ["student-dash", studentId],
     enabled: !!studentId,
     queryFn: async () => {
-      const [me, rewards, notif] = await Promise.all([
+      const [me, rewards, notif, ann] = await Promise.all([
         supabase.from("students").select("points, level, parent_whatsapp, parent_phone, parent_name").eq("id", studentId!).maybeSingle(),
         supabase.from("rewards").select("id", { count: "exact", head: true }).eq("student_id", studentId!),
         supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", profile ? profile.id : "").eq("read", false),
+        supabase.from("announcements").select("*").eq("published", true).order("created_at", { ascending: false }).limit(5),
       ]);
-      return { me: me.data, rewardsCount: rewards.count ?? 0, unread: notif.count ?? 0 };
+      return { me: me.data, rewardsCount: rewards.count ?? 0, unread: notif.count ?? 0, announcements: ann.data ?? [] };
     },
   });
 
@@ -108,7 +109,19 @@ function StudentDashboard() {
           <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-primary"/>آخر الإعلانات</CardTitle>
           <CardDescription>إعلانات ومستجدات من المدرس</CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">لا توجد إعلانات حاليًا.</CardContent>
+        <CardContent className="space-y-3">
+          {data.announcements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">لا توجد إعلانات حاليًا.</p>
+          ) : data.announcements.map((a: any) => (
+            <div key={a.id} className="border-r-4 border-primary bg-muted/30 rounded-md p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-semibold text-sm">{a.title}</p>
+                {a.priority === "high" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground">عاجل</span>}
+              </div>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{a.body}</p>
+            </div>
+          ))}
+        </CardContent>
       </Card>
     </div>
   );

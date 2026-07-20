@@ -177,6 +177,66 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          attachment_name: string | null
+          attachment_url: string | null
+          body: string
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          priority: string
+          published: boolean
+          starts_at: string
+          target_all: boolean
+          target_class_ids: string[] | null
+          target_group_ids: string[] | null
+          target_student_ids: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
+          body: string
+          created_at?: string
+          created_by: string
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          priority?: string
+          published?: boolean
+          starts_at?: string
+          target_all?: boolean
+          target_class_ids?: string[] | null
+          target_group_ids?: string[] | null
+          target_student_ids?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          priority?: string
+          published?: boolean
+          starts_at?: string
+          target_all?: boolean
+          target_class_ids?: string[] | null
+          target_group_ids?: string[] | null
+          target_student_ids?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       attempt_answers: {
         Row: {
           ai_feedback: string | null
@@ -434,35 +494,68 @@ export type Database = {
       files: {
         Row: {
           bucket: string
+          category: string | null
           created_at: string
+          description: string | null
+          download_count: number
           id: string
+          is_public: boolean
           mime_type: string | null
           name: string
           owner_id: string | null
           path: string
           size: number | null
+          target_class_id: string | null
+          target_group_id: string | null
         }
         Insert: {
           bucket: string
+          category?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number
           id?: string
+          is_public?: boolean
           mime_type?: string | null
           name: string
           owner_id?: string | null
           path: string
           size?: number | null
+          target_class_id?: string | null
+          target_group_id?: string | null
         }
         Update: {
           bucket?: string
+          category?: string | null
           created_at?: string
+          description?: string | null
+          download_count?: number
           id?: string
+          is_public?: boolean
           mime_type?: string | null
           name?: string
           owner_id?: string | null
           path?: string
           size?: number | null
+          target_class_id?: string | null
+          target_group_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "files_target_class_id_fkey"
+            columns: ["target_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_target_group_id_fkey"
+            columns: ["target_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       groups: {
         Row: {
@@ -493,56 +586,136 @@ export type Database = {
           },
         ]
       }
-      messages: {
+      message_templates: {
         Row: {
           body: string
+          category: string
+          channel: string
           created_at: string
+          created_by: string | null
           id: string
-          read: boolean
-          recipient_id: string | null
-          sender_id: string | null
+          name: string
+          updated_at: string
+          variables: string[] | null
         }
         Insert: {
           body: string
+          category?: string
+          channel?: string
           created_at?: string
+          created_by?: string | null
           id?: string
-          read?: boolean
-          recipient_id?: string | null
-          sender_id?: string | null
+          name: string
+          updated_at?: string
+          variables?: string[] | null
         }
         Update: {
           body?: string
+          category?: string
+          channel?: string
           created_at?: string
+          created_by?: string | null
           id?: string
-          read?: boolean
-          recipient_id?: string | null
-          sender_id?: string | null
+          name?: string
+          updated_at?: string
+          variables?: string[] | null
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          attachment_mime: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_url: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          delivered_at: string | null
+          id: string
+          message_type: string
+          read: boolean
+          read_at: string | null
+          recipient_id: string | null
+          reply_to: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_type?: string
+          read?: boolean
+          read_at?: string | null
+          recipient_id?: string | null
+          reply_to?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          attachment_mime?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          delivered_at?: string | null
+          id?: string
+          message_type?: string
+          read?: boolean
+          read_at?: string | null
+          recipient_id?: string | null
+          reply_to?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
           body: string | null
           created_at: string
           id: string
+          link: string | null
+          meta: Json | null
           read: boolean
           title: string
+          type: string
           user_id: string | null
         }
         Insert: {
           body?: string | null
           created_at?: string
           id?: string
+          link?: string | null
+          meta?: Json | null
           read?: boolean
           title: string
+          type?: string
           user_id?: string | null
         }
         Update: {
           body?: string | null
           created_at?: string
           id?: string
+          link?: string | null
+          meta?: Json | null
           read?: boolean
           title?: string
+          type?: string
           user_id?: string | null
         }
         Relationships: []
