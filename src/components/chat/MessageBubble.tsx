@@ -104,6 +104,18 @@ function MessageBubbleImpl({ m, own, onReply, onDelete }: Props) {
   );
 }
 
+export const MessageBubble = memo(MessageBubbleImpl, (a, b) =>
+  a.own === b.own &&
+  a.onReply === b.onReply &&
+  a.onDelete === b.onDelete &&
+  a.m?.id === b.m?.id &&
+  a.m?.read_at === b.m?.read_at &&
+  a.m?.delivered_at === b.m?.delivered_at &&
+  a.m?.deleted_at === b.m?.deleted_at &&
+  a.m?.body === b.m?.body &&
+  a.m?.attachment_url === b.m?.attachment_url,
+);
+
 function useSignedUrl(path: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
