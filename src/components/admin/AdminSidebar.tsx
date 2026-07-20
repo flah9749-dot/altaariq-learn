@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Trophy, Medal,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Trophy, Medal, Activity,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -19,6 +19,7 @@ const items = [
   { title: "المسابقات", url: "/admin/competitions", icon: Medal },
   { title: "ترتيب الطلاب", url: "/admin/leaderboard", icon: Trophy },
   { title: "التقارير", url: "/admin/reports", icon: BarChart3 },
+  { title: "سجل النشاط", url: "/admin/activity", icon: Activity },
   { title: "الإشعارات", url: "/admin/notifications", icon: Bell },
   { title: "الملفات", url: "/admin/files", icon: FolderOpen },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
