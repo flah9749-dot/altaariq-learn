@@ -34,6 +34,7 @@ import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export const Route = createFileRoute("/admin/students")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
