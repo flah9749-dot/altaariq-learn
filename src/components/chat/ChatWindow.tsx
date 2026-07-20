@@ -239,7 +239,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
       <div onKeyDown={notifyTyping}>
         <MessageComposer
-          onSend={(p) => send.mutateAsync(p)}
+          onSend={async (p) => { await send.mutateAsync(p); }}
           replyTo={reply}
           onClearReply={() => setReply(null)}
           onOpenCamera={() => setCameraOpen(true)}
