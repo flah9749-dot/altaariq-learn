@@ -39,7 +39,7 @@ export function useStudentUnreadBadges() {
     fetchAll();
 
     const ch = supabase
-      .channel(`student-badges-${user.id}`)
+      .channel(`student-badges-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `recipient_id=eq.${user.id}` }, fetchAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, fetchAll)
       .subscribe();
