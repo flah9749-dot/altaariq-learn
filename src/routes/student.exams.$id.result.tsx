@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
+import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import { formatDuration, computeGrade } from "@/lib/exam-utils";
+
 
 export const Route = createFileRoute("/student/exams/$id/result")({
   head: () => ({ meta: [{ title: "نتيجة الامتحان" }] }),
@@ -69,14 +71,14 @@ function ResultPage() {
   const wrong = (answers ?? []).filter((a: any) => a.is_correct === false).length;
   const unanswered = (answers ?? []).filter((a: any) => a.answer == null || a.answer === "").length;
 
-  const waMsg = `السلام عليكم،
-تم إعلان نتيجة الطالب:
-الاسم: ${student?.full_name}
-الامتحان: ${attempt.exams?.title}
-الدرجة: ${attempt.score} من ${attempt.total}
-النسبة: ${pct}%
-التقدير: ${grade}
-يمكنكم متابعة جميع النتائج والتفاصيل من خلال منصة الطارق التعليمية.`;
+  const waVars = {
+    name: student?.full_name ?? "",
+    exam: attempt.exams?.title ?? "",
+    score: attempt.score ?? 0,
+    total: attempt.total ?? attempt.exams?.total_score ?? 0,
+    percentage: pct,
+    grade_text: grade,
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -132,8 +134,14 @@ function ResultPage() {
       )}
 
       <div className="flex justify-center">
-        <WhatsAppButton phone={student?.parent_whatsapp ?? student?.parent_phone} message={waMsg} label="إرسال النتيجة لولي الأمر عبر واتساب" />
+        <WhatsAppButton
+          phone={student?.parent_whatsapp ?? student?.parent_phone}
+          template={pickResultTemplate(pct)}
+          vars={waVars}
+          label="إرسال النتيجة لولي الأمر عبر واتساب"
+        />
       </div>
+
 
       {attempt.status !== "graded" ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">

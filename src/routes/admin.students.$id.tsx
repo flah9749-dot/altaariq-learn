@@ -205,10 +205,16 @@ function StudentDetailPage() {
             <div className="pt-2">
               <WhatsAppButton
                 phone={student.parent_whatsapp ?? student.parent_phone}
-                template="wa.tpl.parent_intro"
-                vars={{ name: student.full_name }}
-                label="فتح واتساب ولي الأمر"
+                template="wa.tpl.student_card"
+                vars={{
+                  name: student.full_name,
+                  code: student.code,
+                  grade: (student as any)?.classes?.name ?? "—",
+                  class: (student as any)?.groups?.name ?? "—",
+                }}
+                label="إرسال بيانات الطالب لولي الأمر"
               />
+
             </div>
           </CardContent>
         </Card>

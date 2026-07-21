@@ -56,7 +56,18 @@ function StudentRewardsPage() {
             <p className="text-sm">رصيدك الحالي</p>
             <p className="text-4xl font-bold mt-1">⭐ {me?.points ?? 0}</p>
           </div>
-          <WhatsAppButton phone={parentPhone} message="السلام عليكم، سؤال عن الجوائز" label="واتساب"/>
+          <WhatsAppButton
+            phone={parentPhone}
+            template="wa.tpl.rewards_summary"
+            vars={{
+              name: me?.full_name ?? "",
+              points: me?.points ?? 0,
+              rank: "—",
+              rewards_count: (mine ?? []).length,
+            }}
+            label="إرسال ملخص النقاط لولي الأمر"
+          />
+
         </CardContent>
       </Card>
 

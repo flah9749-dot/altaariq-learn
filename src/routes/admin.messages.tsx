@@ -135,7 +135,7 @@ function AdminMessagesPage() {
             peerSubtitle={`${selected.code}${selected.className ? " • " + selected.className : ""}${selected.groupName ? " • " + selected.groupName : ""}`}
             templateVars={{ student_name: selected.name, code: selected.code }}
             headerRight={selected.parentPhone ? (
-              <WhatsAppButton phone={selected.parentPhone} message={`السلام عليكم، بخصوص الطالب ${selected.name}`} label="واتساب ولي الأمر" size="sm" />
+              <WhatsAppButton phone={selected.parentPhone} template="wa.tpl.parent_intro" vars={{ name: selected.name }} label="واتساب ولي الأمر" size="sm" />
             ) : null}
           />
         ) : (

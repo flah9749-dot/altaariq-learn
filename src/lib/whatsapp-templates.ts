@@ -22,7 +22,10 @@ export type WaTemplateKey =
   | "wa.tpl.teacher_credentials"
   | "wa.tpl.certificate"
   | "wa.tpl.rewards_inquiry"
+  | "wa.tpl.rewards_summary"
+  | "wa.tpl.competition_invite"
   | "wa.tpl.teacher_contact";
+
 
 /** Pick the right result template based on percentage. */
 export function pickResultTemplate(percentage: number): WaTemplateKey {
@@ -233,8 +236,40 @@ ${DIV}`,
   "wa.tpl.rewards_inquiry":
     `السلام عليكم، استفسار بخصوص جوائز الطالب/ة {name}.\n— {teacher}`,
 
+  // Rewards / points summary (spec #6 — rewards page)
+  "wa.tpl.rewards_summary":
+`${DIV}
+🏆 ملخص نقاط الطالب
+
+👤 الاسم: {name}
+⭐ إجمالي النقاط: {points}
+🥇 الترتيب الحالي: {rank}
+🎖️ عدد الجوائز: {rewards_count}
+
+استمر في التميّز 💪
+🌐 {platform_url}
+— {teacher} | {platform}
+${DIV}`,
+
+  // Competition invite (spec #7)
+  "wa.tpl.competition_invite":
+`${DIV}
+🏁 دعوة لمسابقة جديدة
+
+📛 المسابقة: {competition}
+🟢 تبدأ: {start_date}
+🔴 تنتهي: {end_date}
+
+🔗 رابط الدخول:
+{competition_link}
+
+بالتوفيق للجميع 🌟
+— {teacher} | {platform}
+${DIV}`,
+
   "wa.tpl.teacher_contact":
     `السلام عليكم أستاذ {teacher} 🌿\nأنا الطالب/ة {name} من منصة {platform}.`,
+
 };
 
 export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
@@ -255,7 +290,10 @@ export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
   "wa.tpl.teacher_credentials": "بيانات دخول المدرس",
   "wa.tpl.certificate": "إصدار شهادة",
   "wa.tpl.rewards_inquiry": "استفسار عن الجوائز",
+  "wa.tpl.rewards_summary": "ملخص نقاط وجوائز الطالب",
+  "wa.tpl.competition_invite": "دعوة لمسابقة",
   "wa.tpl.teacher_contact": "تواصل الطالب مع المدرس",
+
 };
 
 export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
@@ -276,7 +314,10 @@ export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
   "wa.tpl.teacher_credentials": ["teacher_name", "subject", "username", "password", "platform_url"],
   "wa.tpl.certificate": ["name", "certificate_link", "teacher", "platform"],
   "wa.tpl.rewards_inquiry": ["name", "teacher"],
+  "wa.tpl.rewards_summary": ["name", "points", "rank", "rewards_count", "platform_url", "teacher", "platform"],
+  "wa.tpl.competition_invite": ["competition", "start_date", "end_date", "competition_link", "teacher", "platform"],
   "wa.tpl.teacher_contact": ["teacher", "name", "platform"],
+
 };
 
 export function fillTemplate(tpl: string, vars: Record<string, string | number | null | undefined>): string {
