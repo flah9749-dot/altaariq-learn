@@ -113,10 +113,25 @@ export const publishExam = createServerFn({ method: "POST" })
       if ((count ?? 0) === 0) throw new Error("لا يمكن نشر امتحان بدون أسئلة");
     }
     const status = data.published ? "published" : "draft";
+    const { data: prev } = await supabaseAdmin.from("exams").select("published,title,class_id,group_ids").eq("id", data.id).maybeSingle();
     const { error } = await supabaseAdmin.from("exams").update({ published: data.published, status }).eq("id", data.id);
     if (error) throw new Error(error.message);
+    // Notify students on transition draft -> published
+    if (data.published && prev && !prev.published) {
+      try {
+        const { notifyStudents } = await import("./notify-helpers.server");
+        await notifyStudents({
+          title: "📝 امتحان جديد",
+          body: `تم نشر امتحان: ${prev.title ?? ""}`,
+          type: "exam",
+          link: `/student/exams/${data.id}`,
+          target: { kind: "classes_groups", class_id: prev.class_id, group_ids: prev.group_ids ?? [] },
+        });
+      } catch {}
+    }
     return { ok: true };
   });
+
 
 export const saveQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
