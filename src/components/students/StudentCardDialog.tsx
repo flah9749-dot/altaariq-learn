@@ -101,17 +101,31 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     }
   }
 
-  function print() {
-    const html = cardRef.current?.outerHTML;
-    if (!html) return;
-    const w = window.open("", "_blank", "width=500,height=700");
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html dir="rtl"><head><title>${student!.full_name}</title>
-      <script src="https://cdn.tailwindcss.com"></script></head>
-      <body class="flex items-center justify-center min-h-screen bg-white p-4">${html}
-      <script>setTimeout(()=>{window.print();},400);</script></body></html>`);
-    w.document.close();
+  async function print() {
+    const pw = await ensurePassword();
+    if (!pw) return;
+    // Wait a tick so the card re-renders with the password visible before capture.
+    await new Promise((r) => setTimeout(r, 50));
+    if (!cardRef.current) return;
+    try {
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true, backgroundColor: "#ffffff" });
+      const w = window.open("", "_blank", "width=520,height=760");
+      if (!w) return;
+      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>${student!.full_name} — بطاقة طالب</title>
+        <style>
+          html,body{margin:0;padding:0;background:#f4f4f5;font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;}
+          .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+          img{max-width:360px;width:100%;height:auto;display:block;border-radius:24px;box-shadow:0 10px 30px rgba(0,0,0,.15);}
+          @media print{ body{background:#fff} .wrap{padding:0} img{box-shadow:none} }
+        </style></head>
+        <body><div class="wrap"><img src="${dataUrl}" alt="بطاقة الطالب"/></div>
+        <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300));</script></body></html>`);
+      w.document.close();
+    } catch {
+      toast.error("فشل الطباعة");
+    }
   }
+
 
   async function whatsapp() {
     const rawPhone = student!.parent_whatsapp || student!.parent_phone || "";
