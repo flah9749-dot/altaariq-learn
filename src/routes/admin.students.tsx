@@ -135,6 +135,18 @@ function StudentsPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل التحديث"),
   });
 
+  const archiveMut = useMutation({
+    mutationFn: async ({ ids, year }: { ids: string[]; year: string }) => archiveFn({ data: { ids, year } }),
+    onSuccess: (r: any) => {
+      toast.success(`تم أرشفة ${r.count} طالب`);
+      qc.invalidateQueries({ queryKey: ["students"] });
+      qc.invalidateQueries({ queryKey: ["archived-students"] });
+      setSelected(new Set());
+      setArchiveOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
+  });
+
   const exportExcel = () => {
     const data = rows.map((r) => ({
       "الاسم": r.full_name, "الكود": r.code, "الصف": r.classes?.name ?? "",
