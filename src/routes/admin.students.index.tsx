@@ -32,12 +32,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
+import { StudentsGroupedView } from "@/components/students/StudentsGroupedView";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
 import { archiveStudents } from "@/lib/archive.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 export const Route = createFileRoute("/admin/students/")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
