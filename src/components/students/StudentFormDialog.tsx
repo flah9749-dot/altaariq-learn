@@ -4,15 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createStudent, updateStudent } from "@/lib/students.functions";
-import { generateStudentCode, type StudentRow } from "@/lib/students-utils";
+import { generateStudentCode, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, RefreshCw } from "lucide-react";
+import { StudentCardDialog } from "./StudentCardDialog";
 
 interface Props {
   open: boolean;
@@ -27,19 +26,24 @@ export function StudentFormDialog({ open, onOpenChange, student }: Props) {
   const updateFn = useServerFn(updateStudent);
 
   const [form, setForm] = useState<any>({});
+  const [cardOpen, setCardOpen] = useState(false);
+  const [createdStudent, setCreatedStudent] = useState<StudentRow | null>(null);
+  const [createdCreds, setCreatedCreds] = useState<{ code: string; password: string } | null>(null);
 
   useEffect(() => {
     if (open) {
-      setForm(
-        student
-          ? { ...student, password: "" }
-          : {
-              full_name: "", code: generateStudentCode(), password: "",
-              gender: null, birth_date: null, class_id: null, group_id: null,
-              seat_number: "", phone: "", parent_name: "", parent_phone: "",
-              parent_whatsapp: "", address: "", notes: "",
-            },
-      );
+      if (student) {
+        setForm({ ...student, password: "" });
+      } else {
+        let code = generateStudentCode();
+        let password = generateStudentPassword();
+        while (password === code) password = generateStudentPassword();
+        setForm({
+          full_name: "", code, password,
+          phone: "", parent_phone: "",
+          class_id: null, group_id: null,
+        });
+      }
     }
   }, [open, student]);
 
@@ -58,69 +62,98 @@ export function StudentFormDialog({ open, onOpenChange, student }: Props) {
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
+  function regenCode() {
+    let code = generateStudentCode();
+    if (code === form.password) code = generateStudentCode();
+    set("code", code);
+  }
+  function regenPassword() {
+    let pw = generateStudentPassword();
+    while (pw === form.code) pw = generateStudentPassword();
+    set("password", pw);
+  }
+
   const mutation = useMutation({
     mutationFn: async () => {
       const payload = {
         full_name: form.full_name,
         code: form.code,
         password: form.password || null,
-        gender: form.gender || null,
-        birth_date: form.birth_date || null,
+        phone: form.phone || null,
+        parent_phone: form.parent_phone || null,
+        parent_whatsapp: form.parent_phone || null,
         class_id: form.class_id || null,
         group_id: form.group_id || null,
-        seat_number: form.seat_number || null,
-        phone: form.phone || null,
-        parent_name: form.parent_name || null,
-        parent_phone: form.parent_phone || null,
-        parent_whatsapp: form.parent_whatsapp || form.parent_phone || null,
-        address: form.address || null,
-        notes: form.notes || null,
       };
-      if (isEdit) return updateFn({ data: { id: student!.id, patch: payload } });
-      return createFn({ data: payload });
+      if (isEdit) {
+        await updateFn({ data: { id: student!.id, patch: payload } });
+        return null;
+      }
+      const res = await createFn({ data: payload });
+      const { data: row } = await supabase.from("students")
+        .select("*, classes(id,name), groups(id,name)")
+        .eq("id", (res as any).id).maybeSingle();
+      return { row: row as StudentRow, creds: { code: form.code, password: form.password } };
     },
-    onSuccess: () => {
-      toast.success(isEdit ? "تم تحديث الطالب" : "تم إضافة الطالب");
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["students"] });
+      toast.success(isEdit ? "تم تحديث بيانات الطالب" : "تم إضافة الطالب");
       onOpenChange(false);
+      if (result?.row) {
+        setCreatedStudent(result.row);
+        setCreatedCreds(result.creds);
+        setCardOpen(true);
+      }
     },
     onError: (e: any) => toast.error(e?.message ?? "حدث خطأ"),
   });
 
+  const canSubmit = !!form.full_name && !!form.code && (isEdit || !!form.password);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "تعديل بيانات الطالب" : "إضافة طالب جديد"}</DialogTitle>
-          <DialogDescription>املأ الحقول التالية لحفظ بيانات الطالب.</DialogDescription>
-        </DialogHeader>
-        <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="personal">شخصية</TabsTrigger>
-            <TabsTrigger value="study">دراسية</TabsTrigger>
-            <TabsTrigger value="auth">الدخول</TabsTrigger>
-            <TabsTrigger value="contact">التواصل</TabsTrigger>
-          </TabsList>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{isEdit ? "تعديل بيانات الطالب" : "إضافة طالب جديد"}</DialogTitle>
+            <DialogDescription>البيانات الأساسية فقط — يمكنك إضافة تفاصيل إضافية لاحقاً من صفحة الطالب.</DialogDescription>
+          </DialogHeader>
 
-          <TabsContent value="personal" className="space-y-3 mt-4">
-            <Field label="الاسم بالكامل *"><Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} /></Field>
+          <div className="space-y-3">
+            <Field label="اسم الطالب *">
+              <Input value={form.full_name ?? ""} onChange={(e) => set("full_name", e.target.value)} placeholder="مثال: محمد أحمد" />
+            </Field>
+
             <div className="grid grid-cols-2 gap-3">
-              <Field label="الجنس">
-                <Select value={form.gender ?? ""} onValueChange={(v) => set("gender", v || null)}>
-                  <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">ذكر</SelectItem>
-                    <SelectItem value="female">أنثى</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Field label="كود الطالب *">
+                <div className="flex gap-1">
+                  <Input dir="ltr" className="text-left font-mono" value={form.code ?? ""} onChange={(e) => set("code", e.target.value)} disabled={isEdit} />
+                  {!isEdit && (
+                    <Button type="button" variant="outline" size="icon" onClick={regenCode} title="توليد كود">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </Field>
-              <Field label="تاريخ الميلاد"><Input type="date" value={form.birth_date ?? ""} onChange={(e) => set("birth_date", e.target.value)} /></Field>
+              <Field label={isEdit ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور *"}>
+                <div className="flex gap-1">
+                  <Input dir="ltr" className="text-left font-mono" value={form.password ?? ""} onChange={(e) => set("password", e.target.value)} />
+                  <Button type="button" variant="outline" size="icon" onClick={regenPassword} title="توليد كلمة مرور">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Field>
             </div>
-            <Field label="العنوان"><Input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} /></Field>
-            <Field label="ملاحظات"><Textarea rows={3} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></Field>
-          </TabsContent>
 
-          <TabsContent value="study" className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="رقم هاتف الطالب">
+                <Input dir="ltr" className="text-left" value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} placeholder="01xxxxxxxxx" />
+              </Field>
+              <Field label="رقم هاتف ولي الأمر">
+                <Input dir="ltr" className="text-left" value={form.parent_phone ?? ""} onChange={(e) => set("parent_phone", e.target.value)} placeholder="01xxxxxxxxx" />
+              </Field>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <Field label="الصف الدراسي">
                 <Select value={form.class_id ?? ""} onValueChange={(v) => { set("class_id", v || null); set("group_id", null); }}>
@@ -131,52 +164,28 @@ export function StudentFormDialog({ open, onOpenChange, student }: Props) {
                 </Select>
               </Field>
               <Field label="المجموعة">
-                <Select value={form.group_id ?? ""} onValueChange={(v) => set("group_id", v || null)}>
-                  <SelectTrigger><SelectValue placeholder="اختر المجموعة" /></SelectTrigger>
+                <Select value={form.group_id ?? ""} onValueChange={(v) => set("group_id", v || null)} disabled={!form.class_id}>
+                  <SelectTrigger><SelectValue placeholder={form.class_id ? "اختر المجموعة" : "اختر الصف أولاً"} /></SelectTrigger>
                   <SelectContent>
                     {(groups ?? []).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
             </div>
-            <Field label="رقم الجلوس"><Input value={form.seat_number ?? ""} onChange={(e) => set("seat_number", e.target.value)} /></Field>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="auth" className="space-y-3 mt-4">
-            <Field label="كود الطالب *">
-              <div className="flex gap-2">
-                <Input value={form.code ?? ""} onChange={(e) => set("code", e.target.value)} disabled={isEdit && !!student?.code} />
-                {!isEdit && (
-                  <Button type="button" variant="outline" size="icon" onClick={() => set("code", generateStudentCode())}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </Field>
-            <Field label={isEdit ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور (اتركها فارغة لاستخدام الكود)"}>
-              <Input type="text" value={form.password ?? ""} onChange={(e) => set("password", e.target.value)} placeholder={isEdit ? "لا تغيّر" : form.code} />
-            </Field>
-          </TabsContent>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+            <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !canSubmit}>
+              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              {isEdit ? "حفظ التعديلات" : "إضافة وعرض الكارت"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <TabsContent value="contact" className="space-y-3 mt-4">
-            <Field label="رقم هاتف الطالب"><Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} /></Field>
-            <Field label="اسم ولي الأمر"><Input value={form.parent_name ?? ""} onChange={(e) => set("parent_name", e.target.value)} /></Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="هاتف ولي الأمر"><Input value={form.parent_phone ?? ""} onChange={(e) => set("parent_phone", e.target.value)} /></Field>
-              <Field label="واتساب ولي الأمر"><Input value={form.parent_whatsapp ?? ""} onChange={(e) => set("parent_whatsapp", e.target.value)} placeholder="نفس الهاتف إن لم يُحدد" /></Field>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.full_name || !form.code}>
-            {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-            {isEdit ? "حفظ التعديلات" : "إضافة الطالب"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={createdStudent} credentials={createdCreds} />
+    </>
   );
 }
 
