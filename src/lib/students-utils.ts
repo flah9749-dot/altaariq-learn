@@ -40,6 +40,8 @@ export type StudentRow = {
   created_at: string;
   class_id: string | null;
   group_id: string | null;
+  archived_at?: string | null;
+  archived_year?: string | null;
   classes?: { id: string; name: string } | null;
   groups?: { id: string; name: string } | null;
 };
