@@ -132,6 +132,8 @@ export async function callProvider(
   if (!key) throw new Error(`مفتاح ${slug} غير مضبوط`);
   const model = opts.model ?? DEFAULT_MODEL[slug];
   switch (slug) {
+    case "lovable":
+      return callOpenAILike("https://ai.gateway.lovable.dev/v1/chat/completions", key, model, messages, opts.responseJson);
     case "gemini":
       return callGemini(key, model, messages, opts.responseJson);
     case "openai":
@@ -146,6 +148,8 @@ export async function callProvider(
       return callOpenAILike("https://api.mistral.ai/v1/chat/completions", key, model, messages, opts.responseJson);
     case "openrouter":
       return callOpenAILike("https://openrouter.ai/api/v1/chat/completions", key, model, messages, opts.responseJson);
+    default:
+      throw new Error(`Unknown provider: ${slug}`);
   }
 }
 
