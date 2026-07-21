@@ -355,6 +355,32 @@ function StudentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Archive className="h-5 w-5" />أرشفة {selected.size} طالب</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              سيحتفظ الطلاب المؤرشفون بكل بياناتهم (النتائج، الرسائل، النقاط، الجوائز). يمكن استرجاعهم لاحقًا من صفحة الأرشيف.
+            </p>
+            <div className="space-y-1.5">
+              <Label>السنة الدراسية</Label>
+              <Input value={archiveYear} onChange={(e) => setArchiveYear(e.target.value)} placeholder="2024-2025" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchiveOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={() => archiveMut.mutate({ ids: [...selected], year: archiveYear.trim() || String(new Date().getFullYear()) })}
+              disabled={archiveMut.isPending}
+            >
+              <Archive className="h-4 w-4 ml-1" />تأكيد الأرشفة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
