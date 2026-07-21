@@ -33,6 +33,19 @@ function StudentDashboard() {
     },
   });
 
+  // Live-fetch teacher WhatsApp from settings so updates propagate to parent contact button.
+  const { data: teacherWa } = useQuery({
+    queryKey: ["setting", "teacher.whatsapp"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "teacher.whatsapp").maybeSingle();
+      const v = data?.value as any;
+      return (typeof v === "string" ? v : v?.toString?.()) ?? "";
+    },
+  });
+
+
   if (isLoading || !data) {
     return (
       <div className="space-y-6">
@@ -46,7 +59,9 @@ function StudentDashboard() {
   const level = data.me?.level ?? 1;
   const nextLevelAt = level * 100;
   const progressPct = Math.min(100, Math.round((points / nextLevelAt) * 100));
-  const parentPhone = data.me?.parent_whatsapp ?? data.me?.parent_phone ?? null;
+  const teacherPhone = teacherWa || null;
+
+
 
   return (
     <div className="space-y-6">
@@ -109,9 +124,10 @@ function StudentDashboard() {
             <CardDescription>يمكن لولي الأمر التواصل مع المدرس مباشرة عبر واتساب</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
-            <WhatsAppButton phone={parentPhone} message={`السلام عليكم، متابعة الطالب ${profile?.full_name ?? ""}`} label="فتح واتساب" />
-            {!parentPhone && <p className="text-xs text-muted-foreground">لم يتم إضافة رقم ولي الأمر بعد.</p>}
+            <WhatsAppButton phone={teacherPhone} message={`السلام عليكم أستاذ، بخصوص الطالب/ة ${profile?.full_name ?? ""} (${profile?.identifier ?? ""})`} label="فتح واتساب المدرس" />
+            {!teacherPhone && <p className="text-xs text-muted-foreground">لم يقم المدرس بإضافة رقم واتساب بعد.</p>}
           </CardContent>
+
         </Card>
       </div>
 
