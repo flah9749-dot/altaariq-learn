@@ -50,7 +50,7 @@ function TakeExamPage() {
   const { data: questions } = useQuery({
     queryKey: ["take-questions", id], enabled: !!exam,
     queryFn: async () => (await supabase.from("questions")
-      .select("*, question_options(id,text,image_url,order_index,match_key)")
+      .select("id,exam_id,text,type,points,order_index,image_url,media_url,difficulty,suggested_time_sec,question_options(id,text,image_url,order_index,match_key)")
       .eq("exam_id", id).order("order_index")).data ?? [],
   });
 
