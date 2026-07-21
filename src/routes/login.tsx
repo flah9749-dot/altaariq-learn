@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Logo } from "@/components/common/Logo";
+import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { adminInitStatus } from "@/lib/setup.functions";
 
