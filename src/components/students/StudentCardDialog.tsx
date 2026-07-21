@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { useServerFn } from "@tanstack/react-start";
 import { Printer, Download, MessageCircle, Copy, Check, KeyRound, Loader2 } from "lucide-react";
@@ -58,6 +58,15 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
       setResetting(false);
     }
   }
+
+  // Auto-generate password on open so it's always visible on the card.
+  useEffect(() => {
+    if (open && student && !credentials && !localCreds && !resetting) {
+      void ensurePassword();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, student?.id]);
+
 
   async function download() {
     if (!cardRef.current) return;
