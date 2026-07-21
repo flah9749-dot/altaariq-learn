@@ -11,6 +11,8 @@ export type WaTemplateKey =
   | "wa.tpl.student_credentials"
   | "wa.tpl.student_code"
   | "wa.tpl.exam_result"
+  | "wa.tpl.exam_result_praise"
+  | "wa.tpl.exam_result_encourage"
   | "wa.tpl.exam_reminder"
   | "wa.tpl.exam_link"
   | "wa.tpl.absence"
@@ -21,6 +23,13 @@ export type WaTemplateKey =
   | "wa.tpl.certificate"
   | "wa.tpl.rewards_inquiry"
   | "wa.tpl.teacher_contact";
+
+/** Pick the right result template based on percentage. */
+export function pickResultTemplate(percentage: number): WaTemplateKey {
+  if (percentage >= 75) return "wa.tpl.exam_result_praise";
+  if (percentage < 50) return "wa.tpl.exam_result_encourage";
+  return "wa.tpl.exam_result";
+}
 
 const DIV = "━━━━━━━━━━━━━━━━━━━━";
 
