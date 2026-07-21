@@ -88,6 +88,7 @@ function StudentsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["students", debouncedSearch, classFilter, groupFilter, statusFilter, page],
+    enabled: viewMode === "list",
     queryFn: async () => {
       let q = supabase
         .from("students")
@@ -109,9 +110,30 @@ function StudentsPage() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: groupedData, isLoading: groupedLoading } = useQuery({
+    queryKey: ["students-grouped", classFilter, groupFilter, statusFilter],
+    enabled: viewMode === "grouped",
+    queryFn: async () => {
+      let q = supabase
+        .from("students")
+        .select("*, classes(id,name), groups(id,name)", { count: "exact" })
+        .is("archived_at", null)
+        .order("full_name");
+      if (classFilter) q = q.eq("class_id", classFilter);
+      if (groupFilter) q = q.eq("group_id", groupFilter);
+      if (statusFilter) q = q.eq("status", statusFilter);
+      const { data, count, error } = await q.limit(5000);
+      if (error) throw error;
+      return { rows: (data ?? []) as unknown as StudentRow[], count: count ?? 0 };
+    },
+    placeholderData: (prev) => prev,
+  });
+
   const rows = data?.rows ?? [];
-  const total = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total = viewMode === "grouped" ? (groupedData?.count ?? 0) : (data?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / PAGE_SIZE));
+
+
 
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const toggleAll = () => {
