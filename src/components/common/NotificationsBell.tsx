@@ -62,8 +62,13 @@ export function NotificationsBell() {
         <ScrollArea className="max-h-96">
           {(data ?? []).length === 0 ? (
             <p className="text-center text-xs text-muted-foreground py-8">لا توجد إشعارات</p>
-          ) : (data ?? []).map((n: any) => (
-            <Link key={n.id} to={n.link ?? "#"}
+          ) : (data ?? []).map((n: any) => {
+            let href = n.link ?? "#";
+            if (href === "/messages") {
+              href = window.location.pathname.startsWith("/admin") ? "/admin/messages" : "/student/messages";
+            }
+            return (
+            <Link key={n.id} to={href}
               onClick={async () => { if (!n.read) { await markFn({ data: { id: n.id } }); qc.invalidateQueries({ queryKey: ["notifications", user?.id] }); } }}
               className={`block border-b p-3 text-xs hover:bg-muted ${!n.read ? "bg-primary/5" : ""}`}>
               <div className="flex items-start gap-2">
@@ -75,7 +80,8 @@ export function NotificationsBell() {
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </ScrollArea>
       </PopoverContent>
     </Popover>
