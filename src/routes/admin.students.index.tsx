@@ -39,7 +39,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-export const Route = createFileRoute("/admin/students")({
+export const Route = createFileRoute("/admin/students/")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
   component: StudentsPage,
 });
