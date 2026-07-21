@@ -3,7 +3,7 @@
   "name": "الطارق التعليمية",
   "short_name": "الطارق",
   "description": "منصة تعليمية احترافية لمادة الدراسات الاجتماعية",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
