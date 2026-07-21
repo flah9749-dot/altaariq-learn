@@ -42,7 +42,9 @@ export function InstallAppBanner() {
     } catch { /* ignore */ }
 
     const ua = window.navigator.userAgent || "";
-    const iOS = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
+    // iPadOS 13+ reports as "Macintosh"; detect via touch points as well.
+    const isIpadOs = /Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1;
+    const iOS = (/iPad|iPhone|iPod/.test(ua) || isIpadOs) && !(window as unknown as { MSStream?: unknown }).MSStream;
     setIsIos(iOS);
 
     // Show iOS banner immediately (no native event)
