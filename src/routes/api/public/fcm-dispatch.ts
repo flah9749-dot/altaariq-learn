@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/fcm-dispatch")({
         const { data: tokens } = await supabaseAdmin
           .from("push_tokens")
           .select("token")
-          .eq("user_id", notif.user_id);
+          .eq("user_id", notif.user_id as string);
         const list = (tokens ?? []).map((r: any) => r.token as string).filter(Boolean);
         if (!list.length) return new Response("no-tokens", { status: 200 });
 
