@@ -1,0 +1,9 @@
+REVOKE EXECUTE ON FUNCTION public.attempt_answers_guard() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.messages_guard() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.exam_attempts_guard() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_updated_at_column() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.notify_on_message() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.apply_points_change() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.notify_on_announcement() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.notify_push_dispatch() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.recompute_student_level(uuid) FROM authenticated;
