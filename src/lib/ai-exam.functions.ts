@@ -15,6 +15,7 @@ const GenInput = z.object({
   difficulty: z.enum(["easy", "medium", "hard", "mixed"]).default("mixed"),
   language: z.enum(["ar", "en"]).default("ar"),
   points_per_question: z.number().min(0.5).max(20).default(1),
+  total_score: z.number().min(1).max(1000).nullable().optional(),
   model: z.string().optional(),
 });
 
