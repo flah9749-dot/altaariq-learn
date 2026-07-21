@@ -100,10 +100,46 @@ function StudentDetailPage() {
           <ArrowRight className="h-4 w-4 ml-1" />القائمة
         </Button>
         <div className="mr-auto flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}><IdCard className="h-4 w-4 ml-1" />عرض الكارت</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
           <Button size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 ml-1" />تعديل</Button>
         </div>
       </div>
+
+      {/* بيانات الدخول */}
+      <Card className="print:hidden border-primary/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary"/>بيانات الدخول</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-3 items-end">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">كود الطالب</p>
+            <p dir="ltr" className="font-mono font-bold text-lg tracking-wider">{student.code}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">كلمة المرور</p>
+            {creds?.password ? (
+              <p dir="ltr" className="font-mono font-bold text-lg tracking-wider text-primary">{creds.password}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">مخفية — اضغط "إعادة تعيين" لتوليد كلمة جديدة</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button size="sm" variant="outline" onClick={copyCreds} disabled={!creds}>
+              {copied ? <Check className="h-4 w-4 ml-1"/> : <Copy className="h-4 w-4 ml-1"/>}نسخ
+            </Button>
+            <Button size="sm" onClick={() => resetPw.mutate()} disabled={resetPw.isPending}>
+              <RefreshCw className={`h-4 w-4 ml-1 ${resetPw.isPending ? "animate-spin" : ""}`}/>إعادة تعيين كلمة المرور
+            </Button>
+            {creds && (
+              <Button size="sm" variant="secondary" onClick={() => setCardOpen(true)}><Eye className="h-4 w-4 ml-1"/>عرض الكارت مع البيانات</Button>
+            )}
+          </div>
+          {creds && (
+            <p className="sm:col-span-3 text-xs text-warning">⚠️ كلمة المرور تظهر مرة واحدة فقط — انسخها أو أرسلها لولي الأمر الآن.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
