@@ -17,6 +17,8 @@ import { useAuth } from "@/lib/auth-context";
 import { adminEmailFromUsername } from "@/lib/auth-emails";
 import { createAdmin, deleteAdmin, resetAdminPassword } from "@/lib/admin-account.functions";
 import { invalidateDefaultCountryCodeCache } from "@/hooks/use-default-country-code";
+import { DEFAULT_WA_TEMPLATES, WA_TEMPLATE_LABELS, WA_TEMPLATE_PLACEHOLDERS, invalidateWaTemplateCache, type WaTemplateKey } from "@/lib/whatsapp-templates";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -69,6 +71,7 @@ function SettingsPage() {
       toast.success("تم حفظ الإعدادات");
       setDirty(new Set());
       invalidateDefaultCountryCodeCache();
+      invalidateWaTemplateCache();
       qc.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحفظ"),
