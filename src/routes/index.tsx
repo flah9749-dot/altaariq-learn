@@ -10,7 +10,7 @@ function IndexRedirect() {
   const { user, role, loading } = useAuth();
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="animate-pulse"><Logo /></div>
       </div>
     );

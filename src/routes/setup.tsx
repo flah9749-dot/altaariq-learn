@@ -63,7 +63,7 @@ function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6" dir="rtl">
+    <div className="min-h-dvh flex items-center justify-center bg-background p-6" dir="rtl">
       <div className="absolute top-4 left-4"><ThemeToggle /></div>
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center"><Logo size={64} /></div>
