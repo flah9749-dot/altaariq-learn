@@ -116,11 +116,11 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
             </div>
           </PopoverContent>
         </Popover>
-        <Button variant="ghost" size="icon" title="إرفاق ملف" onClick={() => fileRef.current?.click()}>
+        <Button variant="ghost" size="icon" title="إرفاق ملف" aria-label="إرفاق ملف" onClick={() => fileRef.current?.click()}>
           <Paperclip className="h-5 w-5"/>
         </Button>
         {onOpenCamera && (
-          <Button variant="ghost" size="icon" title="كاميرا" onClick={onOpenCamera}>
+          <Button variant="ghost" size="icon" title="كاميرا" aria-label="فتح الكاميرا" onClick={onOpenCamera}>
             <Camera className="h-5 w-5"/>
           </Button>
         )}
