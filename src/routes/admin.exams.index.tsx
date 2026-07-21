@@ -27,7 +27,7 @@ import { deleteExam, publishExam, upsertExam } from "@/lib/exams.functions";
 import { STATUS_COLOR, STATUS_LABEL, deriveStatus } from "@/lib/exam-utils";
 import { formatArabicDate } from "@/lib/students-utils";
 
-export const Route = createFileRoute("/admin/exams")({
+export const Route = createFileRoute("/admin/exams/")({
   head: () => ({ meta: [{ title: "الامتحانات — لوحة المدرس" }] }),
   component: ExamsPage,
 });
