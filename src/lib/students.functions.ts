@@ -67,9 +67,10 @@ export const createStudent = createServerFn({ method: "POST" })
     const { password: _pw, ...rest } = data;
     const { data: row, error: sErr } = await supabaseAdmin
       .from("students")
-      .insert({ ...rest, user_id: userId })
+      .insert({ ...rest, user_id: userId, plaintext_password: password })
       .select("id")
       .single();
+
     if (sErr || !row) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
       throw new Error(sErr?.message ?? "فشل حفظ بيانات الطالب");
@@ -104,8 +105,10 @@ export const updateStudent = createServerFn({ method: "POST" })
       const { data: row } = await supabaseAdmin.from("students").select("user_id").eq("id", data.id).maybeSingle();
       if (row?.user_id) {
         await supabaseAdmin.auth.admin.updateUserById(row.user_id, { password });
+        patch.plaintext_password = password;
       }
     }
+
 
     const { error } = await supabaseAdmin.from("students").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -168,9 +171,25 @@ export const resetStudentPassword = createServerFn({ method: "POST" })
     const { data: row } = await supabaseAdmin.from("students").select("user_id").eq("id", data.id).maybeSingle();
     if (!row?.user_id) throw new Error("الطالب غير موجود");
     await supabaseAdmin.auth.admin.updateUserById(row.user_id, { password: data.password });
+    await supabaseAdmin.from("students").update({ plaintext_password: data.password }).eq("id", data.id);
     await logActivity(supabaseAdmin, context.userId, "reset_password", data.id, {});
     return { ok: true };
   });
+
+export const getStudentPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("students")
+      .select("code, plaintext_password")
+      .eq("id", data.id)
+      .maybeSingle();
+    return { code: row?.code ?? null, password: (row as any)?.plaintext_password ?? null };
+  });
+
 
 export const bulkCreateStudents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
