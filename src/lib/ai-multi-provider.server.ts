@@ -2,7 +2,7 @@
 // Server-only. Reads keys from process.env (Secrets).
 
 export type ProviderSlug =
-  | "gemini" | "openai" | "claude" | "groq"
+  | "lovable" | "gemini" | "openai" | "claude" | "groq"
   | "deepseek" | "mistral" | "openrouter";
 
 export type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
@@ -14,6 +14,7 @@ export type ProviderResult = {
 };
 
 const SECRET: Record<ProviderSlug, string> = {
+  lovable: "LOVABLE_API_KEY",
   gemini: "GEMINI_API_KEY",
   openai: "OPENAI_API_KEY",
   claude: "ANTHROPIC_API_KEY",
@@ -24,6 +25,7 @@ const SECRET: Record<ProviderSlug, string> = {
 };
 
 const DEFAULT_MODEL: Record<ProviderSlug, string> = {
+  lovable: "google/gemini-3.5-flash",
   gemini: "gemini-2.0-flash-exp",
   openai: "gpt-4o-mini",
   claude: "claude-3-5-sonnet-20241022",
@@ -34,7 +36,7 @@ const DEFAULT_MODEL: Record<ProviderSlug, string> = {
 };
 
 export const FALLBACK_ORDER: ProviderSlug[] = [
-  "gemini", "openai", "claude", "groq", "deepseek", "mistral", "openrouter",
+  "lovable", "gemini", "openai", "claude", "groq", "deepseek", "mistral", "openrouter",
 ];
 
 export function getKey(slug: ProviderSlug): string | undefined {
@@ -61,9 +63,17 @@ async function callOpenAILike(
 ): Promise<string> {
   const body: any = { model, messages };
   if (responseJson) body.response_format = { type: "json_object" };
+  const isLovable = url.includes("ai.gateway.lovable.dev");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (isLovable) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["Lovable-API-Key"] = key;
+  } else {
+    headers["Authorization"] = `Bearer ${key}`;
+  }
   const res = await withTimeout(fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    headers,
     body: JSON.stringify(body),
   }));
   if (!res.ok) {
@@ -130,6 +140,8 @@ export async function callProvider(
   if (!key) throw new Error(`مفتاح ${slug} غير مضبوط`);
   const model = opts.model ?? DEFAULT_MODEL[slug];
   switch (slug) {
+    case "lovable":
+      return callOpenAILike("https://ai.gateway.lovable.dev/v1/chat/completions", key, model, messages, opts.responseJson);
     case "gemini":
       return callGemini(key, model, messages, opts.responseJson);
     case "openai":
@@ -144,6 +156,8 @@ export async function callProvider(
       return callOpenAILike("https://api.mistral.ai/v1/chat/completions", key, model, messages, opts.responseJson);
     case "openrouter":
       return callOpenAILike("https://openrouter.ai/api/v1/chat/completions", key, model, messages, opts.responseJson);
+    default:
+      throw new Error(`Unknown provider: ${slug}`);
   }
 }
 
