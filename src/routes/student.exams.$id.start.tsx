@@ -5,10 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatArabicDateTime } from "@/lib/students-utils";
+import { deriveStatus } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/student/exams/$id/start")({
   head: () => ({ meta: [{ title: "بدء الامتحان" }] }),
