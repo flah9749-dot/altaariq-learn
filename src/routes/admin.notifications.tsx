@@ -230,7 +230,7 @@ function AnnouncementsManager() {
                     <p className="text-[10px] text-muted-foreground mt-1">{relativeTime(a.created_at)}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => setForm({ id: a.id, title: a.title, body: a.body, priority: a.priority, ends_at: a.ends_at?.slice(0,16) ?? "" })}>تعديل</Button>
+                    <Button size="sm" variant="outline" onClick={() => setForm({ id: a.id, title: a.title, body: a.body, priority: a.priority, ends_at: a.ends_at?.slice(0,16) ?? "", class_id: a.target_class_ids?.[0], group_id: a.target_group_ids?.[0] })}>تعديل</Button>
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => del.mutate(a.id)}><Trash2 className="h-4 w-4"/></Button>
                   </div>
                 </div>
