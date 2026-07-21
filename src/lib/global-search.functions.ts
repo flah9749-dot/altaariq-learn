@@ -102,7 +102,7 @@ export const globalSearch = createServerFn({ method: "POST" })
       hits.push({
         type: "reward",
         id: r.id,
-        title: r.name,
+        title: r.title,
         subtitle: r.description ?? undefined,
         url: `/admin/rewards`,
       });
