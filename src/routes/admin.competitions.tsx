@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/competitions")({
   head: () => ({ meta: [{ title: "المسابقات — لوحة المدرس" }] }),
@@ -62,6 +63,7 @@ function CompetitionsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs items={[{ to: "/admin/rewards", label: "الجوائز والنقاط" }, { to: "/admin/competitions", label: "المسابقات" }]} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2"><Trophy className="h-7 w-7 text-gold"/>المسابقات</h1>

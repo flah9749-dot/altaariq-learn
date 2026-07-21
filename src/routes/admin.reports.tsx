@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { exportToExcel, exportToPdf } from "@/lib/reports";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/reports")({
   head: () => ({ meta: [{ title: "التقارير — لوحة المدرس" }] }),
@@ -42,6 +43,7 @@ function ReportsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs items={[{ to: "/admin/reports", label: "التقارير" }, { to: "/admin/leaderboard", label: "ترتيب الطلاب" }]} />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">

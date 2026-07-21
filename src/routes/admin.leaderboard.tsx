@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToExcel } from "@/lib/reports";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/leaderboard")({
   head: () => ({ meta: [{ title: "ترتيب الطلاب — الطارق التعليمية" }] }),
@@ -76,6 +77,7 @@ function LeaderboardPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs items={[{ to: "/admin/reports", label: "التقارير" }, { to: "/admin/leaderboard", label: "ترتيب الطلاب" }]} />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
