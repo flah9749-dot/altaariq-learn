@@ -14,7 +14,7 @@ const items = [
   { title: "الطلاب", url: "/admin/students", icon: Users },
   { title: "مسح QR", url: "/admin/scan", icon: ScanLine },
   { title: "الأرشيف", url: "/admin/archive", icon: Archive },
-  { title: "الفصول", url: "/admin/classes", icon: GraduationCap },
+  { title: "الصفوف الدراسية", url: "/admin/classes", icon: GraduationCap },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot },
   { title: "المساعد الذكي", url: "/admin/assistant", icon: Bot },
