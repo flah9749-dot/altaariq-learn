@@ -30,11 +30,12 @@ export const analyzeExamResults = createServerFn({ method: "POST" })
   .inputValidator((data: { examId: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data: exam } = await supabase
+    const { data: examRow } = await supabase
       .from("exams")
-      .select("id, title, subject, total_marks")
+      .select("id, title, subject, total_score")
       .eq("id", data.examId)
       .maybeSingle();
+    const exam = examRow as any;
     if (!exam) throw new Error("الامتحان غير موجود");
 
     const { data: attempts } = await supabase
@@ -45,9 +46,9 @@ export const analyzeExamResults = createServerFn({ method: "POST" })
 
     const rows = attempts ?? [];
     const scores = rows.map((r: any) => Number(r.score ?? 0));
-    const totals = rows.map((r: any) => Number(r.total ?? exam.total_marks ?? 0));
+    const totals = rows.map((r: any) => Number(r.total ?? exam.total_score ?? 0));
     const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    const maxTotal = Math.max(...totals, exam.total_marks ?? 0, 1);
+    const maxTotal = Math.max(...totals, Number(exam.total_score ?? 0), 1);
     const pct = (avg / maxTotal) * 100;
 
     const { data: answers } = await supabase
