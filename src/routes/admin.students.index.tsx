@@ -288,7 +288,17 @@ function StudentsPage() {
         </div>
       )}
 
+      {viewMode === "grouped" ? (
+        <StudentsGroupedView
+          students={groupedData?.rows ?? []}
+          isLoading={groupedLoading}
+          onEdit={(s) => { setEditStudent(s); setFormOpen(true); }}
+          onDelete={(ids) => setConfirmDelete({ ids })}
+          onToggleStatus={(ids, status) => toggleMut.mutate({ ids, status })}
+        />
+      ) : (
       <Card>
+
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
