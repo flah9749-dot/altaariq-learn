@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Trophy, Medal, Activity, ScanLine, Archive, Radio, HeartPulse, Database, Key,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Archive, Radio, HeartPulse, Database,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -12,23 +12,18 @@ const items = [
   { title: "الرئيسية", url: "/admin/dashboard", icon: Home },
   { title: "اللوحة الحية", url: "/admin/live", icon: Radio },
   { title: "الطلاب", url: "/admin/students", icon: Users },
-  { title: "مسح QR", url: "/admin/scan", icon: ScanLine },
   { title: "الأرشيف", url: "/admin/archive", icon: Archive },
   { title: "الصفوف الدراسية", url: "/admin/classes", icon: GraduationCap },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot },
   { title: "المساعد الذكي", url: "/admin/assistant", icon: Bot },
   { title: "الرسائل", url: "/admin/messages", icon: MessageSquare },
-  { title: "الجوائز والنقاط", url: "/admin/rewards", icon: Award },
-  { title: "المسابقات", url: "/admin/competitions", icon: Medal },
-  { title: "ترتيب الطلاب", url: "/admin/leaderboard", icon: Trophy },
-  { title: "التقارير", url: "/admin/reports", icon: BarChart3 },
-  { title: "سجل النشاط", url: "/admin/activity", icon: Activity },
+  { title: "الجوائز والمسابقات", url: "/admin/rewards", icon: Award },
+  { title: "الترتيب والتقارير", url: "/admin/reports", icon: BarChart3 },
   { title: "الإشعارات", url: "/admin/notifications", icon: Bell },
   { title: "الملفات", url: "/admin/files", icon: FolderOpen },
   { title: "حالة النظام", url: "/admin/system", icon: HeartPulse },
   { title: "النسخ الاحتياطي", url: "/admin/backups", icon: Database },
-  { title: "مفاتيح API", url: "/admin/api", icon: Key },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 
