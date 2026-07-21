@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { listBackups, createBackup, getBackupDownloadUrl, deleteBackup } from "@/lib/backups.functions";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/backups")({ component: BackupsPage });
 
@@ -55,6 +56,7 @@ function BackupsPage() {
 
   return (
     <div className="space-y-4">
+      <SectionTabs items={[{ to: "/admin/system", label: "حالة النظام" }, { to: "/admin/backups", label: "النسخ الاحتياطي" }]} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Database className="h-6 w-6"/> النسخ الاحتياطي</h1>
