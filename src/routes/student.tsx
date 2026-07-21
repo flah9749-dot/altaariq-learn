@@ -20,9 +20,9 @@ export const Route = createFileRoute("/student")({
 
 function StudentLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-muted/30" dir="rtl">
+    <div className="min-h-screen bg-muted/30 lg:pr-72" dir="rtl">
       <StudentHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3 pb-8 pt-4 sm:px-4 md:p-6">
+      <main className="mx-auto w-full max-w-6xl px-3 pb-8 pt-4 sm:px-4 md:p-6">
         <Outlet />
       </main>
     </div>

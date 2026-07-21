@@ -24,8 +24,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || "الطارق التعليمية";
   const options = {
     body: (payload.notification && payload.notification.body) || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     dir: "rtl",
     lang: "ar",
     data: { url: (payload.fcmOptions && payload.fcmOptions.link) || (payload.data && payload.data.link) || "/" },
