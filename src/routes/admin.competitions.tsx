@@ -63,6 +63,7 @@ function CompetitionsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs items={[{ to: "/admin/rewards", label: "الجوائز والنقاط" }, { to: "/admin/competitions", label: "المسابقات" }]} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2"><Trophy className="h-7 w-7 text-gold"/>المسابقات</h1>
