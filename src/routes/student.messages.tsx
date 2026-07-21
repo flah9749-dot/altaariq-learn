@@ -35,8 +35,8 @@ function StudentMessagesPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl h-[calc(100dvh-7.5rem)] md:h-[calc(100vh-8rem)]">
-      <Card className="flex flex-col overflow-hidden h-full">
+    <div className="mx-auto h-[calc(100dvh-12rem)] max-w-4xl sm:h-[calc(100dvh-8rem)] md:h-[calc(100vh-8rem)]">
+      <Card className="flex h-full flex-col overflow-hidden">
         {admin?.user_id ? (
           <ChatWindow
             peerId={admin.user_id}

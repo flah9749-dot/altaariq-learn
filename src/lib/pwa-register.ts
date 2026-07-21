@@ -1,17 +1,33 @@
-// Register a minimal service worker at "/sw.js" so Chrome/Edge/Samsung Internet
-// consider the app installable (they require a SW with a fetch handler at the
-// top-level scope). The Firebase messaging SW is registered separately when
-// the user enables push notifications; it does not itself satisfy the
-// installability requirement.
-//
-// Guarded to avoid running inside Lovable preview/dev iframes.
+// Clean up the old app-shell Service Worker that could serve stale files inside
+// installed shortcuts on managed Samsung tablets. Home-screen support now relies
+// on the manifest only; Firebase push notifications keep their separate worker.
 export function registerInstallabilityServiceWorker() {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
-  if (!import.meta.env.PROD) return;
+
+  const unregisterAppShellWorker = () => {
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        keys
+          .filter((key) => key.startsWith("shell-") || key.startsWith("altareq-shell-"))
+          .forEach((key) => caches.delete(key).catch(() => {}));
+      }).catch(() => {});
+    }
+    navigator.serviceWorker.getRegistrations?.().then((regs) => {
+      regs.forEach((reg) => {
+        const scriptUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";
+        if (scriptUrl.endsWith("/sw.js")) reg.unregister().catch(() => {});
+      });
+    });
+  };
+
   try {
-    if (window.top !== window.self) return;
+    if (window.top !== window.self) {
+      unregisterAppShellWorker();
+      return;
+    }
   } catch {
+    unregisterAppShellWorker();
     return;
   }
   const host = window.location.hostname;
@@ -24,15 +40,11 @@ export function registerInstallabilityServiceWorker() {
     host.endsWith(".lovableproject-dev.com") ||
     host === "beta.lovable.dev" ||
     host.endsWith(".beta.lovable.dev");
-  if (blocked) return;
-  if (new URL(window.location.href).searchParams.get("sw") === "off") {
-    navigator.serviceWorker.getRegistrations?.().then((regs) => {
-      regs.forEach((r) => r.unregister().catch(() => {}));
-    });
+
+  if (!import.meta.env.PROD || blocked || new URL(window.location.href).searchParams.get("sw") === "off") {
+    unregisterAppShellWorker();
     return;
   }
-  navigator.serviceWorker
-    .register("/sw.js", { scope: "/", updateViaCache: "none" })
-    .catch(() => { /* ignore */ });
 
+  unregisterAppShellWorker();
 }
