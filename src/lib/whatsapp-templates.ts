@@ -22,7 +22,10 @@ export type WaTemplateKey =
   | "wa.tpl.teacher_credentials"
   | "wa.tpl.certificate"
   | "wa.tpl.rewards_inquiry"
+  | "wa.tpl.rewards_summary"
+  | "wa.tpl.competition_invite"
   | "wa.tpl.teacher_contact";
+
 
 /** Pick the right result template based on percentage. */
 export function pickResultTemplate(percentage: number): WaTemplateKey {
