@@ -296,7 +296,15 @@ function StudentsPage() {
                   <TableCell className="text-xs text-muted-foreground">{formatArabicDateTime(s.last_seen)}</TableCell>
                   <TableCell className="print:hidden">
                     <div className="flex items-center gap-1">
-                      {s.parent_whatsapp && <WhatsAppButton phone={s.parent_whatsapp} size="icon" variant="ghost" />}
+                      {s.parent_whatsapp && (
+                        <WhatsAppButton
+                          phone={s.parent_whatsapp}
+                          template="wa.tpl.parent_intro"
+                          vars={{ name: s.full_name }}
+                          size="icon"
+                          variant="ghost"
+                        />
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
