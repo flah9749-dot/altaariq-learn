@@ -32,18 +32,21 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const creds = credentials ?? localCreds;
   const platformName = "منصة الطارق التعليمية";
   const parentGreeting = student.parent_name ? `الأستاذ/ة ${student.parent_name}` : "ولي الأمر الكريم";
+  const platformUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const messageLines = [
     `السلام عليكم ورحمة الله وبركاته 🌸`,
     `أهلاً وسهلاً ${parentGreeting} 👋`,
     ``,
-    `يسعدنا انضمام الطالب/ة *${student.full_name}* إلى ${platformName} — منصة الدراسات الاجتماعية (تاريخ • جغرافيا • مواطنة).`,
+    `يسعدنا انضمام الطالب/ة *${student.full_name}* إلى ${platformName} — الدراسات الاجتماعية (تاريخ • جغرافيا • مواطنة).`,
     ``,
     `🔐 *بيانات الدخول:*`,
     `• الكود: ${student.code}`,
     creds?.password ? `• كلمة المرور: ${creds.password}` : `• كلمة المرور: (يرجى طلبها من المدرس)`,
     ``,
-    `📱 يمكنكم متابعة درجات الطالب، الإعلانات، والامتحانات من خلال المنصة.`,
+    platformUrl ? `🔗 رابط المنصة: ${platformUrl}` : "",
+    ``,
+    `📱 يمكنكم متابعة الدرجات والامتحانات والإعلانات من خلال المنصة.`,
     `نتمنى للطالب/ة التوفيق والنجاح 🌟`,
   ].filter(Boolean).join("\n");
 
