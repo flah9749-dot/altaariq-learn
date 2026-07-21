@@ -401,6 +401,8 @@ function StudentsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
+
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between print:hidden">
