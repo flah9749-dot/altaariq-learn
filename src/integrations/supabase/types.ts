@@ -1388,6 +1388,8 @@ export type Database = {
       students: {
         Row: {
           address: string | null
+          archived_at: string | null
+          archived_year: string | null
           avatar_url: string | null
           birth_date: string | null
           class_id: string | null
@@ -1413,6 +1415,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          archived_year?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           class_id?: string | null
@@ -1438,6 +1442,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          archived_year?: string | null
           avatar_url?: string | null
           birth_date?: string | null
           class_id?: string | null

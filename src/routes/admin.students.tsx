@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
   Users, Plus, Search, Download, Upload, Trash2, Ban, CheckCircle2,
-  MoreHorizontal, Edit, Eye, Printer,
+  MoreHorizontal, Edit, Eye, Printer, Archive,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +33,11 @@ import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
+import { archiveStudents } from "@/lib/archive.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
 import { useDebounce } from "@/hooks/use-debounce";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/admin/students")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
@@ -55,9 +58,12 @@ function StudentsPage() {
   const [editStudent, setEditStudent] = useState<StudentRow | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ ids: string[] } | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveYear, setArchiveYear] = useState<string>(String(new Date().getFullYear()));
 
   const delFn = useServerFn(deleteStudents);
   const toggleFn = useServerFn(toggleStudentStatus);
+  const archiveFn = useServerFn(archiveStudents);
 
   const debouncedSearch = useDebounce(search, 350);
 
@@ -76,6 +82,7 @@ function StudentsPage() {
       let q = supabase
         .from("students")
         .select("*, classes(id,name), groups(id,name)", { count: "exact" })
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (classFilter) q = q.eq("class_id", classFilter);
@@ -126,6 +133,18 @@ function StudentsPage() {
       setSelected(new Set());
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل التحديث"),
+  });
+
+  const archiveMut = useMutation({
+    mutationFn: async ({ ids, year }: { ids: string[]; year: string }) => archiveFn({ data: { ids, year } }),
+    onSuccess: (r: any) => {
+      toast.success(`تم أرشفة ${r.count} طالب`);
+      qc.invalidateQueries({ queryKey: ["students"] });
+      qc.invalidateQueries({ queryKey: ["archived-students"] });
+      setSelected(new Set());
+      setArchiveOpen(false);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
   });
 
   const exportExcel = () => {
@@ -200,12 +219,15 @@ function StudentsPage() {
       {selected.size > 0 && (
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-2 print:hidden">
           <span className="text-sm font-medium">تم تحديد {selected.size} طالب</span>
-          <div className="mr-auto flex gap-2">
+          <div className="mr-auto flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => toggleMut.mutate({ ids: [...selected], status: "suspended" })}>
               <Ban className="h-4 w-4 ml-1" />إيقاف
             </Button>
             <Button size="sm" variant="outline" onClick={() => toggleMut.mutate({ ids: [...selected], status: "active" })}>
               <CheckCircle2 className="h-4 w-4 ml-1" />تفعيل
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setArchiveOpen(true)}>
+              <Archive className="h-4 w-4 ml-1" />أرشفة
             </Button>
             <Button size="sm" variant="destructive" onClick={() => setConfirmDelete({ ids: [...selected] })}>
               <Trash2 className="h-4 w-4 ml-1" />حذف
@@ -333,6 +355,32 @@ function StudentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Archive className="h-5 w-5" />أرشفة {selected.size} طالب</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              سيحتفظ الطلاب المؤرشفون بكل بياناتهم (النتائج، الرسائل، النقاط، الجوائز). يمكن استرجاعهم لاحقًا من صفحة الأرشيف.
+            </p>
+            <div className="space-y-1.5">
+              <Label>السنة الدراسية</Label>
+              <Input value={archiveYear} onChange={(e) => setArchiveYear(e.target.value)} placeholder="2024-2025" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArchiveOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={() => archiveMut.mutate({ ids: [...selected], year: archiveYear.trim() || String(new Date().getFullYear()) })}
+              disabled={archiveMut.isPending}
+            >
+              <Archive className="h-4 w-4 ml-1" />تأكيد الأرشفة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
