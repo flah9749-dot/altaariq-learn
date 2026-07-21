@@ -63,9 +63,17 @@ async function callOpenAILike(
 ): Promise<string> {
   const body: any = { model, messages };
   if (responseJson) body.response_format = { type: "json_object" };
+  const isLovable = url.includes("ai.gateway.lovable.dev");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (isLovable) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["Lovable-API-Key"] = key;
+  } else {
+    headers["Authorization"] = `Bearer ${key}`;
+  }
   const res = await withTimeout(fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    headers,
     body: JSON.stringify(body),
   }));
   if (!res.ok) {
