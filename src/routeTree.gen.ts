@@ -19,6 +19,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
 import { Route as StudentPointsRouteImport } from './routes/student.points'
 import { Route as StudentMessagesRouteImport } from './routes/student.messages'
+import { Route as StudentFilesRouteImport } from './routes/student.files'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
 import { Route as StudentAssistantRouteImport } from './routes/student.assistant'
@@ -110,6 +111,11 @@ const StudentPointsRoute = StudentPointsRouteImport.update({
 const StudentMessagesRoute = StudentMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentFilesRoute = StudentFilesRouteImport.update({
+  id: '/files',
+  path: '/files',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentExamsRoute = StudentExamsRouteImport.update({
@@ -353,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
+  '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByTo {
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
+  '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
+  '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
   '/student/rewards': typeof StudentRewardsRoute
@@ -514,6 +523,7 @@ export interface FileRouteTypes {
     | '/student/assistant'
     | '/student/dashboard'
     | '/student/exams'
+    | '/student/files'
     | '/student/messages'
     | '/student/points'
     | '/student/rewards'
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/student/achievements'
     | '/student/assistant'
     | '/student/dashboard'
+    | '/student/files'
     | '/student/messages'
     | '/student/points'
     | '/student/rewards'
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/student/assistant'
     | '/student/dashboard'
     | '/student/exams'
+    | '/student/files'
     | '/student/messages'
     | '/student/points'
     | '/student/rewards'
@@ -726,6 +738,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/student/messages'
       preLoaderRoute: typeof StudentMessagesRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/files': {
+      id: '/student/files'
+      path: '/files'
+      fullPath: '/student/files'
+      preLoaderRoute: typeof StudentFilesRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/exams': {
@@ -1157,6 +1176,7 @@ interface StudentRouteChildren {
   StudentAssistantRoute: typeof StudentAssistantRoute
   StudentDashboardRoute: typeof StudentDashboardRoute
   StudentExamsRoute: typeof StudentExamsRouteWithChildren
+  StudentFilesRoute: typeof StudentFilesRoute
   StudentMessagesRoute: typeof StudentMessagesRoute
   StudentPointsRoute: typeof StudentPointsRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
@@ -1168,6 +1188,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentAssistantRoute: StudentAssistantRoute,
   StudentDashboardRoute: StudentDashboardRoute,
   StudentExamsRoute: StudentExamsRouteWithChildren,
+  StudentFilesRoute: StudentFilesRoute,
   StudentMessagesRoute: StudentMessagesRoute,
   StudentPointsRoute: StudentPointsRoute,
   StudentRewardsRoute: StudentRewardsRoute,

@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles } from "lucide-react";
+import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles, FolderOpen } from "lucide-react";
+
 import { Logo } from "@/components/common/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
