@@ -47,7 +47,7 @@ function AIExamPage() {
   const uploadFile = async (files: FileList | null) => {
     if (!files) return;
     for (const f of Array.from(files)) {
-      if (f.size > 15 * 1024 * 1024) { toast.error(`${f.name}: الحجم أكبر من 15MB`); continue; }
+      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name}: الحجم أكبر من 50MB`); continue; }
       const isPdf = f.type === "application/pdf";
       const isImg = f.type.startsWith("image/");
       if (!isPdf && !isImg) { toast.error(`${f.name}: النوع غير مدعوم`); continue; }
