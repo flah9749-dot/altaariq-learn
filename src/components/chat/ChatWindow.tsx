@@ -176,7 +176,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         </div>
         <Popover open={!!search || undefined}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={() => setSearch(search ? "" : " ")}>
+            <Button variant="ghost" size="icon" aria-label="بحث في المحادثة" onClick={() => setSearch(search ? "" : " ")}>
               <Search className="h-4 w-4"/>
             </Button>
           </PopoverTrigger>
@@ -184,7 +184,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         {templates && templates.length > 0 && (
           <Popover open={showTemplates} onOpenChange={setShowTemplates}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" title="قوالب"><FileText className="h-4 w-4"/></Button>
+              <Button variant="ghost" size="icon" title="قوالب" aria-label="قوالب جاهزة"><FileText className="h-4 w-4"/></Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-2" dir="rtl">
               <p className="text-xs font-semibold mb-2 text-muted-foreground">قوالب جاهزة</p>
