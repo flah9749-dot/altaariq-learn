@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
+import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import {
   gradeEssay, approveAttempt, updateAttemptScore, reopenAttempt, aiSuggestEssayGrade, sendWhatsAppLog,
 } from "@/lib/exams.functions";
