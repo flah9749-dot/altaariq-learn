@@ -7,6 +7,22 @@ async function isAdmin(supabase: any, userId: string): Promise<boolean> {
   return !!data;
 }
 
+export const getPrimaryAdminPeer = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("admins")
+      .select("user_id, full_name")
+      .not("user_id", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.user_id) throw new Error("لم يتم إعداد حساب المدرس بعد");
+    return { user_id: data.user_id as string, full_name: (data.full_name as string | null) ?? "المدرس" };
+  });
+
 // -------- Send message (text or with attachment) --------
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -29,8 +45,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       const { data: stu } = await supabase.from("students").select("id").eq("user_id", data.recipient_id).maybeSingle();
       if (!stu) throw new Error("لا يمكن الإرسال إلا لطالب مسجّل");
     } else {
-      const { data: adm } = await supabase.from("admins").select("id").eq("user_id", data.recipient_id).maybeSingle();
-      if (!adm) throw new Error("الطلاب يمكنهم فقط مراسلة المدرس");
+      if (!(await isAdmin(supabase, data.recipient_id))) throw new Error("الطلاب يمكنهم فقط مراسلة المدرس");
     }
 
     if (!data.body.trim() && !data.attachment_url) throw new Error("رسالة فارغة");

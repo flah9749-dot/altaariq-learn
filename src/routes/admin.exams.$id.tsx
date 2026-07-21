@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -75,6 +75,7 @@ function ExamEditor() {
 
   const [meta, setMeta] = useState<any | null>(null);
   const [questions, setQuestions] = useState<Q[]>([]);
+  const loadedAiDraft = useRef(false);
 
   const { data: exam, isLoading } = useQuery({
     queryKey: ["exam", id],
@@ -96,7 +97,7 @@ function ExamEditor() {
 
   useEffect(() => { if (exam) setMeta(exam); }, [exam]);
   useEffect(() => {
-    if (dbQuestions) {
+    if (dbQuestions && !loadedAiDraft.current) {
       setQuestions(dbQuestions.map((q: any) => ({
         id: q.id, type: q.type, text: q.text, points: Number(q.points) || 1,
         suggested_time_sec: q.suggested_time_sec, explanation: q.explanation,
@@ -117,6 +118,7 @@ function ExamEditor() {
         const parsed = JSON.parse(draft);
         if (Array.isArray(parsed.questions) && parsed.questions.length) {
           setQuestions(parsed.questions);
+          loadedAiDraft.current = true;
           if (parsed.title) setMeta((m: any) => ({ ...m, title: parsed.title }));
           sessionStorage.removeItem(key);
           toast.success(`تم استيراد ${parsed.questions.length} سؤال من الذكاء الاصطناعي`);
@@ -152,6 +154,7 @@ function ExamEditor() {
   const saveQs = useMutation({
     mutationFn: async () => saveQFn({ data: { exam_id: id, questions } }),
     onSuccess: (r: any) => {
+      loadedAiDraft.current = false;
       toast.success(`تم حفظ ${r.count} سؤال (الدرجة الكلية: ${r.total_score})`);
       qc.invalidateQueries({ queryKey: ["exam", id] });
       qc.invalidateQueries({ queryKey: ["exam-questions", id] });

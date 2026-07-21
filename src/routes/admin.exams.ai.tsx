@@ -26,6 +26,12 @@ type Attachment = { kind: "image" | "pdf"; name: string; data_url: string };
 const readFile = (file: File): Promise<string> =>
   new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
 
+async function prepareAttachmentFile(file: File): Promise<File | Blob> {
+  if (!file.type.startsWith("image/")) return file;
+  const { compressImage } = await import("@/lib/message-utils");
+  return compressImage(file, 1800, 0.84);
+}
+
 function AIExamPage() {
   const nav = useNavigate();
   const genFn = useServerFn(generateExamWithAI);
@@ -43,17 +49,23 @@ function AIExamPage() {
   const [useTotal, setUseTotal] = useState(false);
   const [totalScore, setTotalScore] = useState(50);
   const [preview, setPreview] = useState<{ title: string; questions: any[] } | null>(null);
+  const [fileProgress, setFileProgress] = useState<{ name: string; index: number; total: number } | null>(null);
 
   const uploadFile = async (files: FileList | null) => {
     if (!files) return;
-    for (const f of Array.from(files)) {
+    const list = Array.from(files);
+    for (let index = 0; index < list.length; index++) {
+      const f = list[index];
       if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name}: الحجم أكبر من 50MB`); continue; }
       const isPdf = f.type === "application/pdf";
       const isImg = f.type.startsWith("image/");
       if (!isPdf && !isImg) { toast.error(`${f.name}: النوع غير مدعوم`); continue; }
-      const url = await readFile(f);
+      setFileProgress({ name: f.name, index: index + 1, total: list.length });
+      const prepared = await prepareAttachmentFile(f);
+      const url = await readFile(prepared instanceof File ? prepared : new File([prepared], f.name, { type: "image/jpeg" }));
       setAttachments((a) => [...a, { kind: isPdf ? "pdf" : "image", name: f.name, data_url: url }]);
     }
+    setFileProgress(null);
   };
 
   const toggleType = (v: string) => setTypes((t) => t.includes(v) ? t.filter((x) => x !== v) : [...t, v]);
@@ -111,17 +123,22 @@ function AIExamPage() {
                 </Field>
                 <Field label="المرفقات (PDF, صور — OCR تلقائي)">
                   <div className="flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant="outline" disabled={!!fileProgress}>
                       <label className="cursor-pointer"><Upload className="h-4 w-4 ml-1" />رفع ملف
                         <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => uploadFile(e.target.files)} />
                       </label>
                     </Button>
-                    <Button asChild size="sm" variant="outline">
+                    <Button asChild size="sm" variant="outline" disabled={!!fileProgress}>
                       <label className="cursor-pointer"><Camera className="h-4 w-4 ml-1" />التقاط صورة
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => uploadFile(e.target.files)} />
                       </label>
                     </Button>
                   </div>
+                  {fileProgress && (
+                    <p className="text-xs text-primary flex items-center gap-1 mt-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />جارٍ تجهيز الملف {fileProgress.index}/{fileProgress.total}: {fileProgress.name}
+                    </p>
+                  )}
                   {attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
                       {attachments.map((a, i) => (
@@ -187,7 +204,7 @@ function AIExamPage() {
                     )}
                   </div>
                 </Field>
-                <Button className="w-full" onClick={() => genMut.mutate()} disabled={genMut.isPending || (!topic && !rawText && attachments.length === 0) || types.length === 0}>
+                <Button className="w-full" onClick={() => genMut.mutate()} disabled={!!fileProgress || genMut.isPending || (!topic && !rawText && attachments.length === 0) || types.length === 0}>
                   {genMut.isPending ? <><Loader2 className="h-4 w-4 animate-spin ml-1" />جاري التوليد...</> : <><Sparkles className="h-4 w-4 ml-1" />توليد الامتحان</>}
                 </Button>
               </CardContent>

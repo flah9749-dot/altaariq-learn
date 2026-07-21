@@ -41,13 +41,14 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
   const key = ["thread", user?.id, peerId];
 
-  const { data: messages, isLoading } = useQuery({
+  const { data: messages, isLoading, error: messagesError } = useQuery({
     queryKey: key,
     enabled: !!user && !!peerId,
     queryFn: async () => {
-      const { data } = await supabase.from("messages")
+      const { data, error } = await supabase.from("messages")
         .select("*").or(`and(sender_id.eq.${user!.id},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${user!.id})`)
         .order("created_at", { ascending: true }).limit(500);
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -211,11 +212,13 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         </div>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 space-y-2 bg-gradient-to-b from-muted/20 to-background min-h-[300px]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 space-y-2 bg-gradient-to-b from-muted/20 to-background min-h-0">
         {isLoading ? (
           <div className="p-4 space-y-2">
             <Skeleton className="h-12 w-64" /><Skeleton className="h-12 w-72 ms-auto" /><Skeleton className="h-12 w-56" />
           </div>
+        ) : messagesError ? (
+          <div className="text-center py-16 text-destructive text-sm">تعذّر تحميل الرسائل. أعد فتح الصفحة.</div>
         ) : visible.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground text-sm">
             <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />

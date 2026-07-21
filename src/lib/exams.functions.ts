@@ -110,13 +110,20 @@ export const saveQuestions = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Replace-all strategy for simplicity.
-    await supabaseAdmin.from("questions").delete().eq("exam_id", data.exam_id);
+    const { data: existingRows, error: existingErr } = await supabaseAdmin
+      .from("questions")
+      .select("id")
+      .eq("exam_id", data.exam_id);
+    if (existingErr) throw new Error(existingErr.message);
+
+    const existingIds = new Set((existingRows ?? []).map((q: any) => q.id as string));
+    const keptIds: string[] = [];
     let totalScore = 0;
+
     for (let i = 0; i < data.questions.length; i++) {
       const q = data.questions[i];
       totalScore += q.points ?? 0;
-      const { data: qRow, error: qErr } = await supabaseAdmin.from("questions").insert({
+      const payload = {
         exam_id: data.exam_id,
         type: q.type,
         text: q.text,
@@ -128,8 +135,16 @@ export const saveQuestions = createServerFn({ method: "POST" })
         order_index: i,
         correct_answer: q.correct_answer ?? null,
         difficulty: q.difficulty ?? null,
-      }).select("id").single();
+      };
+
+      const { data: qRow, error: qErr } = q.id && existingIds.has(q.id)
+        ? await supabaseAdmin.from("questions").update(payload).eq("id", q.id).eq("exam_id", data.exam_id).select("id").single()
+        : await supabaseAdmin.from("questions").insert(payload).select("id").single();
       if (qErr || !qRow) throw new Error(qErr?.message ?? "فشل حفظ سؤال");
+      keptIds.push(qRow.id);
+
+      const { error: delOptErr } = await supabaseAdmin.from("question_options").delete().eq("question_id", qRow.id);
+      if (delOptErr) throw new Error(delOptErr.message);
       if (q.options && q.options.length) {
         const optRows = q.options.map((o, oi) => ({
           question_id: qRow.id,
@@ -143,6 +158,13 @@ export const saveQuestions = createServerFn({ method: "POST" })
         if (oErr) throw new Error(oErr.message);
       }
     }
+
+    const removedIds = [...existingIds].filter((qid) => !keptIds.includes(qid));
+    if (removedIds.length > 0) {
+      const { error: delErr } = await supabaseAdmin.from("questions").delete().in("id", removedIds).eq("exam_id", data.exam_id);
+      if (delErr) throw new Error(delErr.message);
+    }
+
     await supabaseAdmin.from("exams").update({ total_score: totalScore }).eq("id", data.exam_id);
     return { ok: true, total_score: totalScore, count: data.questions.length };
   });
