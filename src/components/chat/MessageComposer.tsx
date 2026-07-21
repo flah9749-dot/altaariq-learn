@@ -90,7 +90,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
       {replyTo && (
         <div className="flex items-center gap-2 bg-muted rounded-lg p-2 text-xs">
           <span className="me-auto truncate">↩️ رد على: {replyTo.body?.slice(0, 60) ?? "مرفق"}</span>
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onClearReply}><X className="h-3 w-3"/></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onClearReply} aria-label="إلغاء الرد"><X className="h-3 w-3"/></Button>
         </div>
       )}
       {staged && Icon && (
