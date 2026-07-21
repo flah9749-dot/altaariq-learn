@@ -10,16 +10,18 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { useAuth } from "@/lib/auth-context";
+import { useStudentUnreadBadges, type StudentBadges } from "@/hooks/useUnreadBadges";
 
-const nav = [
-  { title: "الرئيسية", url: "/student/dashboard", icon: Home },
-  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles },
-  { title: "الامتحانات", url: "/student/exams", icon: FileText },
-  { title: "الملفات", url: "/student/files", icon: FolderOpen },
-  { title: "الرسائل", url: "/student/messages", icon: MessageSquare },
-  { title: "الجوائز", url: "/student/rewards", icon: Award },
-  { title: "نقاطي", url: "/student/points", icon: Star },
-  { title: "الإنجازات", url: "/student/achievements", icon: Trophy },
+type NavKey = keyof StudentBadges | null;
+const nav: Array<{ title: string; url: string; icon: any; badge: NavKey }> = [
+  { title: "الرئيسية", url: "/student/dashboard", icon: Home, badge: null },
+  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles, badge: null },
+  { title: "الامتحانات", url: "/student/exams", icon: FileText, badge: "exams" },
+  { title: "الملفات", url: "/student/files", icon: FolderOpen, badge: null },
+  { title: "الرسائل", url: "/student/messages", icon: MessageSquare, badge: "messages" },
+  { title: "الجوائز", url: "/student/rewards", icon: Award, badge: "rewards" },
+  { title: "نقاطي", url: "/student/points", icon: Star, badge: null },
+  { title: "الإنجازات", url: "/student/achievements", icon: Trophy, badge: "achievements" },
 ];
 
 export function StudentHeader() {
@@ -27,9 +29,11 @@ export function StudentHeader() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [open, setOpen] = useState(false);
+  const badges = useStudentUnreadBadges();
   const initial = (profile?.full_name ?? profile?.identifier ?? "ط").slice(0, 1);
   const doSignOut = async () => { await signOut(); navigate({ to: "/login", replace: true }); };
   const isActive = (u: string) => pathname === u || pathname.startsWith(u + "/");
+  const badgeFor = (k: NavKey) => (k ? badges[k] : 0);
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
@@ -61,6 +65,7 @@ export function StudentHeader() {
             <nav className="flex-1 overflow-y-auto p-3 space-y-1">
               {nav.map((n) => {
                 const active = isActive(n.url);
+                const count = badgeFor(n.badge);
                 return (
                   <Link
                     key={n.url}
@@ -72,8 +77,20 @@ export function StudentHeader() {
                         : "text-sidebar-foreground/85 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <n.icon className="h-5 w-5 shrink-0" />
+                    <span className="relative shrink-0">
+                      <n.icon className="h-5 w-5" />
+                      {count > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center leading-none ring-2 ring-sidebar">
+                          {count > 99 ? "99+" : count}
+                        </span>
+                      )}
+                    </span>
                     <span className="flex-1">{n.title}</span>
+                    {count > 0 && (
+                      <span className="ms-auto h-5 min-w-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -102,9 +119,18 @@ export function StudentHeader() {
         <nav className="hidden md:flex items-center gap-1 me-auto ms-4">
           {nav.map((n) => {
             const active = isActive(n.url);
+            const count = badgeFor(n.badge);
             return (
-              <Link key={n.url} to={n.url} className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
-                <n.icon className="h-4 w-4" /> {n.title}
+              <Link key={n.url} to={n.url} className={`relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                <span className="relative">
+                  <n.icon className="h-4 w-4" />
+                  {count > 0 && (
+                    <span className="absolute -top-2 -right-2 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-background">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  )}
+                </span>
+                {n.title}
               </Link>
             );
           })}
