@@ -82,6 +82,9 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, student?.id]);
 
+  if (!student) return null;
+
+
 
 
   async function download() {
