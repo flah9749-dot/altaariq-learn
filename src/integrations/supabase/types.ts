@@ -1542,6 +1542,7 @@ export type Database = {
           parent_phone: string | null
           parent_whatsapp: string | null
           phone: string | null
+          plaintext_password: string | null
           points: number
           seat_number: string | null
           status: string
@@ -1569,6 +1570,7 @@ export type Database = {
           parent_phone?: string | null
           parent_whatsapp?: string | null
           phone?: string | null
+          plaintext_password?: string | null
           points?: number
           seat_number?: string | null
           status?: string
@@ -1596,6 +1598,7 @@ export type Database = {
           parent_phone?: string | null
           parent_whatsapp?: string | null
           phone?: string | null
+          plaintext_password?: string | null
           points?: number
           seat_number?: string | null
           status?: string
