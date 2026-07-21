@@ -58,9 +58,12 @@ function StudentsPage() {
   const [editStudent, setEditStudent] = useState<StudentRow | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ ids: string[] } | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveYear, setArchiveYear] = useState<string>(String(new Date().getFullYear()));
 
   const delFn = useServerFn(deleteStudents);
   const toggleFn = useServerFn(toggleStudentStatus);
+  const archiveFn = useServerFn(archiveStudents);
 
   const debouncedSearch = useDebounce(search, 350);
 
@@ -79,6 +82,7 @@ function StudentsPage() {
       let q = supabase
         .from("students")
         .select("*, classes(id,name), groups(id,name)", { count: "exact" })
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (classFilter) q = q.eq("class_id", classFilter);
