@@ -501,6 +501,22 @@ export const approveAttempt = createServerFn({ method: "POST" })
     }
 
     await logActivity(supabaseAdmin, context.userId, "approve_attempt", "exam_attempt", att.id, { points_awarded: pts });
+
+    // Notify the student that their result was published/approved.
+    try {
+      const { data: stu } = await supabaseAdmin
+        .from("students").select("user_id").eq("id", att.student_id).maybeSingle();
+      if (stu?.user_id) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: stu.user_id,
+          title: "🏆 تم إعلان نتيجة امتحانك",
+          body: `تم اعتماد نتيجة امتحان "${att.exams?.title ?? ""}"${pts > 0 ? ` — حصلت على ${pts} نقطة` : ""}. اضغط لعرض التفاصيل.`,
+          type: "exam_graded",
+          link: `/student/exams/${att.exam_id}/result`,
+        });
+      }
+    } catch { /* non-blocking */ }
+
     return { ok: true, points_awarded: pts };
   });
 
