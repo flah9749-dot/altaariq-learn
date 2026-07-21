@@ -115,6 +115,22 @@ ${SCHEMA_HINT}`;
       })) : [],
     }));
 
+    // Enforce total_score exactly if provided (scale then round to 0.5, fix drift on last question)
+    if (data.total_score && data.total_score > 0 && normalized.length > 0) {
+      const currentSum = normalized.reduce((a: number, q: any) => a + (Number(q.points) || 0), 0) || normalized.length;
+      const factor = data.total_score / currentSum;
+      let running = 0;
+      normalized.forEach((q: any, idx: number) => {
+        if (idx === normalized.length - 1) {
+          q.points = Math.max(0.5, Math.round((data.total_score! - running) * 2) / 2);
+        } else {
+          const p = Math.max(0.5, Math.round(q.points * factor * 2) / 2);
+          q.points = p;
+          running += p;
+        }
+      });
+    }
+
     return {
       title: parsed.title ?? data.topic ?? "امتحان جديد",
       questions: normalized,
