@@ -30,6 +30,8 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
 
   if (!student) return null;
 
+  const creds = credentials ?? localCreds;
+
   async function buildMessage(password: string): Promise<string> {
     return buildWaMessage("wa.tpl.student_card", {
       name: student!.full_name,
