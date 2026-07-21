@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
+import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { useAuth } from "@/lib/auth-context";
 
 const nav = [
@@ -38,6 +39,7 @@ export function StudentHeader() {
           })}
         </nav>
         <div className="me-auto md:me-0 flex items-center gap-2">
+            <InstallAppButton className="hidden sm:inline-flex" />
             <NotificationsBell />
             <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2">

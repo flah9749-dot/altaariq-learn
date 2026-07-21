@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Logo } from "@/components/common/Logo";
+import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { adminInitStatus } from "@/lib/setup.functions";
 
@@ -84,6 +85,7 @@ function LoginPage() {
         <div className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md space-y-6">
             <div className="lg:hidden flex justify-center"><Logo size={56} /></div>
+            <div className="flex justify-center"><InstallAppButton variant="outline" /></div>
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold">تسجيل الدخول</h2>
               <p className="text-sm text-muted-foreground">اختر نوع الحساب ثم أدخل بياناتك</p>
