@@ -185,7 +185,7 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
 
         <div className="flex justify-center py-2">
           <div ref={cardRef}>
-            <StudentIdCard student={student} />
+            <StudentIdCard student={student} password={creds?.password ?? null} />
           </div>
         </div>
 
