@@ -28,6 +28,7 @@ import { Route as AdminSystemRouteImport } from './routes/admin.system'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminScanRouteImport } from './routes/admin.scan'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
+import { Route as AdminResultsRouteImport } from './routes/admin.results'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
@@ -156,6 +157,11 @@ const AdminScanRoute = AdminScanRouteImport.update({
 const AdminRewardsRoute = AdminRewardsRouteImport.update({
   id: '/rewards',
   path: '/rewards',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminResultsRoute = AdminResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminReportsRoute = AdminReportsRouteImport.update({
@@ -351,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByTo {
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
+  '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
+    | '/admin/results'
     | '/admin/rewards'
     | '/admin/scan'
     | '/admin/settings'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
+    | '/admin/results'
     | '/admin/rewards'
     | '/admin/scan'
     | '/admin/settings'
@@ -621,6 +632,7 @@ export interface FileRouteTypes {
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
+    | '/admin/results'
     | '/admin/rewards'
     | '/admin/scan'
     | '/admin/settings'
@@ -801,6 +813,13 @@ declare module '@tanstack/react-router' {
       path: '/rewards'
       fullPath: '/admin/rewards'
       preLoaderRoute: typeof AdminRewardsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/results': {
+      id: '/admin/results'
+      path: '/results'
+      fullPath: '/admin/results'
+      preLoaderRoute: typeof AdminResultsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reports': {
@@ -1095,6 +1114,7 @@ interface AdminRouteChildren {
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminReportsRoute: typeof AdminReportsRoute
+  AdminResultsRoute: typeof AdminResultsRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
   AdminScanRoute: typeof AdminScanRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -1124,6 +1144,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminReportsRoute: AdminReportsRoute,
+  AdminResultsRoute: AdminResultsRoute,
   AdminRewardsRoute: AdminRewardsRoute,
   AdminScanRoute: AdminScanRoute,
   AdminSettingsRoute: AdminSettingsRoute,

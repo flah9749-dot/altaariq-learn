@@ -11,6 +11,8 @@ export type WaTemplateKey =
   | "wa.tpl.student_credentials"
   | "wa.tpl.student_code"
   | "wa.tpl.exam_result"
+  | "wa.tpl.exam_result_praise"
+  | "wa.tpl.exam_result_encourage"
   | "wa.tpl.exam_reminder"
   | "wa.tpl.exam_link"
   | "wa.tpl.absence"
@@ -21,6 +23,13 @@ export type WaTemplateKey =
   | "wa.tpl.certificate"
   | "wa.tpl.rewards_inquiry"
   | "wa.tpl.teacher_contact";
+
+/** Pick the right result template based on percentage. */
+export function pickResultTemplate(percentage: number): WaTemplateKey {
+  if (percentage >= 75) return "wa.tpl.exam_result_praise";
+  if (percentage < 50) return "wa.tpl.exam_result_encourage";
+  return "wa.tpl.exam_result";
+}
 
 const DIV = "━━━━━━━━━━━━━━━━━━━━";
 
@@ -80,6 +89,48 @@ ${DIV}`,
 يمكنك مراجعة تفاصيل النتيجة من المنصة:
 {platform_url}
 
+— {teacher} | {platform}
+${DIV}`,
+
+  // Praise for high scorers (>=75%)
+  "wa.tpl.exam_result_praise":
+`${DIV}
+🌟 مبروك التفوق!
+
+نبارك لولي أمر الطالب/ة *{name}* على النتيجة المتميزة 🎉
+
+📝 الامتحان: {exam}
+🎯 الدرجة: {score}/{total}
+📈 النسبة: {percentage}%
+🏅 التقدير: {grade_text}
+
+اجتهاد رائع وتركيز واضح، نتمنى الاستمرار على هذا التفوق 💪✨
+
+يمكنكم مراجعة التفاصيل من المنصة:
+{platform_url}
+
+— {teacher} | {platform}
+${DIV}`,
+
+  // Encouragement for low scorers (<50%)
+  "wa.tpl.exam_result_encourage":
+`${DIV}
+💙 رسالة تحفيز
+
+ولي أمر الطالب/ة *{name}* — تحية طيبة،
+
+📝 الامتحان: {exam}
+🎯 الدرجة: {score}/{total}
+📈 النسبة: {percentage}%
+🏅 التقدير: {grade_text}
+
+نتيجة اليوم ليست نهاية الطريق 🌱
+نحتاج تعاونكم في متابعة المذاكرة ومراجعة الأسئلة الخاطئة من المنصة، وأنا مستعد لأي دعم إضافي بإذن الله.
+
+رابط المراجعة:
+{platform_url}
+
+بالتوفيق دائمًا 🤍
 — {teacher} | {platform}
 ${DIV}`,
 
@@ -193,6 +244,8 @@ export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
   "wa.tpl.student_credentials": "بيانات دخول الطالب",
   "wa.tpl.student_code": "إرسال كود الطالب فقط",
   "wa.tpl.exam_result": "نتيجة امتحان",
+  "wa.tpl.exam_result_praise": "نتيجة امتحان — تهنئة بالتفوق",
+  "wa.tpl.exam_result_encourage": "نتيجة امتحان — تحفيز وتشجيع",
   "wa.tpl.exam_reminder": "تذكير بامتحان",
   "wa.tpl.exam_link": "إرسال رابط امتحان",
   "wa.tpl.absence": "إشعار غياب",
@@ -212,6 +265,8 @@ export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
   "wa.tpl.student_credentials": ["name", "code", "password", "platform_url", "platform", "teacher"],
   "wa.tpl.student_code": ["name", "code", "platform_url", "platform", "teacher"],
   "wa.tpl.exam_result": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
+  "wa.tpl.exam_result_praise": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
+  "wa.tpl.exam_result_encourage": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
   "wa.tpl.exam_reminder": ["name", "exam", "date", "platform_url", "teacher"],
   "wa.tpl.exam_link": ["exam", "subject", "duration", "start_time", "end_time", "exam_link", "teacher"],
   "wa.tpl.absence": ["parent_name", "name", "date", "teacher", "platform"],

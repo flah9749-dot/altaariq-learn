@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
+import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import {
   gradeEssay, approveAttempt, updateAttemptScore, reopenAttempt, aiSuggestEssayGrade, sendWhatsAppLog,
 } from "@/lib/exams.functions";
@@ -307,7 +308,7 @@ function ExamResultsPage() {
                             <RotateCcw className="h-3 w-3" />
                           </Button>
                         )}
-                        <WhatsAppButton phone={a.students?.parent_whatsapp ?? a.students?.parent_phone} template="wa.tpl.exam_result" vars={waVars} size="icon" variant="ghost"
+                        <WhatsAppButton phone={a.students?.parent_whatsapp ?? a.students?.parent_phone} template={pickResultTemplate(Number(a.percentage) || 0)} vars={waVars} size="icon" variant="ghost"
                           onClick={() => waLogFn({ data: { student_id: a.students?.id, exam_id: id } }).catch(() => {})} />
                       </div>
                     </TableCell>
