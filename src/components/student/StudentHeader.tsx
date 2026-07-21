@@ -151,7 +151,7 @@ function StudentSidebarContent({
       </nav>
 
       <div className="space-y-2 border-t border-sidebar-border p-3">
-        <div className="hidden items-center justify-between rounded-lg px-2 py-1 lg:flex">
+        <div className="hidden items-center justify-between rounded-lg px-2 py-1 md:flex">
           <span className="text-xs text-sidebar-foreground/70">الإشعارات</span>
           <NotificationsBell />
         </div>
