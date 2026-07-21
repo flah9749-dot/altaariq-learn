@@ -1,11 +1,19 @@
 // One-release cleanup worker for the old app-shell cache.
-// The school Samsung tablets were opening stale cached HTML inside the installed
+// School Samsung tablets can keep opening stale cached HTML inside the installed
 // shortcut. Keep this file at /sw.js so returning devices receive the cleanup,
 // then unregister this app-shell worker. Firebase push notifications use their
 // own /firebase-messaging-sw.js worker and are intentionally left untouched.
 
 function isAltareqShellCache(name) {
-  return name.startsWith("shell-") || name.startsWith("altareq-shell-");
+  if (/firebase|messaging|fcm/i.test(name)) return false;
+  return (
+    name.startsWith("shell-") ||
+    name.startsWith("altareq-shell-") ||
+    /(^|-)precache-v\d+-/.test(name) ||
+    /(^|-)runtime-/.test(name) ||
+    /(^|-)googleAnalytics-/.test(name) ||
+    /workbox|app-shell|start-url/i.test(name)
+  );
 }
 
 self.addEventListener("install", () => self.skipWaiting());

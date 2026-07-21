@@ -87,7 +87,7 @@ export function InstallAppBanner() {
 
   return (
     <div className="fixed inset-x-0 bottom-3 z-[60] flex justify-center px-3 print:hidden" dir="rtl">
-      <div className="w-full max-w-lg rounded-2xl border border-primary/20 bg-background/95 backdrop-blur shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl border border-primary/20 bg-background/95 shadow-2xl">
         <div className="flex items-center gap-3 p-3">
           <div className="shrink-0"><Logo size={40} showText={false} /></div>
           <div className="flex-1 min-w-0">
