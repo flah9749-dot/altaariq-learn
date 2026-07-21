@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { exportToExcel } from "@/lib/reports";
+import { exportToExcel } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/activity")({
   head: () => ({ meta: [{ title: "سجل النشاط — لوحة المدرس" }] }),

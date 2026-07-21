@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QUESTION_TYPES } from "@/lib/exam-utils";
-import { exportToExcel } from "@/lib/reports";
+import { exportToExcel } from "@/lib/reports-lazy";
 import { formatArabicDateTime } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/students/$id/analytics")({

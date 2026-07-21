@@ -18,7 +18,7 @@ import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import { computeGrade, formatDuration } from "@/lib/exam-utils";
 import { formatArabicDate } from "@/lib/students-utils";
-import { exportToExcel, exportToPdf } from "@/lib/reports";
+import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/results")({
   head: () => ({ meta: [{ title: "النتائج — لوحة المدرس" }] }),

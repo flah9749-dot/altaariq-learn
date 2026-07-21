@@ -29,7 +29,7 @@ import {
   gradeEssay, approveAttempt, updateAttemptScore, reopenAttempt, aiSuggestEssayGrade, sendWhatsAppLog,
 } from "@/lib/exams.functions";
 import { computeGrade, formatDuration } from "@/lib/exam-utils";
-import { exportToExcel, exportToPdf } from "@/lib/reports";
+import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/exams/$id/results")({
   head: () => ({ meta: [{ title: "تقارير الامتحان" }] }),
