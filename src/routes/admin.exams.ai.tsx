@@ -169,7 +169,24 @@ function AIExamPage() {
                     <SelectContent><SelectItem value="ar">العربية</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
                   </Select>
                 </Field>
-                <Field label="درجة كل سؤال"><Input type="number" step="0.5" min={0.5} value={pts} onChange={(e) => setPts(Number(e.target.value))} /></Field>
+                <Field label="طريقة توزيع الدرجات">
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" checked={!useTotal} onChange={() => setUseTotal(false)} />
+                      <span>درجة ثابتة لكل سؤال</span>
+                    </label>
+                    {!useTotal && (
+                      <Input type="number" step="0.5" min={0.5} value={pts} onChange={(e) => setPts(Number(e.target.value))} />
+                    )}
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" checked={useTotal} onChange={() => setUseTotal(true)} />
+                      <span>الدرجة الكلية للامتحان (يوزّعها الذكاء الاصطناعي)</span>
+                    </label>
+                    {useTotal && (
+                      <Input type="number" min={1} value={totalScore} onChange={(e) => setTotalScore(Number(e.target.value))} placeholder="مثال: 50" />
+                    )}
+                  </div>
+                </Field>
                 <Button className="w-full" onClick={() => genMut.mutate()} disabled={genMut.isPending || (!topic && !rawText && attachments.length === 0) || types.length === 0}>
                   {genMut.isPending ? <><Loader2 className="h-4 w-4 animate-spin ml-1" />جاري التوليد...</> : <><Sparkles className="h-4 w-4 ml-1" />توليد الامتحان</>}
                 </Button>
