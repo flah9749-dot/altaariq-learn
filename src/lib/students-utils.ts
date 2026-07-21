@@ -4,6 +4,13 @@ export function generateStudentCode(prefix = "STD"): string {
   return `${prefix}-${t}${n}`;
 }
 
+export function generateStudentPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
 export function formatArabicDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
