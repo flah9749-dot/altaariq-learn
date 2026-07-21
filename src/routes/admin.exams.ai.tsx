@@ -83,7 +83,7 @@ function AIExamPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!preview) throw new Error("لا يوجد أسئلة");
-      const created = await upsertFn({ data: { patch: { title: preview.title, subject: null } } }) as any;
+      const created = await upsertFn({ data: { patch: { title: preview.title, subject: null, published: true, status: "published" } } }) as any;
       await saveQFn({ data: { exam_id: created.id, questions: preview.questions } });
       return created.id;
     },

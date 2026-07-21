@@ -45,7 +45,15 @@ function SettingsPage() {
   const [local, setLocal] = useState<SettingsMap>({});
   const [dirty, setDirty] = useState<Set<string>>(new Set());
 
-  useEffect(() => { if (settings) setLocal(settings); }, [settings]);
+  useEffect(() => {
+    if (!settings) return;
+    // Preserve unsaved edits: only overwrite keys the user hasn't modified.
+    setLocal((prev) => {
+      const merged = { ...settings };
+      dirty.forEach((k) => { merged[k] = prev[k]; });
+      return merged;
+    });
+  }, [settings, dirty]);
 
   const set = (k: string, v: any) => {
     setLocal((s) => ({ ...s, [k]: v }));
