@@ -31,8 +31,6 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const [loadingPw, setLoadingPw] = useState(false);
 
 
-  if (!student) return null;
-
   const creds = credentials ?? localCreds;
 
   async function buildMessage(password: string): Promise<string> {
@@ -83,6 +81,9 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, student?.id]);
+
+  if (!student) return null;
+
 
 
 
