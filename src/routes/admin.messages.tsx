@@ -118,9 +118,33 @@ function AdminMessagesPage() {
           </div>
           <div className="relative">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث..." className="pr-8 h-9"/>
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو الكود..." className="pr-8 h-9"/>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={classId} onValueChange={(v) => { setClassId(v); setGroupId("all"); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="الصف"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الصفوف</SelectItem>
+                {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="المجموعة"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المجموعات</SelectItem>
+                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+            <TabsList className="grid grid-cols-3 h-8 w-full">
+              <TabsTrigger value="all" className="text-xs">الكل ({(students ?? []).length})</TabsTrigger>
+              <TabsTrigger value="unread" className="text-xs">غير مقروء {unreadTotal > 0 && <Badge className="ms-1 h-4 min-w-4 px-1 text-[10px]">{unreadTotal}</Badge>}</TabsTrigger>
+              <TabsTrigger value="online" className="text-xs">متصل ({onlineTotal})</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="p-3 space-y-2">{Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-14 w-full"/>)}</div>
