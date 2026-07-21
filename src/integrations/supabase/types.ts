@@ -336,6 +336,42 @@ export type Database = {
           },
         ]
       }
+      backups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          name: string
+          size_bytes: number
+          status: string
+          storage_path: string
+          tables: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name: string
+          size_bytes?: number
+          status?: string
+          storage_path: string
+          tables?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          size_bytes?: number
+          status?: string
+          storage_path?: string
+          tables?: Json
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           active: boolean
