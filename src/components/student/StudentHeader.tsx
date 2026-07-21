@@ -11,13 +11,15 @@ import { useAuth } from "@/lib/auth-context";
 
 const nav = [
   { title: "الرئيسية", url: "/student/dashboard", icon: Home },
-  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles },
+  { title: "المساعد", url: "/student/assistant", icon: Sparkles },
   { title: "الامتحانات", url: "/student/exams", icon: FileText },
+  { title: "الملفات", url: "/student/files", icon: FolderOpen },
   { title: "الجوائز", url: "/student/rewards", icon: Award },
   { title: "نقاطي", url: "/student/points", icon: Star },
   { title: "الإنجازات", url: "/student/achievements", icon: Trophy },
   { title: "الرسائل", url: "/student/messages", icon: MessageSquare },
 ];
+
 
 export function StudentHeader() {
   const { profile, signOut } = useAuth();
