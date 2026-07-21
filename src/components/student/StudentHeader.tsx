@@ -119,9 +119,18 @@ export function StudentHeader() {
         <nav className="hidden md:flex items-center gap-1 me-auto ms-4">
           {nav.map((n) => {
             const active = isActive(n.url);
+            const count = badgeFor(n.badge);
             return (
-              <Link key={n.url} to={n.url} className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
-                <n.icon className="h-4 w-4" /> {n.title}
+              <Link key={n.url} to={n.url} className={`relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                <span className="relative">
+                  <n.icon className="h-4 w-4" />
+                  {count > 0 && (
+                    <span className="absolute -top-2 -right-2 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center leading-none ring-2 ring-background">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  )}
+                </span>
+                {n.title}
               </Link>
             );
           })}
