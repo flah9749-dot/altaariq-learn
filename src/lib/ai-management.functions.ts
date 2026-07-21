@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const SLUGS = ["gemini","openai","claude","groq","deepseek","mistral","openrouter"] as const;
+const SLUGS = ["lovable","gemini","openai","claude","groq","deepseek","mistral","openrouter"] as const;
 type Slug = typeof SLUGS[number];
 
 export const testAIProvider = createServerFn({ method: "POST" })
