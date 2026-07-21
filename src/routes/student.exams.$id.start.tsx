@@ -104,8 +104,11 @@ function StartExamPage() {
                 </Alert>
               );
             }
+            if (qCount === 0) {
+              return <Button className="w-full h-12 text-base" disabled>ابدأ الامتحان الآن</Button>;
+            }
             return (
-              <Button asChild className="w-full h-12 text-base" disabled={qCount === 0}>
+              <Button asChild className="w-full h-12 text-base">
                 <Link to="/student/exams/$id/take" params={{ id }}>
                   <Play className="h-5 w-5 ml-2" />ابدأ الامتحان الآن
                 </Link>
