@@ -1651,6 +1651,15 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_primary_admin: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

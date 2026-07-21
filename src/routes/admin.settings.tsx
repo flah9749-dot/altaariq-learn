@@ -16,6 +16,7 @@ import { AvatarUploader } from "@/components/common/AvatarUploader";
 import { useAuth } from "@/lib/auth-context";
 import { adminEmailFromUsername } from "@/lib/auth-emails";
 import { createAdmin, deleteAdmin, resetAdminPassword } from "@/lib/admin-account.functions";
+import { invalidateDefaultCountryCodeCache } from "@/hooks/use-default-country-code";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -59,6 +60,7 @@ function SettingsPage() {
     onSuccess: () => {
       toast.success("تم حفظ الإعدادات");
       setDirty(new Set());
+      invalidateDefaultCountryCodeCache();
       qc.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحفظ"),
@@ -104,6 +106,44 @@ function SettingsPage() {
             <CardContent className="space-y-4">
               <Field label="اسم المنصة" k="platform.name" val={local["platform.name"]} onChange={set} />
               <Field label="الشعار / الوصف" k="platform.tagline" val={local["platform.tagline"]} onChange={set} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات التواصل مع المدرس</CardTitle>
+              <CardDescription>رقم الواتساب الذي يستطيع ولي الأمر التواصل من خلاله، وكود الدولة الافتراضي عند إرسال أي رسالة واتساب.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field label="رقم واتساب المدرس" k="teacher.whatsapp" val={local["teacher.whatsapp"]} onChange={set} placeholder="مثال: 01000000000 أو +9665xxxxxxx" dir="ltr" />
+              <Field label="اسم المدرس (يظهر للطلاب)" k="teacher.display_name" val={local["teacher.display_name"]} onChange={set} />
+              <div className="space-y-1.5">
+                <Label>كود الدولة الافتراضي</Label>
+                <select
+                  className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+                  value={String(local["platform.default_country_code"] ?? "20")}
+                  onChange={(e) => set("platform.default_country_code", e.target.value)}
+                >
+                  <option value="20">🇪🇬 مصر (+20)</option>
+                  <option value="966">🇸🇦 السعودية (+966)</option>
+                  <option value="971">🇦🇪 الإمارات (+971)</option>
+                  <option value="965">🇰🇼 الكويت (+965)</option>
+                  <option value="974">🇶🇦 قطر (+974)</option>
+                  <option value="973">🇧🇭 البحرين (+973)</option>
+                  <option value="968">🇴🇲 عُمان (+968)</option>
+                  <option value="962">🇯🇴 الأردن (+962)</option>
+                  <option value="212">🇲🇦 المغرب (+212)</option>
+                  <option value="213">🇩🇿 الجزائر (+213)</option>
+                  <option value="216">🇹🇳 تونس (+216)</option>
+                  <option value="218">🇱🇾 ليبيا (+218)</option>
+                  <option value="249">🇸🇩 السودان (+249)</option>
+                  <option value="964">🇮🇶 العراق (+964)</option>
+                  <option value="963">🇸🇾 سوريا (+963)</option>
+                  <option value="961">🇱🇧 لبنان (+961)</option>
+                  <option value="970">🇵🇸 فلسطين (+970)</option>
+                  <option value="967">🇾🇪 اليمن (+967)</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground">يُضاف تلقائيًا عندما يبدأ الرقم بـ 0 (مثل 01xxxxxxxxx). الأرقام التي تبدأ بـ + أو 00 تُترك كما هي.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -173,11 +213,11 @@ function SettingsPage() {
   );
 }
 
-function Field({ label, k, val, onChange }: { label: string; k: string; val: any; onChange: (k: string, v: any) => void }) {
+function Field({ label, k, val, onChange, placeholder, dir }: { label: string; k: string; val: any; onChange: (k: string, v: any) => void; placeholder?: string; dir?: string }) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <Input value={val ?? ""} onChange={(e) => onChange(k, e.target.value)} />
+      <Input value={val ?? ""} onChange={(e) => onChange(k, e.target.value)} placeholder={placeholder} dir={dir as any} className={dir === "ltr" ? "text-left" : undefined} />
     </div>
   );
 }
