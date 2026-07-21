@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Settings, Save, Palette, FileText, MessageSquare, Trophy, Shield, Database, Download, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Settings, Save, Palette, FileText, MessageSquare, Trophy, Shield, Database, Download, Loader2, UserCog, Plus, Trash2, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AvatarUploader } from "@/components/common/AvatarUploader";
+import { useAuth } from "@/lib/auth-context";
+import { adminEmailFromUsername } from "@/lib/auth-emails";
+import { createAdmin, deleteAdmin, resetAdminPassword } from "@/lib/admin-account.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/settings")({
