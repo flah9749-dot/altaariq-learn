@@ -62,6 +62,7 @@ function AIExamPage() {
     mutationFn: async () => genFn({ data: {
       topic, raw_text: rawText, attachments, num_questions: numQuestions,
       question_types: types, difficulty, language, points_per_question: pts,
+      total_score: useTotal ? totalScore : null,
     } }),
     onSuccess: (r: any) => { setPreview(r); toast.success(`تم توليد ${r.questions.length} سؤال`); },
     onError: (e: any) => toast.error(e?.message ?? "فشل التوليد"),
