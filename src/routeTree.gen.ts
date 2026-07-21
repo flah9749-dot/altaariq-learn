@@ -40,6 +40,7 @@ import { Route as AdminClassesRouteImport } from './routes/admin.classes'
 import { Route as AdminBackupsRouteImport } from './routes/admin.backups'
 import { Route as AdminAssistantRouteImport } from './routes/admin.assistant'
 import { Route as AdminArchiveRouteImport } from './routes/admin.archive'
+import { Route as AdminApiRouteImport } from './routes/admin.api'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as StudentExamsIdRouteImport } from './routes/student.exams.$id'
@@ -49,6 +50,9 @@ import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
 import { Route as StudentExamsIdStartRouteImport } from './routes/student.exams.$id.start'
 import { Route as StudentExamsIdResultRouteImport } from './routes/student.exams.$id.result'
+import { Route as ApiPublicV1StudentsRouteImport } from './routes/api/public/v1.students'
+import { Route as ApiPublicV1StatsRouteImport } from './routes/api/public/v1.stats'
+import { Route as ApiPublicV1LeaderboardRouteImport } from './routes/api/public/v1.leaderboard'
 import { Route as AdminStudentsQuickCodeRouteImport } from './routes/admin.students.quick.$code'
 import { Route as AdminStudentsIdAnalyticsRouteImport } from './routes/admin.students.$id.analytics'
 import { Route as AdminExamsIdResultsRouteImport } from './routes/admin.exams.$id.results'
@@ -208,6 +212,11 @@ const AdminArchiveRoute = AdminArchiveRouteImport.update({
   path: '/archive',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminApiRoute = AdminApiRouteImport.update({
+  id: '/api',
+  path: '/api',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAiRoute = AdminAiRouteImport.update({
   id: '/ai',
   path: '/ai',
@@ -253,6 +262,21 @@ const StudentExamsIdResultRoute = StudentExamsIdResultRouteImport.update({
   path: '/result',
   getParentRoute: () => StudentExamsIdRoute,
 } as any)
+const ApiPublicV1StudentsRoute = ApiPublicV1StudentsRouteImport.update({
+  id: '/api/public/v1/students',
+  path: '/api/public/v1/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1StatsRoute = ApiPublicV1StatsRouteImport.update({
+  id: '/api/public/v1/stats',
+  path: '/api/public/v1/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicV1LeaderboardRoute = ApiPublicV1LeaderboardRouteImport.update({
+  id: '/api/public/v1/leaderboard',
+  path: '/api/public/v1/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminStudentsQuickCodeRoute = AdminStudentsQuickCodeRouteImport.update({
   id: '/quick/$code',
   path: '/quick/$code',
@@ -278,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/student': typeof StudentRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
+  '/admin/api': typeof AdminApiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
   '/admin/backups': typeof AdminBackupsRoute
@@ -312,6 +337,9 @@ export interface FileRoutesByFullPath {
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
+  '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
+  '/api/public/v1/stats': typeof ApiPublicV1StatsRoute
+  '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
 }
@@ -321,6 +349,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
+  '/admin/api': typeof AdminApiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
   '/admin/backups': typeof AdminBackupsRoute
@@ -355,6 +384,9 @@ export interface FileRoutesByTo {
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
+  '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
+  '/api/public/v1/stats': typeof ApiPublicV1StatsRoute
+  '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
 }
@@ -367,6 +399,7 @@ export interface FileRoutesById {
   '/student': typeof StudentRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
+  '/admin/api': typeof AdminApiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
   '/admin/backups': typeof AdminBackupsRoute
@@ -401,6 +434,9 @@ export interface FileRoutesById {
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
+  '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
+  '/api/public/v1/stats': typeof ApiPublicV1StatsRoute
+  '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
 }
@@ -414,6 +450,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/admin/activity'
     | '/admin/ai'
+    | '/admin/api'
     | '/admin/archive'
     | '/admin/assistant'
     | '/admin/backups'
@@ -448,6 +485,9 @@ export interface FileRouteTypes {
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
+    | '/api/public/v1/leaderboard'
+    | '/api/public/v1/stats'
+    | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
   fileRoutesByTo: FileRoutesByTo
@@ -457,6 +497,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/admin/activity'
     | '/admin/ai'
+    | '/admin/api'
     | '/admin/archive'
     | '/admin/assistant'
     | '/admin/backups'
@@ -491,6 +532,9 @@ export interface FileRouteTypes {
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
+    | '/api/public/v1/leaderboard'
+    | '/api/public/v1/stats'
+    | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
   id:
@@ -502,6 +546,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/admin/activity'
     | '/admin/ai'
+    | '/admin/api'
     | '/admin/archive'
     | '/admin/assistant'
     | '/admin/backups'
@@ -536,6 +581,9 @@ export interface FileRouteTypes {
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
+    | '/api/public/v1/leaderboard'
+    | '/api/public/v1/stats'
+    | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
   fileRoutesById: FileRoutesById
@@ -547,6 +595,9 @@ export interface RootRouteChildren {
   SetupRoute: typeof SetupRoute
   StudentRoute: typeof StudentRouteWithChildren
   ApiPublicFcmDispatchRoute: typeof ApiPublicFcmDispatchRoute
+  ApiPublicV1LeaderboardRoute: typeof ApiPublicV1LeaderboardRoute
+  ApiPublicV1StatsRoute: typeof ApiPublicV1StatsRoute
+  ApiPublicV1StudentsRoute: typeof ApiPublicV1StudentsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -768,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminArchiveRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/api': {
+      id: '/admin/api'
+      path: '/api'
+      fullPath: '/admin/api'
+      preLoaderRoute: typeof AdminApiRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ai': {
       id: '/admin/ai'
       path: '/ai'
@@ -830,6 +888,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/student/exams/$id/result'
       preLoaderRoute: typeof StudentExamsIdResultRouteImport
       parentRoute: typeof StudentExamsIdRoute
+    }
+    '/api/public/v1/students': {
+      id: '/api/public/v1/students'
+      path: '/api/public/v1/students'
+      fullPath: '/api/public/v1/students'
+      preLoaderRoute: typeof ApiPublicV1StudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/stats': {
+      id: '/api/public/v1/stats'
+      path: '/api/public/v1/stats'
+      fullPath: '/api/public/v1/stats'
+      preLoaderRoute: typeof ApiPublicV1StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/v1/leaderboard': {
+      id: '/api/public/v1/leaderboard'
+      path: '/api/public/v1/leaderboard'
+      fullPath: '/api/public/v1/leaderboard'
+      preLoaderRoute: typeof ApiPublicV1LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/students/quick/$code': {
       id: '/admin/students/quick/$code'
@@ -910,6 +989,7 @@ const AdminStudentsRouteWithChildren = AdminStudentsRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
   AdminAiRoute: typeof AdminAiRoute
+  AdminApiRoute: typeof AdminApiRoute
   AdminArchiveRoute: typeof AdminArchiveRoute
   AdminAssistantRoute: typeof AdminAssistantRoute
   AdminBackupsRoute: typeof AdminBackupsRoute
@@ -934,6 +1014,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
   AdminAiRoute: AdminAiRoute,
+  AdminApiRoute: AdminApiRoute,
   AdminArchiveRoute: AdminArchiveRoute,
   AdminAssistantRoute: AdminAssistantRoute,
   AdminBackupsRoute: AdminBackupsRoute,
@@ -1013,6 +1094,9 @@ const rootRouteChildren: RootRouteChildren = {
   SetupRoute: SetupRoute,
   StudentRoute: StudentRouteWithChildren,
   ApiPublicFcmDispatchRoute: ApiPublicFcmDispatchRoute,
+  ApiPublicV1LeaderboardRoute: ApiPublicV1LeaderboardRoute,
+  ApiPublicV1StatsRoute: ApiPublicV1StatsRoute,
+  ApiPublicV1StudentsRoute: ApiPublicV1StudentsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
