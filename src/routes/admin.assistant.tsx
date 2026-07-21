@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { askAssistant } from "@/lib/ai-assistant.functions";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/assistant")({
   component: AssistantPage,
