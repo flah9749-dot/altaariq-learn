@@ -211,7 +211,8 @@ export const bulkCreateStudents = createServerFn({ method: "POST" })
         if (cErr || !u.user) { errors.push({ code: s.code, error: cErr?.message ?? "فشل الإنشاء" }); continue; }
         await supabaseAdmin.from("user_roles").insert({ user_id: u.user.id, role: "student" });
         const { password: _pw, ...rest } = s;
-        const { error: sErr } = await supabaseAdmin.from("students").insert({ ...rest, user_id: u.user.id });
+        const { error: sErr } = await supabaseAdmin.from("students").insert({ ...rest, user_id: u.user.id, plaintext_password: password });
+
         if (sErr) { errors.push({ code: s.code, error: sErr.message }); await supabaseAdmin.auth.admin.deleteUser(u.user.id); continue; }
         created++;
       } catch (e: any) {
