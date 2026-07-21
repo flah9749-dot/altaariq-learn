@@ -29,9 +29,11 @@ export function StudentHeader() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [open, setOpen] = useState(false);
+  const badges = useStudentUnreadBadges();
   const initial = (profile?.full_name ?? profile?.identifier ?? "ط").slice(0, 1);
   const doSignOut = async () => { await signOut(); navigate({ to: "/login", replace: true }); };
   const isActive = (u: string) => pathname === u || pathname.startsWith(u + "/");
+  const badgeFor = (k: NavKey) => (k ? badges[k] : 0);
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
