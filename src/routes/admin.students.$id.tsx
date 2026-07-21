@@ -31,8 +31,10 @@ function StudentDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
-
-  const { data: student, isLoading } = useQuery({
+  const [cardOpen, setCardOpen] = useState(false);
+  const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const resetFn = useServerFn(resetStudentPassword);
     queryKey: ["student", id],
     queryFn: async () => {
       const { data, error } = await supabase
