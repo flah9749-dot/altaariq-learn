@@ -59,14 +59,19 @@ function TakeExamPage() {
     if (!exam) return;
     startFn({ data: { exam_id: id } }).then((r: any) => {
       setAttemptId(r.attempt_id);
-      // Load prior answers + review marks
+      // Load real started_at from DB so refresh doesn't reset the timer
+      supabase.from("exam_attempts").select("started_at,review_marks").eq("id", r.attempt_id).maybeSingle().then(({ data }) => {
+        if (data?.started_at) {
+          startedAt.current = new Date(data.started_at).getTime();
+          setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+        }
+        if (Array.isArray(data?.review_marks)) setReviewMarks(new Set(data!.review_marks as string[]));
+      });
+      // Load prior answers
       supabase.from("attempt_answers").select("question_id,answer").eq("attempt_id", r.attempt_id).then(({ data }) => {
         const m: Record<string, any> = {};
         (data ?? []).forEach((a: any) => { m[a.question_id] = a.answer; });
         setAnswers(m);
-      });
-      supabase.from("exam_attempts").select("review_marks").eq("id", r.attempt_id).maybeSingle().then(({ data }) => {
-        if (Array.isArray(data?.review_marks)) setReviewMarks(new Set(data!.review_marks as string[]));
       });
     }).catch((e: any) => { toast.error(e?.message ?? "فشل بدء الامتحان"); nav({ to: "/student/exams" }); });
   }, [exam, id]);
@@ -76,6 +81,7 @@ function TakeExamPage() {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)), 1000);
     return () => clearInterval(t);
   }, []);
+
   const totalSec = (exam?.duration_minutes ?? 30) * 60;
   const remaining = Math.max(0, totalSec - elapsed);
   useEffect(() => {
