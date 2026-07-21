@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Send, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { whatsappUrl, normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
 import { buildWaMessage, type WaTemplateKey, DEFAULT_WA_TEMPLATES, fillTemplate } from "@/lib/whatsapp-templates";
@@ -20,18 +22,20 @@ interface Props {
   className?: string;
   onClick?: () => void;
   countryCode?: string;
+  /** When true, show a preview/edit dialog before opening WhatsApp. Defaults to true. */
+  previewable?: boolean;
 }
 
 export function WhatsAppButton({
   phone, message, template, vars, label = "تواصل عبر واتساب",
   variant = "default", size = "sm", className = "", onClick, countryCode,
+  previewable = true,
 }: Props) {
   const defaultCode = useDefaultCountryCode();
   const [resolved, setResolved] = useState<string | undefined>(message);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string>("");
 
-  // When a template is used (and no explicit message), resolve it eagerly so the
-  // button becomes a plain <a> — some browsers (Safari) block window.open from an
-  // async click handler.
   useEffect(() => {
     let alive = true;
     if (message) { setResolved(message); return; }
@@ -45,34 +49,84 @@ export function WhatsAppButton({
     return () => { alive = false; };
   }, [message, template, JSON.stringify(vars ?? {})]);
 
-  const url = whatsappUrl(phone, resolved, countryCode ?? defaultCode);
+  const digits = normalizePhoneForWhatsApp(phone, countryCode ?? defaultCode);
+  const directUrl = whatsappUrl(phone, resolved, countryCode ?? defaultCode);
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const digits = normalizePhoneForWhatsApp(phone, countryCode ?? defaultCode);
-    if (!digits) {
-      e.preventDefault();
-      toast.error("لا يوجد رقم واتساب صالح");
-      return;
-    }
+  function openPreview(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!digits) { toast.error("لا يوجد رقم واتساب صالح"); return; }
+    setDraft(resolved ?? "");
+    setOpen(true);
     onClick?.();
-  };
+  }
+
+  function sendDraft() {
+    const url = `https://wa.me/${digits}?text=${encodeURIComponent(draft)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setOpen(false);
+  }
+
+  function handleDirectClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!digits) { e.preventDefault(); toast.error("لا يوجد رقم واتساب صالح"); return; }
+    onClick?.();
+  }
+
+  if (!previewable) {
+    return (
+      <Button
+        asChild
+        variant={variant}
+        size={size}
+        className={`gap-2 bg-success text-success-foreground hover:bg-success/90 ${className}`}
+      >
+        <a href={directUrl ?? "#"} target="_blank" rel="noopener noreferrer" onClick={handleDirectClick}>
+          <MessageCircle className="h-4 w-4" />
+          {size !== "icon" && <span>{label}</span>}
+        </a>
+      </Button>
+    );
+  }
 
   return (
-    <Button
-      asChild
-      variant={variant}
-      size={size}
-      className={`gap-2 bg-success text-success-foreground hover:bg-success/90 ${className}`}
-    >
-      <a
-        href={url ?? "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleClick}
+    <>
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        onClick={openPreview}
+        className={`gap-2 bg-success text-success-foreground hover:bg-success/90 ${className}`}
       >
         <MessageCircle className="h-4 w-4" />
         {size !== "icon" && <span>{label}</span>}
-      </a>
-    </Button>
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> معاينة رسالة واتساب</DialogTitle>
+            <DialogDescription>
+              يمكنك تعديل الرسالة قبل إرسالها. سيتم فتح واتساب برقم:
+              <span dir="ltr" className="font-mono text-foreground mx-1">+{digits}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            dir="rtl"
+            rows={12}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="font-[system-ui] whitespace-pre-wrap"
+          />
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setDraft(resolved ?? "")}>استعادة النص الأصلي</Button>
+              <Button onClick={sendDraft} className="bg-success text-success-foreground hover:bg-success/90 gap-2">
+                <Send className="h-4 w-4" /> إرسال عبر واتساب
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
