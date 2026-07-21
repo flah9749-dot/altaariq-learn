@@ -85,7 +85,7 @@ function LoginPage() {
         <div className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md space-y-6">
             <div className="lg:hidden flex justify-center"><Logo size={56} /></div>
-            <div className="flex justify-center"><InstallAppButton variant="outline" /></div>
+            <div className="flex justify-center"><InstallAppButton variant="default" /></div>
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold">تسجيل الدخول</h2>
               <p className="text-sm text-muted-foreground">اختر نوع الحساب ثم أدخل بياناتك</p>
