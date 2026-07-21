@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { GlobalSearch } from "@/components/common/GlobalSearch";
+import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { useAuth } from "@/lib/auth-context";
 
 export function AdminHeader() {
