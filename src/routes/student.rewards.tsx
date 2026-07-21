@@ -113,7 +113,7 @@ function StudentRewardsPage() {
             {(mine ?? []).map((r: any) => (
               <Card key={r.id}>
                 <CardContent className="p-3 flex items-center gap-3">
-                  {r.reward_catalog?.image_url && <img src={r.reward_catalog.image_url} className="h-14 w-14 rounded object-cover"/>}
+                  {r.reward_catalog?.image_url && <img src={r.reward_catalog.image_url} alt={r.reward_catalog?.title ?? "جائزة"} className="h-14 w-14 rounded object-cover"/>}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{r.reward_catalog?.title}</p>
                     <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("ar-EG")} • ⭐ {r.points_spent}</p>

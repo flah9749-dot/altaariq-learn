@@ -212,10 +212,10 @@ function ArchivePage() {
                   <TableCell><Badge variant="outline">{s.points}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button asChild size="icon" variant="ghost" title="عرض">
+                      <Button asChild size="icon" variant="ghost" title="عرض" aria-label="عرض بيانات الطالب">
                         <Link to="/admin/students/$id" params={{ id: s.id }}><Eye className="h-4 w-4" /></Link>
                       </Button>
-                      <Button size="icon" variant="ghost" title="استرجاع" onClick={() => restoreMut.mutate([s.id])}>
+                      <Button size="icon" variant="ghost" title="استرجاع" aria-label="استرجاع الطالب" onClick={() => restoreMut.mutate([s.id])}>
                         <RotateCcw className="h-4 w-4" />
                       </Button>
                     </div>

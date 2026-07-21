@@ -90,7 +90,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
       {replyTo && (
         <div className="flex items-center gap-2 bg-muted rounded-lg p-2 text-xs">
           <span className="me-auto truncate">↩️ رد على: {replyTo.body?.slice(0, 60) ?? "مرفق"}</span>
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onClearReply}><X className="h-3 w-3"/></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onClearReply} aria-label="إلغاء الرد"><X className="h-3 w-3"/></Button>
         </div>
       )}
       {staged && Icon && (
@@ -99,13 +99,13 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           <span className="truncate flex-1">{staged.name}</span>
           <span className="text-muted-foreground">{humanSize(staged.size)}</span>
           {uploadPct != null && <span className="text-primary">{uploadPct}%</span>}
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setStaged(null)}><X className="h-3 w-3"/></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setStaged(null)} aria-label="إزالة المرفق"><X className="h-3 w-3"/></Button>
         </div>
       )}
       <div className="flex items-end gap-1">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" title="إيموجي"><Smile className="h-5 w-5"/></Button>
+            <Button variant="ghost" size="icon" title="إيموجي" aria-label="اختر إيموجي"><Smile className="h-5 w-5"/></Button>
           </PopoverTrigger>
           <PopoverContent side="top" className="w-72 p-2" dir="rtl">
             <div className="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto">
@@ -116,11 +116,11 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
             </div>
           </PopoverContent>
         </Popover>
-        <Button variant="ghost" size="icon" title="إرفاق ملف" onClick={() => fileRef.current?.click()}>
+        <Button variant="ghost" size="icon" title="إرفاق ملف" aria-label="إرفاق ملف" onClick={() => fileRef.current?.click()}>
           <Paperclip className="h-5 w-5"/>
         </Button>
         {onOpenCamera && (
-          <Button variant="ghost" size="icon" title="كاميرا" onClick={onOpenCamera}>
+          <Button variant="ghost" size="icon" title="كاميرا" aria-label="فتح الكاميرا" onClick={onOpenCamera}>
             <Camera className="h-5 w-5"/>
           </Button>
         )}
@@ -136,7 +136,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           className="resize-none min-h-[42px] max-h-32 flex-1 text-base md:text-sm"
           disabled={disabled}
         />
-        <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)}>
+        <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)} aria-label="إرسال">
           {pending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
         </Button>
       </div>

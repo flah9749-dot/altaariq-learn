@@ -52,9 +52,9 @@ function LoginPage() {
   }, [user, role, navigate]);
 
   return (
-    <div className="min-h-screen w-full bg-background" dir="rtl">
+    <div className="min-h-dvh w-full bg-background" dir="rtl">
       <div className="absolute top-4 left-4 z-10"><ThemeToggle /></div>
-      <div className="grid min-h-screen lg:grid-cols-2">
+      <div className="grid min-h-dvh lg:grid-cols-2">
         {/* Visual side */}
         <div className="relative hidden lg:flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80 p-12">
           <div className="absolute inset-0 opacity-10" style={{
