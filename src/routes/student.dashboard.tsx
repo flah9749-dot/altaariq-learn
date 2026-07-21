@@ -33,6 +33,19 @@ function StudentDashboard() {
     },
   });
 
+  // Live-fetch teacher WhatsApp from settings so updates propagate to parent contact button.
+  const { data: teacherWa } = useQuery({
+    queryKey: ["setting", "teacher.whatsapp"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "teacher.whatsapp").maybeSingle();
+      const v = data?.value as any;
+      return (typeof v === "string" ? v : v?.toString?.()) ?? "";
+    },
+  });
+
+
   if (isLoading || !data) {
     return (
       <div className="space-y-6">
