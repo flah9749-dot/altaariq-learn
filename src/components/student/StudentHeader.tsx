@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles } from "lucide-react";
+import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles, FolderOpen } from "lucide-react";
+
 import { Logo } from "@/components/common/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,15 @@ import { useAuth } from "@/lib/auth-context";
 
 const nav = [
   { title: "الرئيسية", url: "/student/dashboard", icon: Home },
-  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles },
+  { title: "المساعد", url: "/student/assistant", icon: Sparkles },
   { title: "الامتحانات", url: "/student/exams", icon: FileText },
+  { title: "الملفات", url: "/student/files", icon: FolderOpen },
   { title: "الجوائز", url: "/student/rewards", icon: Award },
   { title: "نقاطي", url: "/student/points", icon: Star },
   { title: "الإنجازات", url: "/student/achievements", icon: Trophy },
   { title: "الرسائل", url: "/student/messages", icon: MessageSquare },
 ];
+
 
 export function StudentHeader() {
   const { profile, signOut } = useAuth();
@@ -53,16 +56,28 @@ export function StudentHeader() {
           <Button variant="ghost" size="icon" onClick={doSignOut} aria-label="تسجيل الخروج"><LogOut className="h-4 w-4"/></Button>
         </div>
       </div>
-      <nav className="md:hidden flex items-center justify-around border-t px-2 py-1">
-        {nav.map((n) => {
-          const active = pathname === n.url || pathname.startsWith(n.url + "/");
-          return (
-            <Link key={n.url} to={n.url} className={`flex flex-col items-center gap-0.5 rounded-md px-2 py-1 text-[11px] ${active ? "text-primary" : "text-muted-foreground"}`}>
-              <n.icon className="h-4 w-4" /> {n.title}
-            </Link>
-          );
-        })}
+      <nav className="md:hidden border-t bg-background/95 backdrop-blur">
+        <div className="flex items-center gap-1 overflow-x-auto px-2 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {nav.map((n) => {
+            const active = pathname === n.url || pathname.startsWith(n.url + "/");
+            return (
+              <Link
+                key={n.url}
+                to={n.url}
+                className={`flex flex-col items-center justify-center gap-1 rounded-lg min-w-[68px] px-2 py-1.5 text-[11px] font-medium transition-colors shrink-0 ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <n.icon className="h-[18px] w-[18px]" />
+                <span className="leading-none">{n.title}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
+
     </header>
   );
 }
