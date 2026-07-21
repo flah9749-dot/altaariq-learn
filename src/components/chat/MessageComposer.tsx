@@ -99,7 +99,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           <span className="truncate flex-1">{staged.name}</span>
           <span className="text-muted-foreground">{humanSize(staged.size)}</span>
           {uploadPct != null && <span className="text-primary">{uploadPct}%</span>}
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setStaged(null)}><X className="h-3 w-3"/></Button>
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setStaged(null)} aria-label="إزالة المرفق"><X className="h-3 w-3"/></Button>
         </div>
       )}
       <div className="flex items-end gap-1">
