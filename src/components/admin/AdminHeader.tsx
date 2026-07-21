@@ -25,6 +25,7 @@ export function AdminHeader() {
         <p className="text-sm font-semibold truncate">{profile?.full_name ?? profile?.identifier ?? "المدرس"}</p>
       </div>
       <GlobalSearch />
+      <InstallAppButton className="hidden sm:inline-flex" />
       <NotificationsBell />
       <ThemeToggle />
       <DropdownMenu>
