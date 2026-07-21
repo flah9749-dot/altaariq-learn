@@ -37,7 +37,7 @@ export function StudentHeader() {
 
   return (
     <>
-      <aside data-sidebar className="fixed inset-y-0 right-0 z-40 hidden w-72 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl lg:flex">
+      <aside data-sidebar className="fixed inset-y-0 right-0 z-40 hidden w-64 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl md:flex lg:w-72">
         <StudentSidebarContent
           profile={profile}
           initial={initial}
@@ -48,7 +48,8 @@ export function StudentHeader() {
         />
       </aside>
 
-      <header className="sticky top-0 z-30 border-b bg-background/95 lg:hidden">
+      <header className="sticky top-0 z-30 border-b bg-background/95 md:hidden">
+
         <div className="grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
