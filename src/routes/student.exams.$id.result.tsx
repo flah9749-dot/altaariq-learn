@@ -30,8 +30,10 @@ function ResultPage() {
     queryFn: async () => (await supabase.from("exam_attempts")
       .select("*, exams(title,show_result_mode,total_score)")
       .eq("exam_id", id).eq("student_id", student!.id)
+      .not("submitted_at", "is", null)
       .order("submitted_at", { ascending: false }).limit(1).maybeSingle()).data,
   });
+
   const { data: answers } = useQuery({
     queryKey: ["my-answers", attempt?.id], enabled: !!attempt,
     queryFn: async () => {
