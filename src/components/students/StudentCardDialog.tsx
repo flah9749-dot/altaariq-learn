@@ -25,6 +25,7 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const [localCreds, setLocalCreds] = useState<{ code: string; password: string } | null>(null);
   const [resetting, setResetting] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const defaultCountryCode = useDefaultCountryCode();
 
   if (!student) return null;
 
@@ -90,13 +91,12 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   }
 
   async function whatsapp() {
-    const phone = (student!.parent_whatsapp || student!.parent_phone || "").replace(/\D/g, "");
-    if (!phone) { toast.error("لا يوجد رقم واتساب لولي الأمر"); return; }
-    // Ensure a fresh password exists before sending
+    const rawPhone = student!.parent_whatsapp || student!.parent_phone || "";
+    const normalized = normalizePhoneForWhatsApp(rawPhone, defaultCountryCode);
+    if (!normalized) { toast.error("لا يوجد رقم واتساب صالح لولي الأمر"); return; }
     const pw = await ensurePassword();
     if (!pw) return;
     const finalMsg = messageLines.replace(/• كلمة المرور:.*/g, `• كلمة المرور: ${pw}`);
-    const normalized = phone.startsWith("0") ? "2" + phone : phone;
     const url = `https://wa.me/${normalized}?text=${encodeURIComponent(finalMsg)}`;
     window.open(url, "_blank");
   }
