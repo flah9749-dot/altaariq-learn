@@ -18,7 +18,7 @@ export function AdminHeader() {
   const doSignOut = async () => { await signOut(); navigate({ to: "/login", replace: true }); };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 backdrop-blur px-3 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-3 md:px-6">
       <SidebarTrigger />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-muted-foreground">مرحبًا</p>
