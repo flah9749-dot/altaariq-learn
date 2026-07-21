@@ -1,11 +1,13 @@
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
 
-interface Props { phone: string | null | undefined; message?: string; label?: string; variant?: "default" | "outline" | "ghost" | "secondary"; size?: "sm" | "default" | "icon"; className?: string; onClick?: () => void; }
+interface Props { phone: string | null | undefined; message?: string; label?: string; variant?: "default" | "outline" | "ghost" | "secondary"; size?: "sm" | "default" | "icon"; className?: string; onClick?: () => void; countryCode?: string; }
 
-export function WhatsAppButton({ phone, message, label = "تواصل عبر واتساب", variant = "default", size = "sm", className = "", onClick }: Props) {
-  const url = whatsappUrl(phone, message);
+export function WhatsAppButton({ phone, message, label = "تواصل عبر واتساب", variant = "default", size = "sm", className = "", onClick, countryCode }: Props) {
+  const defaultCode = useDefaultCountryCode();
+  const url = whatsappUrl(phone, message, countryCode ?? defaultCode);
   if (!url) return null;
   return (
     <Button

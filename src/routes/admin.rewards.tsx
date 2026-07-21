@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
 import { whatsappCongrats } from "@/lib/gamification";
 import { SectionTabs } from "@/components/admin/SectionTabs";
 
@@ -150,6 +151,7 @@ function CatalogTab() {
 /* -------------------------- Redemptions -------------------------- */
 function RedemptionsTab() {
   const qc = useQueryClient();
+  const countryCode = useDefaultCountryCode();
   const { data, isLoading } = useQuery({
     queryKey: ["redemptions"],
     queryFn: async () => (await supabase.from("reward_redemptions")
@@ -179,7 +181,7 @@ function RedemptionsTab() {
               {(data ?? []).map((r: any) => {
                 const parent = r.students?.parent_whatsapp ?? r.students?.parent_phone;
                 const msg = whatsappCongrats(r.students?.full_name ?? "", r.reward_catalog?.title ?? "", r.students?.points ?? 0, r.students?.level ?? 1);
-                const waLink = whatsappUrl(parent, msg);
+                const waLink = whatsappUrl(parent, msg, countryCode);
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.students?.full_name}<div className="text-xs text-muted-foreground">{r.students?.code}</div></TableCell>
