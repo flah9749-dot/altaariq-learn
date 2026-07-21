@@ -181,7 +181,12 @@ export const saveQuestions = createServerFn({ method: "POST" })
       if (delErr) throw new Error(delErr.message);
     }
 
-    await supabaseAdmin.from("exams").update({ total_score: totalScore }).eq("id", data.exam_id);
+    const examPatch: Record<string, unknown> = { total_score: totalScore };
+    if (data.questions.length === 0) {
+      examPatch.published = false;
+      examPatch.status = "draft";
+    }
+    await supabaseAdmin.from("exams").update(examPatch).eq("id", data.exam_id);
     return { ok: true, total_score: totalScore, count: data.questions.length };
   });
 
