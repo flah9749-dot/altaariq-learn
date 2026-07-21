@@ -34,7 +34,27 @@ export function getPermission(): NotificationPermission | "unsupported" {
 
 async function registerSW(): Promise<ServiceWorkerRegistration> {
   const apiKey = await resolveApiKey();
-  return navigator.serviceWorker.register(`/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`, { scope: "/" });
+  const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`;
+  const scope = "/firebase-cloud-messaging-push-scope";
+  const reg =
+    (await navigator.serviceWorker.getRegistration(scope)) ??
+    (await navigator.serviceWorker.register(swUrl, { scope }));
+  // getToken/PushManager.subscribe require an ACTIVE service worker.
+  if (!reg.active) {
+    await new Promise<void>((resolve) => {
+      const sw = reg.installing || reg.waiting;
+      if (!sw) return resolve();
+      const onChange = () => {
+        if (sw.state === "activated") {
+          sw.removeEventListener("statechange", onChange);
+          resolve();
+        }
+      };
+      sw.addEventListener("statechange", onChange);
+    });
+  }
+  await navigator.serviceWorker.ready;
+  return reg;
 }
 
 async function saveToken(userId: string, token: string) {
