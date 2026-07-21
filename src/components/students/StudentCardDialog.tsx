@@ -152,6 +152,8 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
             <span className="text-muted-foreground">كلمة المرور</span>
             {creds?.password ? (
               <span dir="ltr" className="font-mono font-semibold text-primary">{creds.password}</span>
+            ) : loadingPw ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/>
             ) : (
               <Button size="sm" variant="outline" onClick={generatePw} disabled={resetting}>
                 {resetting ? <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin"/> : <KeyRound className="h-3.5 w-3.5 ml-1"/>}
@@ -163,9 +165,7 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
             {copied ? <Check className="h-4 w-4 ml-1"/> : <Copy className="h-4 w-4 ml-1"/>}
             نسخ بيانات الدخول
           </Button>
-          {creds?.password && (
-            <p className="text-[11px] text-warning">⚠️ احفظ كلمة المرور — لن تظهر مرة أخرى بعد إغلاق النافذة.</p>
-          )}
+
         </div>
 
         <div className="flex justify-center py-2">
