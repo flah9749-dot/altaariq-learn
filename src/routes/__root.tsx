@@ -62,10 +62,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" },
       { title: "الطارق التعليمية" },
       { name: "description", content: "منصة تعليمية احترافية لمادة الدراسات الاجتماعية — تاريخ وجغرافيا ومواطنة." },
       { name: "theme-color", content: "#0F2D5C" },
+      { name: "application-name", content: "الطارق التعليمية" },
+      // iOS PWA support (Safari / iPhone / iPad)
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "الطارق" },
+      { name: "format-detection", content: "telephone=no" },
       { property: "og:title", content: "الطارق التعليمية" },
       { property: "og:description", content: "منصة تعليمية احترافية لمادة الدراسات الاجتماعية." },
       { property: "og:type", content: "website" },
