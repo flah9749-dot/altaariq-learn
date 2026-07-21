@@ -34,6 +34,7 @@ function RewardsAdminPage() {
           إدارة متجر الجوائز والشارات والإنجازات والمستويات وقواعد النقاط.
         </p>
       </div>
+      <SectionTabs items={[{ to: "/admin/rewards", label: "الجوائز والنقاط" }, { to: "/admin/competitions", label: "المسابقات" }]} />
 
       <Tabs defaultValue="catalog" className="space-y-4">
         <TabsList className="grid grid-cols-3 md:grid-cols-6">
