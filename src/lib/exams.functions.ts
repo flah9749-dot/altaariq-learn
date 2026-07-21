@@ -181,7 +181,7 @@ export const saveQuestions = createServerFn({ method: "POST" })
       if (delErr) throw new Error(delErr.message);
     }
 
-    const examPatch: Record<string, unknown> = { total_score: totalScore };
+    const examPatch: any = { total_score: totalScore };
     if (data.questions.length === 0) {
       examPatch.published = false;
       examPatch.status = "draft";
