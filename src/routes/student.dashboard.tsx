@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Trophy, Star, Award, Bell, TrendingUp } from "lucide-react";
+import { FileText, Trophy, Star, Award, Bell, TrendingUp, MessageSquare, FolderOpen, Sparkles, ChevronLeft, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { StatCard } from "@/components/common/StatCard";
@@ -63,71 +63,91 @@ function StudentDashboard() {
 
 
 
-  return (
-    <div className="space-y-6">
-      {studentId && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">صورتي الشخصية</CardTitle></CardHeader>
-          <CardContent>
-            <AvatarUploader table="students" rowId={studentId} currentUrl={profile?.avatar_url}
-              fallback={profile?.full_name ?? "ط"} onChange={() => refresh()} />
-          </CardContent>
-        </Card>
-      )}
+  const quickActions = [
+    { title: "الامتحانات", hint: "ابدأ أو راجع نتيجتك", url: "/student/exams", icon: FileText, tone: "bg-accent/10 text-accent" },
+    { title: "الملفات", hint: "مذكرات ومراجعات", url: "/student/files", icon: FolderOpen, tone: "bg-primary/10 text-primary" },
+    { title: "الرسائل", hint: "تواصل مع المدرس", url: "/student/messages", icon: MessageSquare, tone: "bg-warning/20 text-warning-foreground" },
+    { title: "المساعد", hint: "اسأل في المادة", url: "/student/assistant", icon: Sparkles, tone: "bg-gold/20 text-gold-foreground" },
+  ] as const;
 
-      <Card className="overflow-hidden border-0 bg-gradient-to-l from-primary to-primary/80 text-primary-foreground">
-        <CardContent className="p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-sm text-primary-foreground/70">أهلاً بك</p>
-              <h1 className="text-2xl md:text-3xl font-bold mt-1">{profile?.full_name ?? profile?.identifier}</h1>
-              <p className="text-primary-foreground/80 mt-2 text-sm">استمر في التعلم واجمع النقاط لترتقي بمستواك.</p>
+  return (
+    <div className="space-y-4 md:space-y-6">
+      <section className="overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-lg md:rounded-3xl">
+        <div className="p-4 md:p-8">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:flex md:items-center md:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-primary-foreground/70 md:text-sm">أهلاً بك</p>
+              <h1 className="mt-1 truncate text-2xl font-extrabold md:text-3xl">{profile?.full_name ?? profile?.identifier}</h1>
+              <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80">كل دروسك وامتحاناتك ورسائلك في مكان واحد.</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="rounded-2xl bg-white/10 px-4 py-3 min-w-[110px]">
-                <p className="text-xs text-primary-foreground/70">النقاط</p>
-                <p className="text-2xl font-bold text-gold">{points}</p>
+            <div className="grid shrink-0 grid-cols-2 gap-2">
+              <div className="min-w-20 rounded-xl bg-primary-foreground/10 px-3 py-2 text-center">
+                <p className="text-[11px] text-primary-foreground/70">النقاط</p>
+                <p className="text-2xl font-extrabold text-gold">{points}</p>
               </div>
-              <div className="rounded-2xl bg-white/10 px-4 py-3 min-w-[110px]">
-                <p className="text-xs text-primary-foreground/70">المستوى</p>
-                <p className="text-2xl font-bold">{level}</p>
+              <div className="min-w-20 rounded-xl bg-primary-foreground/10 px-3 py-2 text-center">
+                <p className="text-[11px] text-primary-foreground/70">المستوى</p>
+                <p className="text-2xl font-extrabold">{level}</p>
               </div>
             </div>
           </div>
-          <div className="mt-6 space-y-1">
+          <div className="mt-5 space-y-1.5">
             <div className="flex justify-between text-xs text-primary-foreground/80">
               <span>التقدم للمستوى {level + 1}</span>
               <span>{points} / {nextLevelAt}</span>
             </div>
-            <Progress value={progressPct} className="h-2 bg-white/20" />
+            <Progress value={progressPct} className="h-2 bg-primary-foreground/20" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="الامتحانات المتاحة" value="—" icon={FileText} accent="accent" hint="ستظهر لاحقًا" />
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {quickActions.map((action) => (
+          <Link
+            key={action.url}
+            to={action.url}
+            className="group rounded-2xl border border-border/70 bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:p-4"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${action.tone}`}>
+                <action.icon className="h-5 w-5" />
+              </span>
+              <ChevronLeft className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition group-hover:-translate-x-1" />
+            </div>
+            <p className="mt-3 font-bold text-foreground">{action.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{action.hint}</p>
+          </Link>
+        ))}
+      </section>
+
+      <div className="grid gap-3 sm:grid-cols-3 md:gap-4">
         <StatCard title="جوائزي" value={data.rewardsCount} icon={Award} accent="gold" />
         <StatCard title="إشعارات جديدة" value={data.unread} icon={Bell} accent="warning" />
+        <StatCard title="نقاطي" value={points} icon={Star} accent="accent" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        {studentId && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base"><Camera className="h-5 w-5 text-primary"/>صورتي الشخصية</CardTitle>
+              <CardDescription>تظهر صورتك في الكارت ولوحة الطالب</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AvatarUploader table="students" rowId={studentId} currentUrl={profile?.avatar_url}
+                fallback={profile?.full_name ?? "ط"} onChange={() => refresh()} />
+            </CardContent>
+          </Card>
+        )}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5 text-gold"/>آخر الجوائز</CardTitle>
-            <CardDescription>الجوائز التي حصلت عليها مؤخرًا</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-5 w-5 text-accent"/>تواصل ولي الأمر</CardTitle>
+            <CardDescription>فتح رسالة جاهزة للمدرس عبر واتساب</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">لم تحصل على جوائز بعد. استمر في الحل!</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-accent"/>تواصل ولي الأمر</CardTitle>
-            <CardDescription>يمكن لولي الأمر التواصل مع المدرس مباشرة عبر واتساب</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-3">
-            <WhatsAppButton phone={teacherPhone} template="wa.tpl.teacher_contact" vars={{ name: profile?.full_name ?? "", code: profile?.identifier ?? "" }} label="فتح واتساب المدرس" />
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <WhatsAppButton phone={teacherPhone} template="wa.tpl.teacher_contact" vars={{ name: profile?.full_name ?? "", code: profile?.identifier ?? "" }} label="فتح واتساب المدرس" className="w-full sm:w-auto" />
             {!teacherPhone && <p className="text-xs text-muted-foreground">لم يقم المدرس بإضافة رقم واتساب بعد.</p>}
           </CardContent>
-
         </Card>
       </div>
 
