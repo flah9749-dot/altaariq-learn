@@ -10,6 +10,7 @@ import { generateStudentPassword } from "@/lib/students-utils";
 import { resetStudentPassword } from "@/lib/students.functions";
 import { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
+import { buildWaMessage } from "@/lib/whatsapp-templates";
 import { toast } from "sonner";
 
 interface Props {
