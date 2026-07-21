@@ -32,6 +32,7 @@ export function registerInstallabilityServiceWorker() {
     return;
   }
   navigator.serviceWorker
-    .register("/sw.js", { scope: "/" })
+    .register("/sw.js", { scope: "/", updateViaCache: "none" })
     .catch(() => { /* ignore */ });
+
 }

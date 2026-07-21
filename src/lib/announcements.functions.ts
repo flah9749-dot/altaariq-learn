@@ -97,18 +97,19 @@ export const deleteFile = createServerFn({ method: "POST" })
 export const getFileUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: f } = await supabase.from("files").select("bucket,path").eq("id", data.id).maybeSingle();
-    if (!f) throw new Error("الملف غير موجود");
-    const { data: signed, error } = await supabase.storage.from(f.bucket).createSignedUrl(f.path, 3600);
-    if (error) throw new Error(error.message);
-    // increment counter
+  .handler(async ({ data }) => {
+    // Use admin client to look up + sign, so students (whose storage.objects RLS
+    // may not grant SELECT on the private "general" bucket) can still download
+    // files that the app-level `files` policy exposes to them.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: cur } = await supabaseAdmin.from("files").select("download_count").eq("id", data.id).maybeSingle();
-    await supabaseAdmin.from("files").update({ download_count: (cur?.download_count ?? 0) + 1 }).eq("id", data.id);
+    const { data: f } = await supabaseAdmin.from("files").select("bucket,path,download_count").eq("id", data.id).maybeSingle();
+    if (!f) throw new Error("الملف غير موجود");
+    const { data: signed, error } = await supabaseAdmin.storage.from(f.bucket).createSignedUrl(f.path, 3600);
+    if (error || !signed?.signedUrl) throw new Error(error?.message ?? "تعذر توليد رابط التنزيل");
+    await supabaseAdmin.from("files").update({ download_count: (f.download_count ?? 0) + 1 }).eq("id", data.id);
     return { url: signed.signedUrl };
   });
+
 
 // -------- Notifications broadcast --------
 export const broadcastNotification = createServerFn({ method: "POST" })
