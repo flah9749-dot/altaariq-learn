@@ -86,23 +86,50 @@ export function StudentFormDialog({ open, onOpenChange, student }: Props) {
         group_id: form.group_id || null,
       };
       if (isEdit) {
-        await updateFn({ data: { id: student!.id, patch: payload } });
+        await updateFn({ data: { id: student!.id, patch: payload } as any });
         return null;
       }
-      const res = await createFn({ data: payload });
-      const { data: row } = await supabase.from("students")
-        .select("*, classes(id,name), groups(id,name)")
-        .eq("id", (res as any).id).maybeSingle();
-      return { row: row as StudentRow, creds: { code: form.code, password: form.password } };
+      const res: any = await createFn({ data: payload });
+      const newId = res?.id;
+      let row: StudentRow | null = null;
+      if (newId) {
+        const { data } = await supabase.from("students")
+          .select("*, classes(id,name), groups(id,name)")
+          .eq("id", newId).maybeSingle();
+        row = (data as StudentRow) ?? null;
+      }
+      if (!row) {
+        const cls = (classes ?? []).find((c) => c.id === form.class_id) ?? null;
+        const grp = (groups ?? []).find((g) => g.id === form.group_id) ?? null;
+        row = {
+          id: newId ?? "",
+          full_name: form.full_name,
+          code: form.code,
+          phone: form.phone || null,
+          parent_phone: form.parent_phone || null,
+          parent_whatsapp: form.parent_phone || null,
+          class_id: form.class_id || null,
+          group_id: form.group_id || null,
+          classes: cls,
+          groups: grp,
+        } as any;
+      }
+      return { row, creds: { code: form.code, password: form.password } };
     },
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["students"] });
       toast.success(isEdit ? "تم تحديث بيانات الطالب" : "تم إضافة الطالب");
-      onOpenChange(false);
+      if (isEdit) {
+        onOpenChange(false);
+        return;
+      }
       if (result?.row) {
         setCreatedStudent(result.row);
         setCreatedCreds(result.creds);
-        setCardOpen(true);
+        onOpenChange(false);
+        setTimeout(() => setCardOpen(true), 80);
+      } else {
+        onOpenChange(false);
       }
     },
     onError: (e: any) => toast.error(e?.message ?? "حدث خطأ"),
