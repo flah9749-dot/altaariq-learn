@@ -50,6 +50,16 @@ function StudentDashboard() {
 
   return (
     <div className="space-y-6">
+      {studentId && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">صورتي الشخصية</CardTitle></CardHeader>
+          <CardContent>
+            <AvatarUploader table="students" rowId={studentId} currentUrl={profile?.avatar_url}
+              fallback={profile?.full_name ?? "ط"} onChange={() => refresh()} />
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="overflow-hidden border-0 bg-gradient-to-l from-primary to-primary/80 text-primary-foreground">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
