@@ -82,10 +82,10 @@ function StudentExamsPage() {
         <p className="text-sm text-muted-foreground mt-1">جميع الامتحانات المتاحة لك</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tabsMeta.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`rounded-xl border p-4 text-right transition-all ${tab === t.key ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-muted/50"}`}>
+            className={`rounded-xl border p-3 text-right transition-all md:p-4 ${tab === t.key ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-muted/50"}`}>
             <p className="text-xs text-muted-foreground">{t.label}</p>
             <p className={`text-2xl font-bold ${t.color}`}>{buckets[t.key].length}</p>
           </button>
@@ -93,7 +93,7 @@ function StudentExamsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Bucket)}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-4">
           {tabsMeta.map((t) => <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>)}
         </TabsList>
         {tabsMeta.map((t) => (
@@ -104,7 +104,7 @@ function StudentExamsPage() {
              buckets[t.key].length === 0 ? (
               <Card><CardContent className="py-16 text-center text-muted-foreground">لا توجد امتحانات في هذا القسم</CardContent></Card>
              ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
                 {buckets[t.key].map((e: any) => (
                   <ExamCard key={e.id} exam={e} attempt={attemptByExam.get(e.id) as any | undefined} bucket={t.key} />
                 ))}
@@ -123,16 +123,16 @@ function ExamCard({ exam: e, attempt: att, bucket }: { exam: any; attempt?: any;
   const pct = Number(att?.percentage) || 0;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="transition-shadow hover:shadow-lg">
       <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base">{e.title}</CardTitle>
-          <Badge className={STATUS_COLOR[status]}>{STATUS_LABEL[status]}</Badge>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+          <CardTitle className="min-w-0 text-base leading-relaxed">{e.title}</CardTitle>
+          <Badge className={`${STATUS_COLOR[status]} shrink-0`}>{STATUS_LABEL[status]}</Badge>
         </div>
         {e.subject && <p className="text-sm text-muted-foreground">{e.subject}</p>}
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground min-[380px]:grid-cols-2">
           {e.classes?.name && <div className="flex items-center gap-1"><Users className="h-3 w-3" />{e.classes.name}</div>}
           <div className="flex items-center gap-1"><Clock className="h-3 w-3" />{e.duration_minutes} دقيقة</div>
           <div className="flex items-center gap-1"><FileText className="h-3 w-3" />{e.total_score} درجة</div>

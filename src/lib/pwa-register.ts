@@ -6,6 +6,13 @@ export function registerInstallabilityServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   const unregisterAppShellWorker = () => {
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        keys
+          .filter((key) => key.startsWith("shell-") || key.startsWith("altareq-shell-"))
+          .forEach((key) => caches.delete(key).catch(() => {}));
+      }).catch(() => {});
+    }
     navigator.serviceWorker.getRegistrations?.().then((regs) => {
       regs.forEach((reg) => {
         const scriptUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";

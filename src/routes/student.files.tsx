@@ -50,8 +50,8 @@ function StudentFilesPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
-          <CardTitle className="text-base">الملفات ({filtered.length})</CardTitle>
+        <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-row sm:flex-wrap sm:justify-between">
+          <CardTitle className="min-w-0 truncate text-base">الملفات ({filtered.length})</CardTitle>
           <div className="relative w-full sm:w-64">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث..." className="pr-8 h-9" />
@@ -67,25 +67,24 @@ function StudentFilesPage() {
               {filtered.map((f: any) => {
                 const Icon = fileIconFor(f.mime_type);
                 return (
-                  <li
-                    key={f.id}
-                    className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="rounded-md bg-primary/10 p-2 shrink-0">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{f.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                        <span>{humanSize(f.size)}</span>
-                        <span>•</span>
-                        <span>{formatChatDetailedTime(f.created_at)}</span>
-                        {f.category && <Badge variant="outline" className="text-[10px] py-0">{f.category}</Badge>}
+                  <li key={f.id} className="rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                      <div className="shrink-0 rounded-md bg-primary/10 p-2">
+                        <Icon className="h-5 w-5 text-primary" />
                       </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{f.name}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>{humanSize(f.size)}</span>
+                          <span>•</span>
+                          <span>{formatChatDetailedTime(f.created_at)}</span>
+                          {f.category && <Badge variant="outline" className="text-[10px] py-0">{f.category}</Badge>}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => download(f.id)} className="col-span-2 w-full sm:col-span-1 sm:w-auto">
+                        <Download className="h-4 w-4 ml-1" /> تحميل
+                      </Button>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => download(f.id)}>
-                      <Download className="h-4 w-4 ml-1" /> تحميل
-                    </Button>
                   </li>
                 );
               })}

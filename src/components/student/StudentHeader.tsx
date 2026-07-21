@@ -75,7 +75,7 @@ export function StudentHeader() {
         </div>
       </div>
     </header>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-8px_24px_rgba(15,45,92,0.08)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 shadow-lg backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5 px-1">
           {bottomNav.map((n) => {
             const active = pathname === n.url || pathname.startsWith(n.url + "/");
