@@ -35,6 +35,8 @@ function StudentDetailPage() {
   const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+
+  const { data: student, isLoading } = useQuery({
     queryKey: ["student", id],
     queryFn: async () => {
       const { data, error } = await supabase
