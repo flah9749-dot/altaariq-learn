@@ -22,6 +22,7 @@ import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
 import { Route as StudentAchievementsRouteImport } from './routes/student.achievements'
+import { Route as AdminSystemRouteImport } from './routes/admin.system'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminScanRouteImport } from './routes/admin.scan'
@@ -29,12 +30,14 @@ import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
+import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminLeaderboardRouteImport } from './routes/admin.leaderboard'
 import { Route as AdminFilesRouteImport } from './routes/admin.files'
 import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCompetitionsRouteImport } from './routes/admin.competitions'
 import { Route as AdminClassesRouteImport } from './routes/admin.classes'
+import { Route as AdminBackupsRouteImport } from './routes/admin.backups'
 import { Route as AdminAssistantRouteImport } from './routes/admin.assistant'
 import { Route as AdminArchiveRouteImport } from './routes/admin.archive'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
@@ -115,6 +118,11 @@ const StudentAchievementsRoute = StudentAchievementsRouteImport.update({
   path: '/achievements',
   getParentRoute: () => StudentRoute,
 } as any)
+const AdminSystemRoute = AdminSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
   id: '/students',
   path: '/students',
@@ -150,6 +158,11 @@ const AdminMessagesRoute = AdminMessagesRouteImport.update({
   path: '/messages',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLiveRoute = AdminLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLeaderboardRoute = AdminLeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
@@ -178,6 +191,11 @@ const AdminCompetitionsRoute = AdminCompetitionsRouteImport.update({
 const AdminClassesRoute = AdminClassesRouteImport.update({
   id: '/classes',
   path: '/classes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBackupsRoute = AdminBackupsRouteImport.update({
+  id: '/backups',
+  path: '/backups',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAssistantRoute = AdminAssistantRouteImport.update({
@@ -262,12 +280,14 @@ export interface FileRoutesByFullPath {
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
+  '/admin/backups': typeof AdminBackupsRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -275,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
@@ -302,12 +323,14 @@ export interface FileRoutesByTo {
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
+  '/admin/backups': typeof AdminBackupsRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -315,6 +338,7 @@ export interface FileRoutesByTo {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
@@ -345,12 +369,14 @@ export interface FileRoutesById {
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
   '/admin/assistant': typeof AdminAssistantRoute
+  '/admin/backups': typeof AdminBackupsRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/exams': typeof AdminExamsRouteWithChildren
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
+  '/admin/live': typeof AdminLiveRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -358,6 +384,7 @@ export interface FileRoutesById {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
@@ -389,12 +416,14 @@ export interface FileRouteTypes {
     | '/admin/ai'
     | '/admin/archive'
     | '/admin/assistant'
+    | '/admin/backups'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
     | '/admin/leaderboard'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -402,6 +431,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/students'
+    | '/admin/system'
     | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
@@ -429,12 +459,14 @@ export interface FileRouteTypes {
     | '/admin/ai'
     | '/admin/archive'
     | '/admin/assistant'
+    | '/admin/backups'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
     | '/admin/leaderboard'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -442,6 +474,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/students'
+    | '/admin/system'
     | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
@@ -471,12 +504,14 @@ export interface FileRouteTypes {
     | '/admin/ai'
     | '/admin/archive'
     | '/admin/assistant'
+    | '/admin/backups'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/exams'
     | '/admin/files'
     | '/admin/leaderboard'
+    | '/admin/live'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -484,6 +519,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/students'
+    | '/admin/system'
     | '/student/achievements'
     | '/student/dashboard'
     | '/student/exams'
@@ -606,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentAchievementsRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/admin/system': {
+      id: '/admin/system'
+      path: '/system'
+      fullPath: '/admin/system'
+      preLoaderRoute: typeof AdminSystemRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/students': {
       id: '/admin/students'
       path: '/students'
@@ -655,6 +698,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMessagesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/live': {
+      id: '/admin/live'
+      path: '/live'
+      fullPath: '/admin/live'
+      preLoaderRoute: typeof AdminLiveRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/leaderboard': {
       id: '/admin/leaderboard'
       path: '/leaderboard'
@@ -695,6 +745,13 @@ declare module '@tanstack/react-router' {
       path: '/classes'
       fullPath: '/admin/classes'
       preLoaderRoute: typeof AdminClassesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/backups': {
+      id: '/admin/backups'
+      path: '/backups'
+      fullPath: '/admin/backups'
+      preLoaderRoute: typeof AdminBackupsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/assistant': {
@@ -855,12 +912,14 @@ interface AdminRouteChildren {
   AdminAiRoute: typeof AdminAiRoute
   AdminArchiveRoute: typeof AdminArchiveRoute
   AdminAssistantRoute: typeof AdminAssistantRoute
+  AdminBackupsRoute: typeof AdminBackupsRoute
   AdminClassesRoute: typeof AdminClassesRoute
   AdminCompetitionsRoute: typeof AdminCompetitionsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminExamsRoute: typeof AdminExamsRouteWithChildren
   AdminFilesRoute: typeof AdminFilesRoute
   AdminLeaderboardRoute: typeof AdminLeaderboardRoute
+  AdminLiveRoute: typeof AdminLiveRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -868,6 +927,7 @@ interface AdminRouteChildren {
   AdminScanRoute: typeof AdminScanRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminStudentsRoute: typeof AdminStudentsRouteWithChildren
+  AdminSystemRoute: typeof AdminSystemRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -876,12 +936,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAiRoute: AdminAiRoute,
   AdminArchiveRoute: AdminArchiveRoute,
   AdminAssistantRoute: AdminAssistantRoute,
+  AdminBackupsRoute: AdminBackupsRoute,
   AdminClassesRoute: AdminClassesRoute,
   AdminCompetitionsRoute: AdminCompetitionsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminExamsRoute: AdminExamsRouteWithChildren,
   AdminFilesRoute: AdminFilesRoute,
   AdminLeaderboardRoute: AdminLeaderboardRoute,
+  AdminLiveRoute: AdminLiveRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminReportsRoute: AdminReportsRoute,
@@ -889,6 +951,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScanRoute: AdminScanRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminStudentsRoute: AdminStudentsRouteWithChildren,
+  AdminSystemRoute: AdminSystemRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
