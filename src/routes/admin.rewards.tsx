@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { whatsappUrl } from "@/lib/whatsapp";
 import { whatsappCongrats } from "@/lib/gamification";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/rewards")({
   head: () => ({ meta: [{ title: "الجوائز والنقاط — لوحة المدرس" }] }),
