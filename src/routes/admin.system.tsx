@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { systemHealthCheck } from "@/lib/system-status.functions";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/system")({ component: SystemPage });
 
