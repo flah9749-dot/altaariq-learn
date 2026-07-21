@@ -86,7 +86,7 @@ export function GlobalSearch() {
         <Search className="h-4 w-4" />
       </Button>
 
-      <CommandDialog open={open} onOpenChange={setOpen} title="بحث شامل" description="ابحث في كل بيانات المنصة">
+      <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
           placeholder="ابحث عن طالب، امتحان، رسالة، إعلان..."
           value={q}

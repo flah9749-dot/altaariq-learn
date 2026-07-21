@@ -59,7 +59,7 @@ export const promoteStudents = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = { archived_at: null, archived_year: null, status: "active" };
     if (data.new_class_id !== undefined) patch.class_id = data.new_class_id;
     if (data.new_group_id !== undefined) patch.group_id = data.new_group_id;
-    const { error } = await supabaseAdmin.from("students").update(patch).in("id", data.ids);
+    const { error } = await supabaseAdmin.from("students").update(patch as any).in("id", data.ids);
     if (error) throw new Error(error.message);
     await log(supabaseAdmin, context.userId, "promote", { ids: data.ids });
     return { ok: true, count: data.ids.length };
