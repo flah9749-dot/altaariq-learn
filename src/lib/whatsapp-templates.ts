@@ -314,7 +314,10 @@ export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
   "wa.tpl.teacher_credentials": ["teacher_name", "subject", "username", "password", "platform_url"],
   "wa.tpl.certificate": ["name", "certificate_link", "teacher", "platform"],
   "wa.tpl.rewards_inquiry": ["name", "teacher"],
+  "wa.tpl.rewards_summary": ["name", "points", "rank", "rewards_count", "platform_url", "teacher", "platform"],
+  "wa.tpl.competition_invite": ["competition", "start_date", "end_date", "competition_link", "teacher", "platform"],
   "wa.tpl.teacher_contact": ["teacher", "name", "platform"],
+
 };
 
 export function fillTemplate(tpl: string, vars: Record<string, string | number | null | undefined>): string {
