@@ -236,8 +236,40 @@ ${DIV}`,
   "wa.tpl.rewards_inquiry":
     `السلام عليكم، استفسار بخصوص جوائز الطالب/ة {name}.\n— {teacher}`,
 
+  // Rewards / points summary (spec #6 — rewards page)
+  "wa.tpl.rewards_summary":
+`${DIV}
+🏆 ملخص نقاط الطالب
+
+👤 الاسم: {name}
+⭐ إجمالي النقاط: {points}
+🥇 الترتيب الحالي: {rank}
+🎖️ عدد الجوائز: {rewards_count}
+
+استمر في التميّز 💪
+🌐 {platform_url}
+— {teacher} | {platform}
+${DIV}`,
+
+  // Competition invite (spec #7)
+  "wa.tpl.competition_invite":
+`${DIV}
+🏁 دعوة لمسابقة جديدة
+
+📛 المسابقة: {competition}
+🟢 تبدأ: {start_date}
+🔴 تنتهي: {end_date}
+
+🔗 رابط الدخول:
+{competition_link}
+
+بالتوفيق للجميع 🌟
+— {teacher} | {platform}
+${DIV}`,
+
   "wa.tpl.teacher_contact":
     `السلام عليكم أستاذ {teacher} 🌿\nأنا الطالب/ة {name} من منصة {platform}.`,
+
 };
 
 export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
