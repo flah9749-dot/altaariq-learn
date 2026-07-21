@@ -17,6 +17,8 @@ import { useAuth } from "@/lib/auth-context";
 import { adminEmailFromUsername } from "@/lib/auth-emails";
 import { createAdmin, deleteAdmin, resetAdminPassword } from "@/lib/admin-account.functions";
 import { invalidateDefaultCountryCodeCache } from "@/hooks/use-default-country-code";
+import { DEFAULT_WA_TEMPLATES, WA_TEMPLATE_LABELS, WA_TEMPLATE_PLACEHOLDERS, invalidateWaTemplateCache, type WaTemplateKey } from "@/lib/whatsapp-templates";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -69,6 +71,7 @@ function SettingsPage() {
       toast.success("تم حفظ الإعدادات");
       setDirty(new Set());
       invalidateDefaultCountryCodeCache();
+      invalidateWaTemplateCache();
       qc.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحفظ"),
@@ -180,6 +183,45 @@ function SettingsPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <NumField label="الحد الأقصى لحجم الملف (MB)" k="messages.max_file_mb" val={local["messages.max_file_mb"]} onChange={set} />
               <NumField label="مدة الاحتفاظ بالرسائل (أيام)" k="messages.retention_days" val={local["messages.retention_days"]} onChange={set} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>قوالب رسائل واتساب</CardTitle>
+              <CardDescription>
+                القوالب التي تُرسَل تلقائيًا عند الضغط على أي زر واتساب في المنصة.
+                استخدم المتغيرات بين قوسين مثل {"{name}"}, {"{code}"}, {"{teacher}"} — تُستبدل تلقائيًا.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(Object.keys(DEFAULT_WA_TEMPLATES) as WaTemplateKey[]).map((k) => (
+                <div key={k} className="space-y-1.5 border rounded-lg p-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <Label className="text-sm font-semibold">{WA_TEMPLATE_LABELS[k]}</Label>
+                    <div className="text-[11px] text-muted-foreground">
+                      المتغيرات: {WA_TEMPLATE_PLACEHOLDERS[k].map((p) => `{${p}}`).join("، ")}
+                    </div>
+                  </div>
+                  <Textarea
+                    dir="rtl"
+                    rows={4}
+                    value={(local[k] as string | undefined) ?? DEFAULT_WA_TEMPLATES[k]}
+                    onChange={(e) => set(k, e.target.value)}
+                    placeholder={DEFAULT_WA_TEMPLATES[k]}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => set(k, DEFAULT_WA_TEMPLATES[k])}
+                    >
+                      إعادة تعيين للنص الافتراضي
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </TabsContent>

@@ -126,7 +126,12 @@ function QuickStudentPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-6 pt-6 border-t">
-            <WhatsAppButton phone={student.parent_whatsapp ?? student.parent_phone} label="واتساب ولي الأمر" />
+            <WhatsAppButton
+              phone={student.parent_whatsapp ?? student.parent_phone}
+              template="wa.tpl.parent_intro"
+              vars={{ name: student.full_name }}
+              label="واتساب ولي الأمر"
+            />
             <Button asChild variant="outline" size="sm" className="gap-1">
               <Link to="/admin/messages"><MessageSquare className="h-4 w-4" />فتح المحادثة</Link>
             </Button>

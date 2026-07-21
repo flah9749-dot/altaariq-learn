@@ -203,7 +203,12 @@ function StudentDetailPage() {
             <Row label="الهاتف" icon={Phone} value={student.parent_phone ?? "—"} />
             <Row label="واتساب" value={student.parent_whatsapp ?? student.parent_phone ?? "—"} />
             <div className="pt-2">
-              <WhatsAppButton phone={student.parent_whatsapp ?? student.parent_phone} label="فتح واتساب ولي الأمر" />
+              <WhatsAppButton
+                phone={student.parent_whatsapp ?? student.parent_phone}
+                template="wa.tpl.parent_intro"
+                vars={{ name: student.full_name }}
+                label="فتح واتساب ولي الأمر"
+              />
             </div>
           </CardContent>
         </Card>
