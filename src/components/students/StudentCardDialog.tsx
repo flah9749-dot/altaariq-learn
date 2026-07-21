@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { useServerFn } from "@tanstack/react-start";
-import { Printer, Download, MessageCircle, Copy, Check, KeyRound, Loader2 } from "lucide-react";
+import { Printer, Download, MessageCircle, Copy, Check, KeyRound, Loader2, FileDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { StudentIdCard } from "./StudentIdCard";
