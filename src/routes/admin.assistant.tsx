@@ -11,7 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { askAssistant } from "@/lib/ai-assistant.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/assistant")({
+export const Route = createFileRoute("/admin/assistant")({
   component: AssistantPage,
 });
 
