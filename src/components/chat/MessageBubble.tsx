@@ -126,21 +126,3 @@ function useSignedUrl(path: string | null | undefined): string | null {
   return url;
 }
 
-function AttachmentImage({ m }: { m: any }) {
-  const url = useSignedUrl(m.attachment_url);
-  return url
-    ? <img src={url} alt={m.attachment_name ?? ""} loading="lazy" className="max-h-64 object-cover w-full" />
-    : <div className="h-32 w-64 bg-muted animate-pulse" />;
-}
-
-function AttachmentAudio({ m }: { m: any }) {
-  const url = useSignedUrl(m.attachment_url);
-  return url ? <audio src={url} controls className="max-w-full" /> : <div className="h-10 w-56 bg-muted animate-pulse rounded" />;
-}
-
-function AttachmentVideo({ m }: { m: any }) {
-  const url = useSignedUrl(m.attachment_url);
-  return url
-    ? <video src={url} controls className="max-h-64 w-full rounded" />
-    : <div className="h-40 w-64 bg-muted animate-pulse rounded" />;
-}
