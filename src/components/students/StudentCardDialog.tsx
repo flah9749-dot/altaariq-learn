@@ -30,26 +30,15 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
 
   if (!student) return null;
 
-  const creds = credentials ?? localCreds;
-  const platformName = "منصة الطارق التعليمية";
-  const parentGreeting = student.parent_name ? `الأستاذ/ة ${student.parent_name}` : "ولي الأمر الكريم";
-  const platformUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-  const messageLines = [
-    `السلام عليكم ورحمة الله وبركاته 🌸`,
-    `أهلاً وسهلاً ${parentGreeting} 👋`,
-    ``,
-    `يسعدنا انضمام الطالب/ة *${student.full_name}* إلى ${platformName} — الدراسات الاجتماعية (تاريخ • جغرافيا • مواطنة).`,
-    ``,
-    `🔐 *بيانات الدخول:*`,
-    `• الكود: ${student.code}`,
-    creds?.password ? `• كلمة المرور: ${creds.password}` : `• كلمة المرور: (يرجى طلبها من المدرس)`,
-    ``,
-    platformUrl ? `🔗 رابط المنصة: ${platformUrl}` : "",
-    ``,
-    `📱 يمكنكم متابعة الدرجات والامتحانات والإعلانات من خلال المنصة.`,
-    `نتمنى للطالب/ة التوفيق والنجاح 🌟`,
-  ].filter(Boolean).join("\n");
+  async function buildMessage(password: string): Promise<string> {
+    return buildWaMessage("wa.tpl.student_card", {
+      name: student!.full_name,
+      code: student!.code,
+      password,
+      grade: (student as any)?.classes?.name ?? (student as any)?.class_name ?? "—",
+      class: (student as any)?.groups?.name ?? (student as any)?.group_name ?? "—",
+    });
+  }
 
   async function ensurePassword(): Promise<string | null> {
     if (creds?.password) return creds.password;
