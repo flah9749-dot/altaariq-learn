@@ -290,7 +290,10 @@ export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
   "wa.tpl.teacher_credentials": "بيانات دخول المدرس",
   "wa.tpl.certificate": "إصدار شهادة",
   "wa.tpl.rewards_inquiry": "استفسار عن الجوائز",
+  "wa.tpl.rewards_summary": "ملخص نقاط وجوائز الطالب",
+  "wa.tpl.competition_invite": "دعوة لمسابقة",
   "wa.tpl.teacher_contact": "تواصل الطالب مع المدرس",
+
 };
 
 export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
