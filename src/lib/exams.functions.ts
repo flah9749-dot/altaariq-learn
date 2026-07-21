@@ -67,6 +67,14 @@ export const upsertExam = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: any = { ...data.patch, created_by: context.userId };
+    if (data.id && payload.published === true) {
+      const { count, error: countErr } = await supabaseAdmin
+        .from("questions")
+        .select("id", { count: "exact", head: true })
+        .eq("exam_id", data.id);
+      if (countErr) throw new Error(countErr.message);
+      if ((count ?? 0) === 0) throw new Error("لا يمكن نشر امتحان بدون أسئلة");
+    }
     if (data.id) {
       const { error } = await supabaseAdmin.from("exams").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
@@ -96,6 +104,14 @@ export const publishExam = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.published) {
+      const { count, error: countErr } = await supabaseAdmin
+        .from("questions")
+        .select("id", { count: "exact", head: true })
+        .eq("exam_id", data.id);
+      if (countErr) throw new Error(countErr.message);
+      if ((count ?? 0) === 0) throw new Error("لا يمكن نشر امتحان بدون أسئلة");
+    }
     const status = data.published ? "published" : "draft";
     const { error } = await supabaseAdmin.from("exams").update({ published: data.published, status }).eq("id", data.id);
     if (error) throw new Error(error.message);

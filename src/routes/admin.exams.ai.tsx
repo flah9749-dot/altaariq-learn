@@ -83,8 +83,9 @@ function AIExamPage() {
   const saveMut = useMutation({
     mutationFn: async () => {
       if (!preview) throw new Error("لا يوجد أسئلة");
-      const created = await upsertFn({ data: { patch: { title: preview.title, subject: null, published: true, status: "published" } } }) as any;
+      const created = await upsertFn({ data: { patch: { title: preview.title, subject: null, published: false, status: "draft" } } }) as any;
       await saveQFn({ data: { exam_id: created.id, questions: preview.questions } });
+      await upsertFn({ data: { id: created.id, patch: { published: true, status: "published" } } });
       return created.id;
     },
     onSuccess: (id: string) => { toast.success("تم إنشاء الامتحان"); nav({ to: "/admin/exams/$id", params: { id } }); },
