@@ -22,7 +22,7 @@ function StudentLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-muted/30" dir="rtl">
       <StudentHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3 pb-24 pt-4 sm:px-4 md:p-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3 pb-8 pt-4 sm:px-4 md:p-6">
         <Outlet />
       </main>
     </div>
