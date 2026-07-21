@@ -59,8 +59,8 @@ function StudentDashboard() {
   const level = data.me?.level ?? 1;
   const nextLevelAt = level * 100;
   const progressPct = Math.min(100, Math.round((points / nextLevelAt) * 100));
-  const parentPhone = data.me?.parent_whatsapp ?? data.me?.parent_phone ?? null;
   const teacherPhone = teacherWa || null;
+
 
 
   return (
