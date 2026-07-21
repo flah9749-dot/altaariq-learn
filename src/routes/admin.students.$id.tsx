@@ -227,6 +227,7 @@ function StudentDetailPage() {
       </div>
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
+      <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
     </div>
   );
 }
