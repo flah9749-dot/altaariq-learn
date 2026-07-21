@@ -39,6 +39,7 @@ export function StudentHeader() {
           })}
         </nav>
         <div className="me-auto md:me-0 flex items-center gap-2">
+            <InstallAppButton className="hidden sm:inline-flex" />
             <NotificationsBell />
             <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2">
