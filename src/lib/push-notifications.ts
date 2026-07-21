@@ -3,9 +3,21 @@ import { getMessaging, getToken, onMessage, isSupported } from "firebase/messagi
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { firebaseConfig, VAPID_KEY } from "./firebase-config";
+import { getFirebaseApiKey } from "./firebase-config.functions";
 
-function app() {
-  return getApps().length ? getApp() : initializeApp(firebaseConfig);
+let cachedApiKey: string | null = null;
+async function resolveApiKey(): Promise<string> {
+  if (cachedApiKey) return cachedApiKey;
+  const { apiKey } = await getFirebaseApiKey();
+  if (!apiKey) throw new Error("Firebase API key غير مُعدّ على الخادم");
+  cachedApiKey = apiKey;
+  return apiKey;
+}
+
+async function app() {
+  if (getApps().length) return getApp();
+  const apiKey = await resolveApiKey();
+  return initializeApp({ ...firebaseConfig, apiKey });
 }
 
 export async function isPushSupported(): Promise<boolean> {
@@ -21,7 +33,8 @@ export function getPermission(): NotificationPermission | "unsupported" {
 }
 
 async function registerSW(): Promise<ServiceWorkerRegistration> {
-  return navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
+  const apiKey = await resolveApiKey();
+  return navigator.serviceWorker.register(`/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`, { scope: "/" });
 }
 
 async function saveToken(userId: string, token: string) {
@@ -38,7 +51,7 @@ export async function enablePush(userId: string): Promise<string | null> {
   if (perm !== "granted") { toast.error("لم يتم السماح بالإشعارات"); return null; }
   try {
     const reg = await registerSW();
-    const messaging = getMessaging(app());
+    const messaging = getMessaging(await app());
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (!token) { toast.error("تعذّر الحصول على توكن الإشعارات"); return null; }
     await saveToken(userId, token);
@@ -62,7 +75,7 @@ export async function bootPushIfEnabled(userId: string) {
   if (Notification.permission !== "granted") return;
   try {
     const reg = await registerSW();
-    const messaging = getMessaging(app());
+    const messaging = getMessaging(await app());
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (token) await saveToken(userId, token);
     onMessage(messaging, (payload) => {

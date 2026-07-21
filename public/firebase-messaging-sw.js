@@ -8,8 +8,9 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", () => { /* pass-through, no offline cache */ });
 
+const _swApiKey = new URL(self.location.href).searchParams.get("apiKey") || "";
 firebase.initializeApp({
-  apiKey: "AIzaSyDdummy_replace_via_env_if_ever_rotated",
+  apiKey: _swApiKey,
   authDomain: "al-tariq-education-hub.firebaseapp.com",
   projectId: "al-tariq-education-hub",
   storageBucket: "al-tariq-education-hub.firebasestorage.app",
