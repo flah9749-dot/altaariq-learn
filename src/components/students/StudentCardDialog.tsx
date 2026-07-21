@@ -256,11 +256,13 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
           <Button variant="outline" onClick={() => onOpenChange(false)}>إغلاق</Button>
           <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="outline" onClick={print}><Printer className="h-4 w-4 ml-1"/>طباعة</Button>
-            <Button variant="outline" onClick={download}><Download className="h-4 w-4 ml-1"/>تحميل</Button>
+            <Button variant="outline" onClick={download}><Download className="h-4 w-4 ml-1"/>PNG</Button>
+            <Button variant="outline" onClick={downloadPdf}><FileDown className="h-4 w-4 ml-1"/>PDF</Button>
             <Button onClick={whatsapp} disabled={resetting} className="bg-green-600 hover:bg-green-700 text-white">
               {resetting ? <Loader2 className="h-4 w-4 ml-1 animate-spin"/> : <MessageCircle className="h-4 w-4 ml-1"/>}
               إرسال واتساب
             </Button>
+
           </div>
         </DialogFooter>
       </DialogContent>
