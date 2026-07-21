@@ -1645,6 +1645,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_exam_questions: { Args: { _exam_id: string }; Returns: Json }
+      get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
