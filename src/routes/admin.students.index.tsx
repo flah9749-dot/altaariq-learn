@@ -51,6 +51,12 @@ const PAGE_SIZE = 20;
 
 function StudentsPage() {
   const qc = useQueryClient();
+  const [viewMode, setViewMode] = useState<"grouped" | "list">(() => {
+    if (typeof window === "undefined") return "grouped";
+    return (localStorage.getItem("students.viewMode") as "grouped" | "list") ?? "grouped";
+  });
+  useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("students.viewMode", viewMode); }, [viewMode]);
+
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<string>("");
   const [groupFilter, setGroupFilter] = useState<string>("");
@@ -63,6 +69,7 @@ function StudentsPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ ids: string[] } | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveYear, setArchiveYear] = useState<string>(String(new Date().getFullYear()));
+
 
   const delFn = useServerFn(deleteStudents);
   const toggleFn = useServerFn(toggleStudentStatus);
