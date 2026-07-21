@@ -43,6 +43,7 @@ function ReportsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs items={[{ to: "/admin/reports", label: "التقارير" }, { to: "/admin/leaderboard", label: "ترتيب الطلاب" }]} />
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
