@@ -39,6 +39,17 @@ type Q = {
   options: Array<{ text: string; is_correct: boolean; order_index: number; match_key?: string | null }>;
 };
 
+function isoToLocalInput(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+function localInputToIso(v: string): string | null {
+  return v ? new Date(v).toISOString() : null;
+}
+
 function makeBlank(type: QuestionType = "mcq"): Q {
   const base: Q = { type, text: "", points: 1, options: [] };
   if (type === "mcq") base.options = [
