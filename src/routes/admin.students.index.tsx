@@ -147,7 +147,8 @@ function StudentsPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
   });
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
     const data = rows.map((r) => ({
       "الاسم": r.full_name, "الكود": r.code, "الصف": r.classes?.name ?? "",
       "المجموعة": r.groups?.name ?? "", "الهاتف": r.phone ?? "",
