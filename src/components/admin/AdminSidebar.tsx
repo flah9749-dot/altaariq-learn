@@ -10,20 +10,18 @@ import { Logo } from "@/components/common/Logo";
 
 const items = [
   { title: "الرئيسية", url: "/admin/dashboard", icon: Home },
-  { title: "اللوحة الحية", url: "/admin/live", icon: Radio },
+  { title: "المساعد الذكي", url: "/admin/assistant", icon: Bot },
   { title: "الطلاب", url: "/admin/students", icon: Users },
   { title: "الأرشيف", url: "/admin/archive", icon: Archive },
   { title: "الصفوف الدراسية", url: "/admin/classes", icon: GraduationCap },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot },
-  { title: "المساعد الذكي", url: "/admin/assistant", icon: Bot },
   { title: "الرسائل", url: "/admin/messages", icon: MessageSquare },
   { title: "الجوائز والمسابقات", url: "/admin/rewards", icon: Award },
   { title: "الترتيب والتقارير", url: "/admin/reports", icon: BarChart3 },
   { title: "الإشعارات", url: "/admin/notifications", icon: Bell },
   { title: "الملفات", url: "/admin/files", icon: FolderOpen },
-  { title: "حالة النظام", url: "/admin/system", icon: HeartPulse },
-  { title: "النسخ الاحتياطي", url: "/admin/backups", icon: Database },
+  { title: "حالة النظام والنسخ", url: "/admin/system", icon: HeartPulse },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];
 
