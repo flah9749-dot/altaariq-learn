@@ -16,7 +16,7 @@ export const Route = createFileRoute("/student/dashboard")({
 });
 
 function StudentDashboard() {
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const studentId = profile?.id;
 
   const { data, isLoading } = useQuery({
