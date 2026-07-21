@@ -48,9 +48,11 @@ function StudentMessagesPage() {
                 phone={teacherWa}
                 label="واتساب"
                 size="sm"
-                message={`السلام عليكم أستاذ، الطالب/ة ${profile?.full_name ?? ""} (${profile?.identifier ?? ""})`}
+                template="wa.tpl.teacher_contact"
+                vars={{ name: profile?.full_name ?? "", code: profile?.identifier ?? "" }}
               />
             ) : undefined}
+
           />
         ) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted-foreground p-6 text-center">
