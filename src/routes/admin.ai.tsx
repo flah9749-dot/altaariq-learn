@@ -18,6 +18,7 @@ export const Route = createFileRoute("/admin/ai")({
 });
 
 const PROVIDERS = [
+  { slug: "lovable", name: "Lovable AI Gateway ⭐", secret: "LOVABLE_API_KEY", docs: "https://docs.lovable.dev/features/ai", desc: "المزود الافتراضي — Gemini + GPT بدون مفاتيح إضافية" },
   { slug: "gemini", name: "Google Gemini", secret: "GEMINI_API_KEY", docs: "https://aistudio.google.com/apikey", desc: "متعدد الوسائط — للامتحانات والمحتوى" },
   { slug: "openai", name: "OpenAI", secret: "OPENAI_API_KEY", docs: "https://platform.openai.com/api-keys", desc: "GPT — للتصحيح والتحليل والدردشة" },
   { slug: "claude", name: "Anthropic Claude", secret: "ANTHROPIC_API_KEY", docs: "https://console.anthropic.com/settings/keys", desc: "احتياطي أول — تحليل وكتابة" },
