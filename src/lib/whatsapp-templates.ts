@@ -92,6 +92,48 @@ ${DIV}`,
 — {teacher} | {platform}
 ${DIV}`,
 
+  // Praise for high scorers (>=75%)
+  "wa.tpl.exam_result_praise":
+`${DIV}
+🌟 مبروك التفوق!
+
+نبارك لولي أمر الطالب/ة *{name}* على النتيجة المتميزة 🎉
+
+📝 الامتحان: {exam}
+🎯 الدرجة: {score}/{total}
+📈 النسبة: {percentage}%
+🏅 التقدير: {grade_text}
+
+اجتهاد رائع وتركيز واضح، نتمنى الاستمرار على هذا التفوق 💪✨
+
+يمكنكم مراجعة التفاصيل من المنصة:
+{platform_url}
+
+— {teacher} | {platform}
+${DIV}`,
+
+  // Encouragement for low scorers (<50%)
+  "wa.tpl.exam_result_encourage":
+`${DIV}
+💙 رسالة تحفيز
+
+ولي أمر الطالب/ة *{name}* — تحية طيبة،
+
+📝 الامتحان: {exam}
+🎯 الدرجة: {score}/{total}
+📈 النسبة: {percentage}%
+🏅 التقدير: {grade_text}
+
+نتيجة اليوم ليست نهاية الطريق 🌱
+نحتاج تعاونكم في متابعة المذاكرة ومراجعة الأسئلة الخاطئة من المنصة، وأنا مستعد لأي دعم إضافي بإذن الله.
+
+رابط المراجعة:
+{platform_url}
+
+بالتوفيق دائمًا 🤍
+— {teacher} | {platform}
+${DIV}`,
+
   "wa.tpl.exam_reminder":
 `السلام عليكم ولي أمر الطالب/ة {name} 🌿
 تذكير بامتحان: {exam}
