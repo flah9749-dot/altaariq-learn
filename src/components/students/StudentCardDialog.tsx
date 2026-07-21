@@ -31,8 +31,6 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const [loadingPw, setLoadingPw] = useState(false);
 
 
-  if (!student) return null;
-
   const creds = credentials ?? localCreds;
 
   async function buildMessage(password: string): Promise<string> {
