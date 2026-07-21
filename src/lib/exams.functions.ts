@@ -390,10 +390,11 @@ export const submitAttempt = createServerFn({ method: "POST" })
       exam_id: att.exam_id, student_id: att.student_id, score, total,
     });
 
-    // In-app notification for the student (linked to the result page).
+    // In-app notification for the student (linked to the result page)
+    // + notify all admins so they can send the WhatsApp result to the parent.
     try {
       const { data: stu } = await supabaseAdmin
-        .from("students").select("user_id,full_name").eq("id", att.student_id).maybeSingle();
+        .from("students").select("user_id,full_name,code").eq("id", att.student_id).maybeSingle();
       const { data: ex } = await supabaseAdmin
         .from("exams").select("title").eq("id", att.exam_id).maybeSingle();
       if (stu?.user_id) {
@@ -406,6 +407,21 @@ export const submitAttempt = createServerFn({ method: "POST" })
           type: "exam_finished",
           link: `/student/exams/${att.exam_id}/result`,
         });
+      }
+      // Notify admins → they can send the parent WhatsApp from the results page.
+      const { data: admins } = await supabaseAdmin
+        .from("admins").select("user_id").not("user_id", "is", null);
+      const adminIds = Array.from(new Set((admins ?? []).map((a: any) => a.user_id).filter(Boolean)));
+      if (adminIds.length) {
+        await supabaseAdmin.from("notifications").insert(
+          adminIds.map((uid: string) => ({
+            user_id: uid,
+            title: needsReview ? "📝 طالب سلّم امتحاناً" : "✅ طالب أنهى امتحاناً",
+            body: `${stu?.full_name ?? "طالب"}${stu?.code ? ` (${stu.code})` : ""} — "${ex?.title ?? ""}" · ${score}/${total} (${pct}%)${needsReview ? " · بحاجة تصحيح" : ""}. اضغط لإبلاغ ولي الأمر.`,
+            type: "exam_submitted_admin",
+            link: `/admin/exams/${att.exam_id}/results`,
+          })),
+        );
       }
     } catch { /* non-blocking */ }
 
