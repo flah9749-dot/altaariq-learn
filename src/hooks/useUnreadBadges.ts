@@ -21,13 +21,13 @@ export function useStudentUnreadBadges() {
       const [msgs, notif] = await Promise.all([
         supabase.from("messages").select("id", { count: "exact", head: true })
           .eq("recipient_id", user.id).eq("read", false),
-        supabase.from("notifications").select("id, category", { head: false })
+        supabase.from("notifications").select("id, type", { head: false })
           .eq("user_id", user.id).eq("read", false),
       ]);
       if (cancelled) return;
       const notifs = notif.data ?? [];
       const countCat = (needles: string[]) =>
-        notifs.filter((n: any) => needles.some((k) => (n.category ?? "").toString().toLowerCase().includes(k))).length;
+        notifs.filter((n: any) => needles.some((k) => (n.type ?? "").toString().toLowerCase().includes(k))).length;
       setB({
         messages: msgs.count ?? 0,
         exams: countCat(["exam", "امتحان"]),
