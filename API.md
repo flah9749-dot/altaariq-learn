@@ -27,7 +27,7 @@ https://<your-domain>/api/public/v1
 ### GET `/students`
 قائمة الطلاب النشطين (غير المؤرشفين).
 - `limit` (اختياري، افتراضي 50، حد أقصى 200)
-- `grade` (اختياري)
+- `class_id` (اختياري)
 
 ### GET `/leaderboard`
 ترتيب الطلاب حسب النقاط.

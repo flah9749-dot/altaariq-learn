@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/public/v1/leaderboard")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data, error } = await supabaseAdmin
           .from("students")
-          .select("id, code, full_name, grade, points, level")
+          .select("id, code, full_name, class_id, points, level")
           .is("archived_at", null)
           .order("points", { ascending: false })
           .limit(limit);
