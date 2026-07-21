@@ -255,7 +255,20 @@ function StudentsPage() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center justify-between print:hidden">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "grouped" | "list")}>
+          <TabsList>
+            <TabsTrigger value="grouped">عرض مجمّع</TabsTrigger>
+            <TabsTrigger value="list">جدول</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <p className="text-xs text-muted-foreground">
+          {viewMode === "grouped" ? "منظم حسب الصف والمجموعة" : "قائمة كاملة قابلة للفرز"}
+        </p>
+      </div>
+
       {selected.size > 0 && (
+
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-2 print:hidden">
           <span className="text-sm font-medium">تم تحديد {selected.size} طالب</span>
           <div className="mr-auto flex flex-wrap gap-2">
