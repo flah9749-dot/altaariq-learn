@@ -75,9 +75,8 @@ function ExamEditor() {
   const { data: dbQuestions } = useQuery({
     queryKey: ["exam-questions", id],
     queryFn: async () => {
-      const { data } = await supabase.from("questions")
-        .select("*, question_options(*)").eq("exam_id", id).order("order_index");
-      return data ?? [];
+      const { data } = await supabase.rpc("admin_get_exam_questions", { _exam_id: id });
+      return (data as any[]) ?? [];
     },
   });
   const { data: classes } = useQuery({

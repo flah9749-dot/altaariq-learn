@@ -34,9 +34,10 @@ function ResultPage() {
   });
   const { data: answers } = useQuery({
     queryKey: ["my-answers", attempt?.id], enabled: !!attempt,
-    queryFn: async () => (await supabase.from("attempt_answers")
-      .select("*, questions(id,text,type,points,explanation,correct_answer,question_options(id,text,is_correct))")
-      .eq("attempt_id", attempt!.id)).data ?? [],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_attempt_review", { _attempt_id: attempt!.id });
+      return (data as any[]) ?? [];
+    },
   });
 
   // Rank in class and group
