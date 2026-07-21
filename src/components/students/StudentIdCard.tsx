@@ -3,7 +3,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { StudentRow } from "@/lib/students-utils";
 
 export function StudentIdCard({ student, origin }: { student: StudentRow; origin?: string }) {
-  const url = `${origin ?? (typeof window !== "undefined" ? window.location.origin : "")}/admin/students/${student.id}`;
+  const base = origin ?? (typeof window !== "undefined" ? window.location.origin : "");
+  const url = `${base}/admin/students/quick/${student.code}`;
   return (
     <div className="w-[340px] rounded-2xl border-2 border-primary/20 bg-gradient-to-b from-primary to-primary/90 p-5 text-primary-foreground shadow-xl print:shadow-none">
       <div className="flex items-center justify-between border-b border-white/20 pb-3">

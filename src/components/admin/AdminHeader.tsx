@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
+import { GlobalSearch } from "@/components/common/GlobalSearch";
 import { useAuth } from "@/lib/auth-context";
 
 export function AdminHeader() {
@@ -22,6 +23,7 @@ export function AdminHeader() {
         <p className="text-sm text-muted-foreground">مرحبًا</p>
         <p className="text-sm font-semibold truncate">{profile?.full_name ?? profile?.identifier ?? "المدرس"}</p>
       </div>
+      <GlobalSearch />
       <NotificationsBell />
       <ThemeToggle />
       <DropdownMenu>
