@@ -185,6 +185,45 @@ function SettingsPage() {
               <NumField label="مدة الاحتفاظ بالرسائل (أيام)" k="messages.retention_days" val={local["messages.retention_days"]} onChange={set} />
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>قوالب رسائل واتساب</CardTitle>
+              <CardDescription>
+                القوالب التي تُرسَل تلقائيًا عند الضغط على أي زر واتساب في المنصة.
+                استخدم المتغيرات بين قوسين مثل {"{name}"}, {"{code}"}, {"{teacher}"} — تُستبدل تلقائيًا.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(Object.keys(DEFAULT_WA_TEMPLATES) as WaTemplateKey[]).map((k) => (
+                <div key={k} className="space-y-1.5 border rounded-lg p-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <Label className="text-sm font-semibold">{WA_TEMPLATE_LABELS[k]}</Label>
+                    <div className="text-[11px] text-muted-foreground">
+                      المتغيرات: {WA_TEMPLATE_PLACEHOLDERS[k].map((p) => `{${p}}`).join("، ")}
+                    </div>
+                  </div>
+                  <Textarea
+                    dir="rtl"
+                    rows={4}
+                    value={(local[k] as string | undefined) ?? DEFAULT_WA_TEMPLATES[k]}
+                    onChange={(e) => set(k, e.target.value)}
+                    placeholder={DEFAULT_WA_TEMPLATES[k]}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => set(k, DEFAULT_WA_TEMPLATES[k])}
+                    >
+                      إعادة تعيين للنص الافتراضي
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Rewards */}
