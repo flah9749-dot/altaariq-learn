@@ -136,7 +136,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           className="resize-none min-h-[42px] max-h-32 flex-1 text-base md:text-sm"
           disabled={disabled}
         />
-        <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)}>
+        <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)} aria-label="إرسال">
           {pending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
         </Button>
       </div>
