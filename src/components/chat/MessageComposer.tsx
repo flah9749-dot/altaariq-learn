@@ -86,7 +86,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
   const Icon = staged ? fileIconFor(staged.type) : null;
 
   return (
-    <div ref={dropRef} className="border-t bg-background p-2 md:p-3 space-y-2">
+    <div ref={dropRef} className="border-t bg-background p-2 md:p-3 space-y-2 shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       {replyTo && (
         <div className="flex items-center gap-2 bg-muted rounded-lg p-2 text-xs">
           <span className="me-auto truncate">↩️ رد على: {replyTo.body?.slice(0, 60) ?? "مرفق"}</span>
@@ -133,7 +133,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           rows={1}
-          className="resize-none min-h-[42px] max-h-32 flex-1"
+          className="resize-none min-h-[42px] max-h-32 flex-1 text-base md:text-sm"
           disabled={disabled}
         />
         <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)}>

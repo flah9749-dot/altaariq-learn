@@ -28,15 +28,17 @@ function StudentExamsPage() {
     queryFn: async () => (await supabase.from("students").select("id,class_id,group_id").eq("user_id", user!.id).maybeSingle()).data,
   });
 
-  const { data: exams, isLoading } = useQuery({
+  const { data: exams, isLoading, error: examsError } = useQuery({
     queryKey: ["student-exams", student?.id],
     enabled: !!student,
     queryFn: async () => {
-      const { data } = await supabase.from("exams")
-        .select("*, classes(name), groups:groups!exams_group_id_fkey(name)")
+      const { data, error } = await supabase.from("exams")
+        .select("*, classes(name)")
         .eq("published", true).order("created_at", { ascending: false });
+      if (error) throw error;
       return (data ?? []).filter((e: any) => {
-        if (e.class_id && student?.class_id && e.class_id !== student.class_id) return false;
+        if (e.class_id && e.class_id !== student?.class_id) return false;
+        if (Array.isArray(e.group_ids) && e.group_ids.length > 0 && !e.group_ids.includes(student?.group_id)) return false;
         return true;
       });
     },
@@ -96,7 +98,9 @@ function StudentExamsPage() {
         </TabsList>
         {tabsMeta.map((t) => (
           <TabsContent key={t.key} value={t.key} className="mt-4">
-            {isLoading ? <Skeleton className="h-40" /> :
+            {isLoading ? <Skeleton className="h-40" /> : examsError ? (
+              <Card><CardContent className="py-16 text-center text-destructive">تعذّر تحميل الامتحانات. حاول تحديث الصفحة.</CardContent></Card>
+            ) :
              buckets[t.key].length === 0 ? (
               <Card><CardContent className="py-16 text-center text-muted-foreground">لا توجد امتحانات في هذا القسم</CardContent></Card>
              ) : (
