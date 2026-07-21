@@ -40,6 +40,8 @@ function AIExamPage() {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard" | "mixed">("mixed");
   const [language, setLanguage] = useState<"ar" | "en">("ar");
   const [pts, setPts] = useState(1);
+  const [useTotal, setUseTotal] = useState(false);
+  const [totalScore, setTotalScore] = useState(50);
   const [preview, setPreview] = useState<{ title: string; questions: any[] } | null>(null);
 
   const uploadFile = async (files: FileList | null) => {
