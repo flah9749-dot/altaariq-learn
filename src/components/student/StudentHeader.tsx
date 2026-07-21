@@ -65,6 +65,7 @@ export function StudentHeader() {
             <nav className="flex-1 overflow-y-auto p-3 space-y-1">
               {nav.map((n) => {
                 const active = isActive(n.url);
+                const count = badgeFor(n.badge);
                 return (
                   <Link
                     key={n.url}
@@ -76,8 +77,20 @@ export function StudentHeader() {
                         : "text-sidebar-foreground/85 hover:bg-sidebar-accent"
                     }`}
                   >
-                    <n.icon className="h-5 w-5 shrink-0" />
+                    <span className="relative shrink-0">
+                      <n.icon className="h-5 w-5" />
+                      {count > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center leading-none ring-2 ring-sidebar">
+                          {count > 99 ? "99+" : count}
+                        </span>
+                      )}
+                    </span>
                     <span className="flex-1">{n.title}</span>
+                    {count > 0 && (
+                      <span className="ms-auto h-5 min-w-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
