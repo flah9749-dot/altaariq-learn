@@ -51,8 +51,8 @@ export const globalSearch = createServerFn({ method: "POST" })
         .limit(6),
       supabaseAdmin
         .from("reward_catalog")
-        .select("id, name, description")
-        .or(`name.ilike.${like},description.ilike.${like}`)
+        .select("id, title, description")
+        .or(`title.ilike.${like},description.ilike.${like}`)
         .limit(6),
       supabaseAdmin
         .from("files")
