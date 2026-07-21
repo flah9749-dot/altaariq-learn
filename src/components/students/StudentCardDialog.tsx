@@ -91,9 +91,9 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     if (!normalized) { toast.error("لا يوجد رقم واتساب صالح لولي الأمر"); return; }
     const pw = await ensurePassword();
     if (!pw) return;
-    const finalMsg = messageLines.replace(/• كلمة المرور:.*/g, `• كلمة المرور: ${pw}`);
+    const finalMsg = await buildMessage(pw);
     const url = `https://wa.me/${normalized}?text=${encodeURIComponent(finalMsg)}`;
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   async function copyCreds() {
