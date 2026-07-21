@@ -63,6 +63,23 @@ function StudentDetailPage() {
     },
   });
 
+  const resetPw = useMutation({
+    mutationFn: async () => {
+      const pw = generateStudentPassword();
+      await resetFn({ data: { id, password: pw } });
+      return pw;
+    },
+    onSuccess: (pw) => { setCreds({ code: student?.code ?? "", password: pw }); toast.success("تم توليد كلمة مرور جديدة"); },
+    onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
+  });
+
+  async function copyCreds() {
+    if (!creds && !student) return;
+    const text = `الكود: ${student?.code}\n${creds?.password ? `كلمة المرور: ${creds.password}` : ""}`.trim();
+    await navigator.clipboard.writeText(text);
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  }
+
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-64" /></div>;
   if (!student) {
     return (
