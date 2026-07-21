@@ -35,6 +35,7 @@ import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCompetitionsRouteImport } from './routes/admin.competitions'
 import { Route as AdminClassesRouteImport } from './routes/admin.classes'
+import { Route as AdminAssistantRouteImport } from './routes/admin.assistant'
 import { Route as AdminArchiveRouteImport } from './routes/admin.archive'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
@@ -179,6 +180,11 @@ const AdminClassesRoute = AdminClassesRouteImport.update({
   path: '/classes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAssistantRoute = AdminAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminArchiveRoute = AdminArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
+  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
+  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/ai': typeof AdminAiRoute
   '/admin/archive': typeof AdminArchiveRoute
+  '/admin/assistant': typeof AdminAssistantRoute
   '/admin/classes': typeof AdminClassesRoute
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/ai'
     | '/admin/archive'
+    | '/admin/assistant'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/ai'
     | '/admin/archive'
+    | '/admin/assistant'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/ai'
     | '/admin/archive'
+    | '/admin/assistant'
     | '/admin/classes'
     | '/admin/competitions'
     | '/admin/dashboard'
@@ -685,6 +697,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminClassesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/assistant': {
+      id: '/admin/assistant'
+      path: '/assistant'
+      fullPath: '/admin/assistant'
+      preLoaderRoute: typeof AdminAssistantRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/archive': {
       id: '/admin/archive'
       path: '/archive'
@@ -835,6 +854,7 @@ interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
   AdminAiRoute: typeof AdminAiRoute
   AdminArchiveRoute: typeof AdminArchiveRoute
+  AdminAssistantRoute: typeof AdminAssistantRoute
   AdminClassesRoute: typeof AdminClassesRoute
   AdminCompetitionsRoute: typeof AdminCompetitionsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
@@ -855,6 +875,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
   AdminAiRoute: AdminAiRoute,
   AdminArchiveRoute: AdminArchiveRoute,
+  AdminAssistantRoute: AdminAssistantRoute,
   AdminClassesRoute: AdminClassesRoute,
   AdminCompetitionsRoute: AdminCompetitionsRoute,
   AdminDashboardRoute: AdminDashboardRoute,

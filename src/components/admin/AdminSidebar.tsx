@@ -16,6 +16,7 @@ const items = [
   { title: "الفصول", url: "/admin/classes", icon: GraduationCap },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot },
+  { title: "المساعد الذكي", url: "/admin/assistant", icon: Bot },
   { title: "الرسائل", url: "/admin/messages", icon: MessageSquare },
   { title: "الجوائز والنقاط", url: "/admin/rewards", icon: Award },
   { title: "المسابقات", url: "/admin/competitions", icon: Medal },
