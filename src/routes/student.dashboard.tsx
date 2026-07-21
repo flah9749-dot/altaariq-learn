@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
+import { AvatarUploader } from "@/components/common/AvatarUploader";
 
 export const Route = createFileRoute("/student/dashboard")({
   head: () => ({ meta: [{ title: "الرئيسية — لوحة الطالب" }] }),
