@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StudentIdCard } from "./StudentIdCard";
 import type { StudentRow } from "@/lib/students-utils";
 import { generateStudentPassword } from "@/lib/students-utils";
-import { resetStudentPassword } from "@/lib/students.functions";
+import { resetStudentPassword, getStudentPassword } from "@/lib/students.functions";
 import { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
 import { buildWaMessage } from "@/lib/whatsapp-templates";
@@ -26,7 +26,10 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const [localCreds, setLocalCreds] = useState<{ code: string; password: string } | null>(null);
   const [resetting, setResetting] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const getPwFn = useServerFn(getStudentPassword);
   const defaultCountryCode = useDefaultCountryCode();
+  const [loadingPw, setLoadingPw] = useState(false);
+
 
   if (!student) return null;
 
@@ -59,13 +62,28 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     }
   }
 
-  // Auto-generate password on open so it's always visible on the card.
+  // Fetch existing plaintext password on open (only regenerates if none stored).
   useEffect(() => {
-    if (open && student && !credentials && !localCreds && !resetting) {
-      void ensurePassword();
-    }
+    if (!open || !student || credentials || localCreds) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingPw(true);
+      try {
+        const res = await getPwFn({ data: { id: student.id } });
+        if (cancelled) return;
+        if (res?.password) {
+          setLocalCreds({ code: res.code ?? student.code, password: res.password });
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoadingPw(false);
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, student?.id]);
+
 
 
   async function download() {
