@@ -39,13 +39,17 @@ export const sendMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const senderIsAdmin = await isAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Enforce: student can only message an admin, admin can only message a student
     if (senderIsAdmin) {
-      const { data: stu } = await supabase.from("students").select("id").eq("user_id", data.recipient_id).maybeSingle();
+      const { data: stu } = await supabaseAdmin.from("students").select("id").eq("user_id", data.recipient_id).maybeSingle();
       if (!stu) throw new Error("لا يمكن الإرسال إلا لطالب مسجّل");
     } else {
-      if (!(await isAdmin(supabase, data.recipient_id))) throw new Error("الطلاب يمكنهم فقط مراسلة المدرس");
+      // Use service role to reliably verify the recipient is an admin (bypasses RLS/RPC issues).
+      const { data: adminRow } = await supabaseAdmin.from("admins").select("id").eq("user_id", data.recipient_id).maybeSingle();
+      const { data: adminRole } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", data.recipient_id).eq("role", "admin").maybeSingle();
+      if (!adminRow && !adminRole) throw new Error("الطلاب يمكنهم فقط مراسلة المدرس");
     }
 
     if (!data.body.trim() && !data.attachment_url) throw new Error("رسالة فارغة");
