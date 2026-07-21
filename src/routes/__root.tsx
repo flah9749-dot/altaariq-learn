@@ -37,17 +37,41 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => { reportLovableError(error, { boundary: "tanstack_root_error_component" }); }, [error]);
+  const hardReset = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+      }
+    } catch { /* ignore */ }
+    window.location.replace("/?sw=off");
+  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4" dir="rtl">
-      <div className="max-w-md text-center">
+      <div className="w-full max-w-md text-center">
         <h1 className="text-xl font-semibold text-foreground">حدث خطأ غير متوقع</h1>
-        <p className="mt-2 text-sm text-muted-foreground">حاول تحديث الصفحة أو العودة للرئيسية.</p>
+        <p className="mt-2 text-sm text-muted-foreground">حاول تحديث الصفحة أو مسح الكاش ثم إعادة الفتح.</p>
+        {error?.message && (
+          <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-start text-[11px] leading-relaxed text-muted-foreground" dir="ltr">
+            {error.message}
+          </pre>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => { router.invalidate(); reset(); }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             إعادة المحاولة
+          </button>
+          <button
+            onClick={hardReset}
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            مسح الكاش وإعادة الفتح
           </button>
           <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
             الرئيسية
@@ -57,6 +81,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
+
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
