@@ -10,16 +10,18 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { InstallAppButton } from "@/components/common/InstallAppButton";
 import { useAuth } from "@/lib/auth-context";
+import { useStudentUnreadBadges, type StudentBadges } from "@/hooks/useUnreadBadges";
 
-const nav = [
-  { title: "الرئيسية", url: "/student/dashboard", icon: Home },
-  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles },
-  { title: "الامتحانات", url: "/student/exams", icon: FileText },
-  { title: "الملفات", url: "/student/files", icon: FolderOpen },
-  { title: "الرسائل", url: "/student/messages", icon: MessageSquare },
-  { title: "الجوائز", url: "/student/rewards", icon: Award },
-  { title: "نقاطي", url: "/student/points", icon: Star },
-  { title: "الإنجازات", url: "/student/achievements", icon: Trophy },
+type NavKey = keyof StudentBadges | null;
+const nav: Array<{ title: string; url: string; icon: any; badge: NavKey }> = [
+  { title: "الرئيسية", url: "/student/dashboard", icon: Home, badge: null },
+  { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles, badge: null },
+  { title: "الامتحانات", url: "/student/exams", icon: FileText, badge: "exams" },
+  { title: "الملفات", url: "/student/files", icon: FolderOpen, badge: null },
+  { title: "الرسائل", url: "/student/messages", icon: MessageSquare, badge: "messages" },
+  { title: "الجوائز", url: "/student/rewards", icon: Award, badge: "rewards" },
+  { title: "نقاطي", url: "/student/points", icon: Star, badge: null },
+  { title: "الإنجازات", url: "/student/achievements", icon: Trophy, badge: "achievements" },
 ];
 
 export function StudentHeader() {
