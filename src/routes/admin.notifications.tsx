@@ -44,19 +44,28 @@ function AdminNotificationsPage() {
 function QuickNotification() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [target, setTarget] = useState<"all"|"class"|"group">("all");
   const [classId, setClassId] = useState<string|undefined>();
   const [groupId, setGroupId] = useState<string|undefined>();
   const fn = useServerFn(broadcastNotification);
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () =>
     (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
-  const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () =>
-    (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
+  const { data: groups } = useQuery({ queryKey: ["groups", "all"], queryFn: async () =>
+    (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [] });
+
+  const filteredGroups = useMemo(
+    () => (groups ?? []).filter((g: any) => !classId || g.class_id === classId),
+    [groups, classId],
+  );
+
+  const target: "all"|"class"|"group" = groupId ? "group" : classId ? "class" : "all";
+  const targetLabel = target === "all" ? "جميع الطلاب"
+    : target === "group" ? `مجموعة: ${(groups ?? []).find((g:any)=>g.id===groupId)?.name ?? ""}`
+    : `صف: ${(classes ?? []).find((c:any)=>c.id===classId)?.name ?? ""}`;
 
   const send = useMutation({
     mutationFn: async () => fn({ data: { title, body, target, class_id: classId ?? null, group_id: groupId ?? null, student_ids: [], type: "admin" } }),
-    onSuccess: (r: any) => { toast.success(`تم إرسال الإشعار إلى ${r.count} طالب`); setTitle(""); setBody(""); },
+    onSuccess: (r: any) => { toast.success(`تم إرسال الإشعار إلى ${r.count} طالب`); setTitle(""); setBody(""); setClassId(undefined); setGroupId(undefined); },
     onError: (e: any) => toast.error(e?.message ?? "فشل الإرسال"),
   });
 
@@ -67,33 +76,28 @@ function QuickNotification() {
         <div><Label>العنوان</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان الإشعار"/></div>
         <div><Label>الرسالة</Label><Textarea rows={4} value={body} onChange={(e) => setBody(e.target.value)} /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>الفئة</Label>
-            <Select value={target} onValueChange={(v: any) => setTarget(v)}>
+          <div>
+            <Label>الصف الدراسي</Label>
+            <Select value={classId ?? "__all__"} onValueChange={(v) => { const nv = v === "__all__" ? undefined : v; setClassId(nv); setGroupId(undefined); }}>
               <SelectTrigger><SelectValue/></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">الجميع</SelectItem>
-                <SelectItem value="class">فصل</SelectItem>
-                <SelectItem value="group">مجموعة</SelectItem>
+                <SelectItem value="__all__">كل الصفوف</SelectItem>
+                {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          {target === "class" && (
-            <div><Label>الفصل</Label>
-              <Select value={classId} onValueChange={setClassId}>
-                <SelectTrigger><SelectValue placeholder="اختر"/></SelectTrigger>
-                <SelectContent>{(classes??[]).map((c:any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
-          {target === "group" && (
-            <div><Label>المجموعة</Label>
-              <Select value={groupId} onValueChange={setGroupId}>
-                <SelectTrigger><SelectValue placeholder="اختر"/></SelectTrigger>
-                <SelectContent>{(groups??[]).map((g:any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label>المجموعة {classId ? "(من الصف المختار)" : "(اختياري)"}</Label>
+            <Select value={groupId ?? "__all__"} onValueChange={(v) => setGroupId(v === "__all__" ? undefined : v)} disabled={filteredGroups.length === 0}>
+              <SelectTrigger><SelectValue placeholder={filteredGroups.length === 0 ? "لا توجد مجموعات" : "كل المجموعات"}/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">كل المجموعات</SelectItem>
+                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">سيتم الإرسال إلى: <span className="font-semibold text-foreground">{targetLabel}</span></p>
         <Button onClick={() => send.mutate()} disabled={!title.trim() || !body.trim() || send.isPending}>
           {send.isPending ? <Loader2 className="h-4 w-4 animate-spin ml-1"/> : <Send className="h-4 w-4 ml-1"/>}
           إرسال الإشعار
@@ -105,9 +109,28 @@ function QuickNotification() {
 
 function AnnouncementsManager() {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ id: undefined as string|undefined, title: "", body: "", priority: "normal" as "low"|"normal"|"high", ends_at: "" });
+  const [form, setForm] = useState({
+    id: undefined as string|undefined,
+    title: "", body: "",
+    priority: "normal" as "low"|"normal"|"high",
+    ends_at: "",
+    class_id: undefined as string|undefined,
+    group_id: undefined as string|undefined,
+  });
   const upFn = useServerFn(upsertAnnouncement);
   const delFn = useServerFn(deleteAnnouncement);
+
+  const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () =>
+    (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
+  const { data: groups } = useQuery({ queryKey: ["groups", "all"], queryFn: async () =>
+    (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [] });
+
+  const filteredGroups = useMemo(
+    () => (groups ?? []).filter((g: any) => !form.class_id || g.class_id === form.class_id),
+    [groups, form.class_id],
+  );
+
+  const resetForm = () => setForm({ id: undefined, title: "", body: "", priority: "normal", ends_at: "", class_id: undefined, group_id: undefined });
 
   const { data: list, isLoading } = useQuery({
     queryKey: ["announcements"],
@@ -117,10 +140,14 @@ function AnnouncementsManager() {
   const save = useMutation({
     mutationFn: async () => upFn({ data: {
       id: form.id, title: form.title, body: form.body, priority: form.priority,
-      ends_at: form.ends_at || null, target_all: true, target_class_ids: [], target_group_ids: [], target_student_ids: [],
+      ends_at: form.ends_at || null,
+      target_all: !form.class_id && !form.group_id,
+      target_class_ids: form.class_id && !form.group_id ? [form.class_id] : [],
+      target_group_ids: form.group_id ? [form.group_id] : [],
+      target_student_ids: [],
       starts_at: new Date().toISOString(), published: true,
     } }),
-    onSuccess: () => { toast.success("تم الحفظ"); setForm({ id: undefined, title: "", body: "", priority: "normal", ends_at: "" }); qc.invalidateQueries({ queryKey: ["announcements"] }); },
+    onSuccess: () => { toast.success("تم الحفظ"); resetForm(); qc.invalidateQueries({ queryKey: ["announcements"] }); },
     onError: (e: any) => toast.error(e?.message ?? "فشل"),
   });
 
@@ -128,6 +155,12 @@ function AnnouncementsManager() {
     mutationFn: async (id: string) => delFn({ data: { id } }),
     onSuccess: () => { toast.success("تم الحذف"); qc.invalidateQueries({ queryKey: ["announcements"] }); },
   });
+
+  const targetLabel = form.group_id
+    ? `مجموعة: ${(groups ?? []).find((g:any)=>g.id===form.group_id)?.name ?? ""}`
+    : form.class_id
+    ? `صف: ${(classes ?? []).find((c:any)=>c.id===form.class_id)?.name ?? ""}`
+    : "جميع الطلاب";
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -149,11 +182,34 @@ function AnnouncementsManager() {
             </div>
             <div><Label>تاريخ الانتهاء</Label><Input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({...form, ends_at: e.target.value})}/></div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>الصف الدراسي</Label>
+              <Select value={form.class_id ?? "__all__"} onValueChange={(v) => setForm({ ...form, class_id: v === "__all__" ? undefined : v, group_id: undefined })}>
+                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">كل الصفوف</SelectItem>
+                  {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>المجموعة {form.class_id ? "(من الصف)" : "(اختياري)"}</Label>
+              <Select value={form.group_id ?? "__all__"} onValueChange={(v) => setForm({ ...form, group_id: v === "__all__" ? undefined : v })} disabled={filteredGroups.length === 0}>
+                <SelectTrigger><SelectValue placeholder={filteredGroups.length === 0 ? "لا توجد مجموعات" : "كل المجموعات"}/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">كل المجموعات</SelectItem>
+                  {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">الفئة المستهدفة: <span className="font-semibold text-foreground">{targetLabel}</span></p>
           <div className="flex gap-2">
             <Button onClick={() => save.mutate()} disabled={!form.title.trim() || !form.body.trim() || save.isPending}>
               {save.isPending ? <Loader2 className="h-4 w-4 animate-spin ml-1"/> : null}حفظ
             </Button>
-            {form.id && <Button variant="ghost" onClick={() => setForm({ id: undefined, title: "", body: "", priority: "normal", ends_at: "" })}>إلغاء</Button>}
+            {form.id && <Button variant="ghost" onClick={resetForm}>إلغاء</Button>}
           </div>
         </CardContent>
       </Card>
@@ -174,7 +230,7 @@ function AnnouncementsManager() {
                     <p className="text-[10px] text-muted-foreground mt-1">{relativeTime(a.created_at)}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => setForm({ id: a.id, title: a.title, body: a.body, priority: a.priority, ends_at: a.ends_at?.slice(0,16) ?? "" })}>تعديل</Button>
+                    <Button size="sm" variant="outline" onClick={() => setForm({ id: a.id, title: a.title, body: a.body, priority: a.priority, ends_at: a.ends_at?.slice(0,16) ?? "", class_id: a.target_class_ids?.[0], group_id: a.target_group_ids?.[0] })}>تعديل</Button>
                     <Button size="icon" variant="ghost" className="text-destructive" onClick={() => del.mutate(a.id)}><Trash2 className="h-4 w-4"/></Button>
                   </div>
                 </div>
