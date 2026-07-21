@@ -265,6 +265,8 @@ export const WA_TEMPLATE_PLACEHOLDERS: Record<WaTemplateKey, string[]> = {
   "wa.tpl.student_credentials": ["name", "code", "password", "platform_url", "platform", "teacher"],
   "wa.tpl.student_code": ["name", "code", "platform_url", "platform", "teacher"],
   "wa.tpl.exam_result": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
+  "wa.tpl.exam_result_praise": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
+  "wa.tpl.exam_result_encourage": ["name", "exam", "score", "total", "percentage", "grade_text", "platform_url", "teacher", "platform"],
   "wa.tpl.exam_reminder": ["name", "exam", "date", "platform_url", "teacher"],
   "wa.tpl.exam_link": ["exam", "subject", "duration", "start_time", "end_time", "exam_link", "teacher"],
   "wa.tpl.absence": ["parent_name", "name", "date", "teacher", "platform"],
