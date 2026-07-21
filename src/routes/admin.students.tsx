@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import {
   Users, Plus, Search, Download, Upload, Trash2, Ban, CheckCircle2,
-  MoreHorizontal, Edit, Eye, Printer,
+  MoreHorizontal, Edit, Eye, Printer, Archive,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +33,11 @@ import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
+import { archiveStudents } from "@/lib/archive.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
 import { useDebounce } from "@/hooks/use-debounce";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/admin/students")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
