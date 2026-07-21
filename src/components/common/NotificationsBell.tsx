@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { markNotificationRead } from "@/lib/announcements.functions";
 import { relativeTime } from "@/lib/message-utils";
+import { EnablePushButton } from "@/components/common/EnablePushButton";
 
 export function NotificationsBell() {
   const { user } = useAuth();
@@ -54,6 +55,9 @@ export function NotificationsBell() {
               <Check className="h-3 w-3 ml-1" />تعليم الكل كمقروء
             </Button>
           )}
+        </div>
+        <div className="px-3 py-2 border-b">
+          <EnablePushButton className="w-full justify-center" />
         </div>
         <ScrollArea className="max-h-96">
           {(data ?? []).length === 0 ? (
