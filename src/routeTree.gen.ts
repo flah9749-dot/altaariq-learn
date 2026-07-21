@@ -21,6 +21,7 @@ import { Route as StudentPointsRouteImport } from './routes/student.points'
 import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
+import { Route as StudentAssistantRouteImport } from './routes/student.assistant'
 import { Route as StudentAchievementsRouteImport } from './routes/student.achievements'
 import { Route as AdminSystemRouteImport } from './routes/admin.system'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -116,6 +117,11 @@ const StudentExamsRoute = StudentExamsRouteImport.update({
 const StudentDashboardRoute = StudentDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentAssistantRoute = StudentAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentAchievementsRoute = StudentAchievementsRouteImport.update({
@@ -326,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
+  '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
@@ -374,6 +381,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
+  '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
@@ -425,6 +433,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
+  '/student/assistant': typeof StudentAssistantRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/messages': typeof StudentMessagesRoute
@@ -477,6 +486,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/system'
     | '/student/achievements'
+    | '/student/assistant'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/system'
     | '/student/achievements'
+    | '/student/assistant'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/system'
     | '/student/achievements'
+    | '/student/assistant'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/messages'
@@ -696,6 +708,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/student/dashboard'
       preLoaderRoute: typeof StudentDashboardRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/assistant': {
+      id: '/student/assistant'
+      path: '/assistant'
+      fullPath: '/student/assistant'
+      preLoaderRoute: typeof StudentAssistantRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/achievements': {
@@ -1076,6 +1095,7 @@ const StudentExamsRouteWithChildren = StudentExamsRoute._addFileChildren(
 
 interface StudentRouteChildren {
   StudentAchievementsRoute: typeof StudentAchievementsRoute
+  StudentAssistantRoute: typeof StudentAssistantRoute
   StudentDashboardRoute: typeof StudentDashboardRoute
   StudentExamsRoute: typeof StudentExamsRouteWithChildren
   StudentMessagesRoute: typeof StudentMessagesRoute
@@ -1086,6 +1106,7 @@ interface StudentRouteChildren {
 
 const StudentRouteChildren: StudentRouteChildren = {
   StudentAchievementsRoute: StudentAchievementsRoute,
+  StudentAssistantRoute: StudentAssistantRoute,
   StudentDashboardRoute: StudentDashboardRoute,
   StudentExamsRoute: StudentExamsRouteWithChildren,
   StudentMessagesRoute: StudentMessagesRoute,
