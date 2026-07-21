@@ -13,7 +13,7 @@ type BIPEvent = Event & {
  * Shows iOS instructions on Safari/iOS where the API doesn't exist.
  */
 export function InstallAppButton({
-  variant = "outline",
+  variant = "default",
   size = "sm" as const,
   className = "",
 }: {
