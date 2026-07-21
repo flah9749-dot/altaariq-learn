@@ -104,7 +104,7 @@ function LoginPage() {
 
             <Card className="shadow-lg border-border/60">
               <CardContent className="p-6">
-                <Tabs defaultValue="admin" className="w-full">
+                <Tabs defaultValue="student" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="admin" className="gap-2"><ShieldCheck className="h-4 w-4"/>المدرس</TabsTrigger>
                     <TabsTrigger value="student" className="gap-2"><GraduationCap className="h-4 w-4"/>الطالب</TabsTrigger>
