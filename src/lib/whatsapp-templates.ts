@@ -244,6 +244,8 @@ export const WA_TEMPLATE_LABELS: Record<WaTemplateKey, string> = {
   "wa.tpl.student_credentials": "بيانات دخول الطالب",
   "wa.tpl.student_code": "إرسال كود الطالب فقط",
   "wa.tpl.exam_result": "نتيجة امتحان",
+  "wa.tpl.exam_result_praise": "نتيجة امتحان — تهنئة بالتفوق",
+  "wa.tpl.exam_result_encourage": "نتيجة امتحان — تحفيز وتشجيع",
   "wa.tpl.exam_reminder": "تذكير بامتحان",
   "wa.tpl.exam_link": "إرسال رابط امتحان",
   "wa.tpl.absence": "إشعار غياب",
