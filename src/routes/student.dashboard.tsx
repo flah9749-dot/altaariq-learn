@@ -124,9 +124,10 @@ function StudentDashboard() {
             <CardDescription>يمكن لولي الأمر التواصل مع المدرس مباشرة عبر واتساب</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
-            <WhatsAppButton phone={parentPhone} message={`السلام عليكم، متابعة الطالب ${profile?.full_name ?? ""}`} label="فتح واتساب" />
-            {!parentPhone && <p className="text-xs text-muted-foreground">لم يتم إضافة رقم ولي الأمر بعد.</p>}
+            <WhatsAppButton phone={teacherPhone} message={`السلام عليكم أستاذ، بخصوص الطالب/ة ${profile?.full_name ?? ""} (${profile?.identifier ?? ""})`} label="فتح واتساب المدرس" />
+            {!teacherPhone && <p className="text-xs text-muted-foreground">لم يقم المدرس بإضافة رقم واتساب بعد.</p>}
           </CardContent>
+
         </Card>
       </div>
 
