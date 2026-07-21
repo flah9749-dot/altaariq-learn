@@ -151,32 +151,86 @@ export type Database = {
           },
         ]
       }
-      ai_providers: {
+      ai_function_mapping: {
         Row: {
-          created_at: string
-          enabled: boolean
+          category: string
+          function_key: string
+          function_name: string
           id: string
-          name: string
-          priority: number
-          slug: string
+          provider_slug: string
           updated_at: string
         }
         Insert: {
-          created_at?: string
-          enabled?: boolean
+          category: string
+          function_key: string
+          function_name: string
           id?: string
-          name: string
-          priority?: number
-          slug: string
+          provider_slug: string
           updated_at?: string
         }
         Update: {
-          created_at?: string
-          enabled?: boolean
+          category?: string
+          function_key?: string
+          function_name?: string
           id?: string
+          provider_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_providers: {
+        Row: {
+          avg_latency_ms: number
+          created_at: string
+          default_model: string | null
+          enabled: boolean
+          errors_count: number
+          id: string
+          last_tested_at: string | null
+          last_used_at: string | null
+          name: string
+          priority: number
+          requests_count: number
+          secret_name: string | null
+          slug: string
+          test_error: string | null
+          test_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          avg_latency_ms?: number
+          created_at?: string
+          default_model?: string | null
+          enabled?: boolean
+          errors_count?: number
+          id?: string
+          last_tested_at?: string | null
+          last_used_at?: string | null
+          name: string
+          priority?: number
+          requests_count?: number
+          secret_name?: string | null
+          slug: string
+          test_error?: string | null
+          test_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avg_latency_ms?: number
+          created_at?: string
+          default_model?: string | null
+          enabled?: boolean
+          errors_count?: number
+          id?: string
+          last_tested_at?: string | null
+          last_used_at?: string | null
           name?: string
           priority?: number
+          requests_count?: number
+          secret_name?: string | null
           slug?: string
+          test_error?: string | null
+          test_status?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -185,8 +239,10 @@ export type Database = {
         Row: {
           created_at: string
           error: string | null
+          function_key: string | null
           function_name: string | null
           id: string
+          latency_ms: number | null
           provider_id: string | null
           success: boolean | null
           tokens_used: number | null
@@ -194,8 +250,10 @@ export type Database = {
         Insert: {
           created_at?: string
           error?: string | null
+          function_key?: string | null
           function_name?: string | null
           id?: string
+          latency_ms?: number | null
           provider_id?: string | null
           success?: boolean | null
           tokens_used?: number | null
@@ -203,8 +261,10 @@ export type Database = {
         Update: {
           created_at?: string
           error?: string | null
+          function_key?: string | null
           function_name?: string | null
           id?: string
+          latency_ms?: number | null
           provider_id?: string | null
           success?: boolean | null
           tokens_used?: number | null
