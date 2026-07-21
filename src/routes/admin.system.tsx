@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { systemHealthCheck } from "@/lib/system-status.functions";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/system")({ component: SystemPage });
 
@@ -38,6 +39,7 @@ function SystemPage() {
 
   return (
     <div className="space-y-4">
+      <SectionTabs items={[{ to: "/admin/system", label: "حالة النظام" }, { to: "/admin/backups", label: "النسخ الاحتياطي" }]} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Activity className="h-6 w-6"/> حالة النظام</h1>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/live")({ ssr: false, component: LivePage });
 
@@ -77,6 +78,7 @@ function LivePage() {
 
   return (
     <div className="space-y-4">
+      <SectionTabs items={[{ to: "/admin/assistant", label: "المساعد الذكي" }, { to: "/admin/live", label: "اللوحة الحية" }]} />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Radio className="h-6 w-6 text-destructive animate-pulse"/> اللوحة الحية

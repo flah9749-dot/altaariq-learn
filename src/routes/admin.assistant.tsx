@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { askAssistant } from "@/lib/ai-assistant.functions";
 import { toast } from "sonner";
+import { SectionTabs } from "@/components/admin/SectionTabs";
 
 export const Route = createFileRoute("/admin/assistant")({
   component: AssistantPage,
@@ -53,6 +54,7 @@ function AssistantPage() {
 
   return (
     <div className="space-y-4" dir="rtl">
+      <SectionTabs items={[{ to: "/admin/assistant", label: "المساعد الذكي" }, { to: "/admin/live", label: "اللوحة الحية" }]} />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 grid place-items-center text-primary-foreground shadow-lg">
