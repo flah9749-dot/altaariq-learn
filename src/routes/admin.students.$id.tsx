@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
+  KeyRound, Copy, Check, RefreshCw, Eye, IdCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +18,9 @@ import { Progress } from "@/components/ui/progress";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
-import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
+import { StudentCardDialog } from "@/components/students/StudentCardDialog";
+import { resetStudentPassword } from "@/lib/students.functions";
+import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/students/$id")({
   head: () => ({ meta: [{ title: "كارت الطالب — لوحة المدرس" }] }),
@@ -26,6 +31,10 @@ function StudentDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const resetFn = useServerFn(resetStudentPassword);
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["student", id],
@@ -54,6 +63,23 @@ function StudentDetailPage() {
     },
   });
 
+  const resetPw = useMutation({
+    mutationFn: async () => {
+      const pw = generateStudentPassword();
+      await resetFn({ data: { id, password: pw } });
+      return pw;
+    },
+    onSuccess: (pw) => { setCreds({ code: student?.code ?? "", password: pw }); toast.success("تم توليد كلمة مرور جديدة"); },
+    onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
+  });
+
+  async function copyCreds() {
+    if (!creds && !student) return;
+    const text = `الكود: ${student?.code}\n${creds?.password ? `كلمة المرور: ${creds.password}` : ""}`.trim();
+    await navigator.clipboard.writeText(text);
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  }
+
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-32" /><Skeleton className="h-64" /></div>;
   if (!student) {
     return (
@@ -74,10 +100,46 @@ function StudentDetailPage() {
           <ArrowRight className="h-4 w-4 ml-1" />القائمة
         </Button>
         <div className="mr-auto flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}><IdCard className="h-4 w-4 ml-1" />عرض الكارت</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
           <Button size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 ml-1" />تعديل</Button>
         </div>
       </div>
+
+      {/* بيانات الدخول */}
+      <Card className="print:hidden border-primary/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary"/>بيانات الدخول</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-3 items-end">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">كود الطالب</p>
+            <p dir="ltr" className="font-mono font-bold text-lg tracking-wider">{student.code}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">كلمة المرور</p>
+            {creds?.password ? (
+              <p dir="ltr" className="font-mono font-bold text-lg tracking-wider text-primary">{creds.password}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">مخفية — اضغط "إعادة تعيين" لتوليد كلمة جديدة</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button size="sm" variant="outline" onClick={copyCreds} disabled={!creds}>
+              {copied ? <Check className="h-4 w-4 ml-1"/> : <Copy className="h-4 w-4 ml-1"/>}نسخ
+            </Button>
+            <Button size="sm" onClick={() => resetPw.mutate()} disabled={resetPw.isPending}>
+              <RefreshCw className={`h-4 w-4 ml-1 ${resetPw.isPending ? "animate-spin" : ""}`}/>إعادة تعيين كلمة المرور
+            </Button>
+            {creds && (
+              <Button size="sm" variant="secondary" onClick={() => setCardOpen(true)}><Eye className="h-4 w-4 ml-1"/>عرض الكارت مع البيانات</Button>
+            )}
+          </div>
+          {creds && (
+            <p className="sm:col-span-3 text-xs text-warning">⚠️ كلمة المرور تظهر مرة واحدة فقط — انسخها أو أرسلها لولي الأمر الآن.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -165,6 +227,7 @@ function StudentDetailPage() {
       </div>
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
+      <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
     </div>
   );
 }

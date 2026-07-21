@@ -15,6 +15,7 @@ const GenInput = z.object({
   difficulty: z.enum(["easy", "medium", "hard", "mixed"]).default("mixed"),
   language: z.enum(["ar", "en"]).default("ar"),
   points_per_question: z.number().min(0.5).max(20).default(1),
+  total_score: z.number().min(1).max(1000).nullable().optional(),
   model: z.string().optional(),
 });
 
@@ -44,12 +45,16 @@ export const generateExamWithAI = createServerFn({ method: "POST" })
 
     const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN } = await import("./ai-gateway.server");
 
+    const pointsInstruction = data.total_score && data.total_score > 0
+      ? `الدرجة الكلية للامتحان: ${data.total_score}. وزّع الدرجات على الأسئلة بحيث يكون مجموعها = ${data.total_score} بالضبط، مع مراعاة صعوبة كل سؤال (السهل درجة أقل، الصعب درجة أعلى). استخدم أرقامًا بنصف درجة عند الحاجة.`
+      : `درجة كل سؤال: ${data.points_per_question}.`;
+
     const systemPrompt = `أنت مساعد ذكاء اصطناعي تعليمي متخصص في إعداد امتحانات لمادة الدراسات الاجتماعية (تاريخ، جغرافيا، مواطنة) لمنصة "الطارق التعليمية".
 لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
 عدد الأسئلة المطلوب: ${data.num_questions}.
 الأنواع المسموح بها: ${data.question_types.join(", ")}.
 مستوى الصعوبة: ${data.difficulty}.
-درجة كل سؤال: ${data.points_per_question}.
+${pointsInstruction}
 تأكد من دقة الإجابات الصحيحة وتنوع الأسئلة.
 ${SCHEMA_HINT}`;
 
@@ -109,6 +114,22 @@ ${SCHEMA_HINT}`;
         order_index: oi,
       })) : [],
     }));
+
+    // Enforce total_score exactly if provided (scale then round to 0.5, fix drift on last question)
+    if (data.total_score && data.total_score > 0 && normalized.length > 0) {
+      const currentSum = normalized.reduce((a: number, q: any) => a + (Number(q.points) || 0), 0) || normalized.length;
+      const factor = data.total_score / currentSum;
+      let running = 0;
+      normalized.forEach((q: any, idx: number) => {
+        if (idx === normalized.length - 1) {
+          q.points = Math.max(0.5, Math.round((data.total_score! - running) * 2) / 2);
+        } else {
+          const p = Math.max(0.5, Math.round(q.points * factor * 2) / 2);
+          q.points = p;
+          running += p;
+        }
+      });
+    }
 
     return {
       title: parsed.title ?? data.topic ?? "امتحان جديد",

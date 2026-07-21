@@ -39,6 +39,17 @@ type Q = {
   options: Array<{ text: string; is_correct: boolean; order_index: number; match_key?: string | null }>;
 };
 
+function isoToLocalInput(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+function localInputToIso(v: string): string | null {
+  return v ? new Date(v).toISOString() : null;
+}
+
 function makeBlank(type: QuestionType = "mcq"): Q {
   const base: Q = { type, text: "", points: 1, options: [] };
   if (type === "mcq") base.options = [
@@ -325,8 +336,8 @@ function ExamEditor() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="بداية الامتحان"><Input type="datetime-local" value={meta.starts_at ? meta.starts_at.slice(0, 16) : ""} onChange={(e) => setM("starts_at", e.target.value ? new Date(e.target.value).toISOString() : null)} /></Field>
-              <Field label="نهاية الامتحان"><Input type="datetime-local" value={meta.ends_at ? meta.ends_at.slice(0, 16) : ""} onChange={(e) => setM("ends_at", e.target.value ? new Date(e.target.value).toISOString() : null)} /></Field>
+              <Field label="بداية الامتحان"><Input type="datetime-local" value={isoToLocalInput(meta.starts_at)} onChange={(e) => setM("starts_at", localInputToIso(e.target.value))} /></Field>
+              <Field label="نهاية الامتحان"><Input type="datetime-local" value={isoToLocalInput(meta.ends_at)} onChange={(e) => setM("ends_at", localInputToIso(e.target.value))} /></Field>
               <Field label="عدد النماذج"><Input type="number" min={1} value={meta.num_variants ?? 1} onChange={(e) => setM("num_variants", Number(e.target.value))} /></Field>
               <div className="flex items-center justify-between md:col-span-2 border rounded-lg p-3">
                 <Label>خلط ترتيب الأسئلة</Label>
