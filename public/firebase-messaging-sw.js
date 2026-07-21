@@ -1,6 +1,12 @@
-/* Firebase Cloud Messaging Service Worker — background notifications only. */
+/* Firebase Cloud Messaging Service Worker — background notifications + installability shim. */
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+
+// Passive fetch listener — required by Chrome/Android to consider the app installable.
+// Does NOT cache; just passes every request through to the network.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", () => { /* pass-through, no offline cache */ });
 
 firebase.initializeApp({
   apiKey: "AIzaSyDdummy_replace_via_env_if_ever_rotated",
