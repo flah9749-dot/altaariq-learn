@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Clock, Award, Users, ArrowRight, Play, AlertCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,6 @@ export const Route = createFileRoute("/student/exams/$id/start")({
 function StartExamPage() {
   const { id } = Route.useParams();
   const { user } = useAuth();
-  const nav = useNavigate();
 
   const { data: exam, isLoading } = useQuery({
     queryKey: ["exam-start", id],
@@ -106,9 +105,10 @@ function StartExamPage() {
               );
             }
             return (
-              <Button className="w-full h-12 text-base" disabled={qCount === 0}
-                onClick={() => nav({ to: "/student/exams/$id", params: { id } })}>
-                <Play className="h-5 w-5 ml-2" />ابدأ الامتحان الآن
+              <Button asChild className="w-full h-12 text-base" disabled={qCount === 0}>
+                <Link to="/student/exams/$id/take" params={{ id }}>
+                  <Play className="h-5 w-5 ml-2" />ابدأ الامتحان الآن
+                </Link>
               </Button>
             );
           })()}
