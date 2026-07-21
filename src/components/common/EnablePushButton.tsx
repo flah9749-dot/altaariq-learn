@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { bootPushIfEnabled, enablePush, getPermission, isPushSupported } from "@/lib/push-notifications";
 
-/** Small button — enables Push on this device. Silently attaches listeners if already granted. */
+/** Small button — enables Push on this device. Dynamically imports Firebase
+ *  only when actually needed (huge win: ~1MB Firebase bundle stays out of the
+ *  initial payload on every page that renders the notifications bell). */
 export function EnablePushButton({ variant = "outline", size = "sm" as const, className = "" }: { variant?: "outline"|"ghost"|"default"|"secondary"; size?: "sm"|"default"|"icon"; className?: string }) {
   const { user } = useAuth();
   const [supported, setSupported] = useState(false);
@@ -12,14 +13,24 @@ export function EnablePushButton({ variant = "outline", size = "sm" as const, cl
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) {
+        if (!cancelled) setSupported(false);
+        return;
+      }
+      // Only pull Firebase bundle if the browser can support push AND either
+      // the user already granted permission (silent boot) or we need to check.
+      const { isPushSupported, getPermission, bootPushIfEnabled } = await import("@/lib/push-notifications");
       const s = await isPushSupported();
+      if (cancelled) return;
       setSupported(s);
       setPerm(getPermission());
       if (s && user && Notification.permission === "granted") {
         bootPushIfEnabled(user.id);
       }
     })();
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   if (!supported || !user) return null;
@@ -44,8 +55,11 @@ export function EnablePushButton({ variant = "outline", size = "sm" as const, cl
       disabled={loading}
       onClick={async () => {
         setLoading(true);
-        try { await enablePush(user.id); setPerm(getPermission()); }
-        finally { setLoading(false); }
+        try {
+          const { enablePush, getPermission } = await import("@/lib/push-notifications");
+          await enablePush(user.id);
+          setPerm(getPermission());
+        } finally { setLoading(false); }
       }}>
       {loading ? <Loader2 className="h-4 w-4 ml-1 animate-spin"/> : <Bell className="h-4 w-4 ml-1"/>}
       تفعيل إشعارات Push

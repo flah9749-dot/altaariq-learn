@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+// xlsx is dynamically imported inside exportExcel() to keep it out of the initial bundle
 import {
   Users, Plus, Search, Download, Upload, Trash2, Ban, CheckCircle2,
   MoreHorizontal, Edit, Eye, Printer, Archive,
@@ -147,7 +147,8 @@ function StudentsPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
   });
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
     const data = rows.map((r) => ({
       "الاسم": r.full_name, "الكود": r.code, "الصف": r.classes?.name ?? "",
       "المجموعة": r.groups?.name ?? "", "الهاتف": r.phone ?? "",
