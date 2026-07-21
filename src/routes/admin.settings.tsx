@@ -213,11 +213,11 @@ function SettingsPage() {
   );
 }
 
-function Field({ label, k, val, onChange }: { label: string; k: string; val: any; onChange: (k: string, v: any) => void }) {
+function Field({ label, k, val, onChange, placeholder, dir }: { label: string; k: string; val: any; onChange: (k: string, v: any) => void; placeholder?: string; dir?: string }) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <Input value={val ?? ""} onChange={(e) => onChange(k, e.target.value)} />
+      <Input value={val ?? ""} onChange={(e) => onChange(k, e.target.value)} placeholder={placeholder} dir={dir as any} className={dir === "ltr" ? "text-left" : undefined} />
     </div>
   );
 }
