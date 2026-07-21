@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -32,12 +32,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
+import { StudentsGroupedView } from "@/components/students/StudentsGroupedView";
 import { deleteStudents, toggleStudentStatus } from "@/lib/students.functions";
 import { archiveStudents } from "@/lib/archive.functions";
 import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 export const Route = createFileRoute("/admin/students/")({
   head: () => ({ meta: [{ title: "الطلاب — لوحة المدرس" }] }),
@@ -48,6 +51,12 @@ const PAGE_SIZE = 20;
 
 function StudentsPage() {
   const qc = useQueryClient();
+  const [viewMode, setViewMode] = useState<"grouped" | "list">(() => {
+    if (typeof window === "undefined") return "grouped";
+    return (localStorage.getItem("students.viewMode") as "grouped" | "list") ?? "grouped";
+  });
+  useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("students.viewMode", viewMode); }, [viewMode]);
+
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<string>("");
   const [groupFilter, setGroupFilter] = useState<string>("");
@@ -60,6 +69,7 @@ function StudentsPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ ids: string[] } | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveYear, setArchiveYear] = useState<string>(String(new Date().getFullYear()));
+
 
   const delFn = useServerFn(deleteStudents);
   const toggleFn = useServerFn(toggleStudentStatus);
@@ -78,6 +88,7 @@ function StudentsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["students", debouncedSearch, classFilter, groupFilter, statusFilter, page],
+    enabled: viewMode === "list",
     queryFn: async () => {
       let q = supabase
         .from("students")
@@ -99,9 +110,30 @@ function StudentsPage() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: groupedData, isLoading: groupedLoading } = useQuery({
+    queryKey: ["students-grouped", classFilter, groupFilter, statusFilter],
+    enabled: viewMode === "grouped",
+    queryFn: async () => {
+      let q = supabase
+        .from("students")
+        .select("*, classes(id,name), groups(id,name)", { count: "exact" })
+        .is("archived_at", null)
+        .order("full_name");
+      if (classFilter) q = q.eq("class_id", classFilter);
+      if (groupFilter) q = q.eq("group_id", groupFilter);
+      if (statusFilter) q = q.eq("status", statusFilter);
+      const { data, count, error } = await q.limit(5000);
+      if (error) throw error;
+      return { rows: (data ?? []) as unknown as StudentRow[], count: count ?? 0 };
+    },
+    placeholderData: (prev) => prev,
+  });
+
   const rows = data?.rows ?? [];
-  const total = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total = viewMode === "grouped" ? (groupedData?.count ?? 0) : (data?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / PAGE_SIZE));
+
+
 
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const toggleAll = () => {
@@ -114,11 +146,16 @@ function StudentsPage() {
   };
   const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const invalidateStudents = () => {
+    qc.invalidateQueries({ queryKey: ["students"] });
+    qc.invalidateQueries({ queryKey: ["students-grouped"] });
+  };
+
   const deleteMut = useMutation({
     mutationFn: async (ids: string[]) => delFn({ data: { ids } }),
     onSuccess: (r: any) => {
       toast.success(`تم حذف ${r.count} طالب`);
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       setSelected(new Set()); setConfirmDelete(null);
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
@@ -129,7 +166,7 @@ function StudentsPage() {
       toggleFn({ data: { ids, status } }),
     onSuccess: () => {
       toast.success("تم تحديث الحالة");
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       setSelected(new Set());
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل التحديث"),
@@ -139,13 +176,14 @@ function StudentsPage() {
     mutationFn: async ({ ids, year }: { ids: string[]; year: string }) => archiveFn({ data: { ids, year } }),
     onSuccess: (r: any) => {
       toast.success(`تم أرشفة ${r.count} طالب`);
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       qc.invalidateQueries({ queryKey: ["archived-students"] });
       setSelected(new Set());
       setArchiveOpen(false);
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
   });
+
 
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
@@ -217,7 +255,20 @@ function StudentsPage() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center justify-between print:hidden">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "grouped" | "list")}>
+          <TabsList>
+            <TabsTrigger value="grouped">عرض مجمّع</TabsTrigger>
+            <TabsTrigger value="list">جدول</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <p className="text-xs text-muted-foreground">
+          {viewMode === "grouped" ? "منظم حسب الصف والمجموعة" : "قائمة كاملة قابلة للفرز"}
+        </p>
+      </div>
+
       {selected.size > 0 && (
+
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-2 print:hidden">
           <span className="text-sm font-medium">تم تحديد {selected.size} طالب</span>
           <div className="mr-auto flex flex-wrap gap-2">
@@ -237,7 +288,17 @@ function StudentsPage() {
         </div>
       )}
 
+      {viewMode === "grouped" ? (
+        <StudentsGroupedView
+          students={groupedData?.rows ?? []}
+          isLoading={groupedLoading}
+          onEdit={(s) => { setEditStudent(s); setFormOpen(true); }}
+          onDelete={(ids) => setConfirmDelete({ ids })}
+          onToggleStatus={(ids, status) => toggleMut.mutate({ ids, status })}
+        />
+      ) : (
       <Card>
+
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
@@ -340,6 +401,8 @@ function StudentsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
+
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between print:hidden">
