@@ -262,12 +262,14 @@ function ExamResultsPage() {
               (attempts ?? []).length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">لا يوجد محاولات بعد</TableCell></TableRow>
               ) : (attempts ?? []).map((a: any, i: number) => {
-                const wa = `مرحبًا،
-نتيجة الطالب: ${a.students?.full_name}
-الامتحان: ${exam?.title}
-الدرجة: ${a.score}/${a.total} (${a.percentage}%)
-التقدير: ${a.grade ?? computeGrade(Number(a.percentage))}
-منصة الطارق التعليمية.`;
+                const waVars = {
+                  name: a.students?.full_name ?? "",
+                  exam: exam?.title ?? "",
+                  score: a.score ?? 0,
+                  total: a.total ?? 0,
+                  percentage: a.percentage ?? 0,
+                  grade_text: a.grade ?? computeGrade(Number(a.percentage)),
+                };
                 return (
                   <TableRow key={a.id}>
                     <TableCell><Badge variant={i === 0 ? "default" : "outline"}>{i + 1}</Badge></TableCell>
@@ -305,7 +307,7 @@ function ExamResultsPage() {
                             <RotateCcw className="h-3 w-3" />
                           </Button>
                         )}
-                        <WhatsAppButton phone={a.students?.parent_whatsapp ?? a.students?.parent_phone} message={wa} size="icon" variant="ghost"
+                        <WhatsAppButton phone={a.students?.parent_whatsapp ?? a.students?.parent_phone} template="wa.tpl.exam_result" vars={waVars} size="icon" variant="ghost"
                           onClick={() => waLogFn({ data: { student_id: a.students?.id, exam_id: id } }).catch(() => {})} />
                       </div>
                     </TableCell>
