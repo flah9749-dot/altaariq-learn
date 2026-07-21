@@ -64,7 +64,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
       { title: "الطارق التعليمية" },
       { name: "description", content: "منصة تعليمية احترافية لمادة الدراسات الاجتماعية — تاريخ وجغرافيا ومواطنة." },
-      { name: "theme-color", content: "#1b2547" },
+      { name: "theme-color", content: "#0F2D5C" },
       { property: "og:title", content: "الطارق التعليمية" },
       { property: "og:description", content: "منصة تعليمية احترافية لمادة الدراسات الاجتماعية." },
       { property: "og:type", content: "website" },
