@@ -44,12 +44,12 @@ import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as AdminStudentsIndexRouteImport } from './routes/admin.students.index'
 import { Route as AdminExamsIndexRouteImport } from './routes/admin.exams.index'
-import { Route as StudentExamsIdRouteImport } from './routes/student.exams.$id'
 import { Route as ApiPublicFcmDispatchRouteImport } from './routes/api/public/fcm-dispatch'
 import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id'
 import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
 import { Route as AdminAiMappingRouteImport } from './routes/admin.ai.mapping'
+import { Route as StudentExamsIdTakeRouteImport } from './routes/student.exams.$id.take'
 import { Route as StudentExamsIdStartRouteImport } from './routes/student.exams.$id.start'
 import { Route as StudentExamsIdResultRouteImport } from './routes/student.exams.$id.result'
 import { Route as ApiPublicV1StudentsRouteImport } from './routes/api/public/v1.students'
@@ -234,11 +234,6 @@ const AdminExamsIndexRoute = AdminExamsIndexRouteImport.update({
   path: '/exams/',
   getParentRoute: () => AdminRoute,
 } as any)
-const StudentExamsIdRoute = StudentExamsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => StudentExamsRoute,
-} as any)
 const ApiPublicFcmDispatchRoute = ApiPublicFcmDispatchRouteImport.update({
   id: '/api/public/fcm-dispatch',
   path: '/api/public/fcm-dispatch',
@@ -264,15 +259,20 @@ const AdminAiMappingRoute = AdminAiMappingRouteImport.update({
   path: '/mapping',
   getParentRoute: () => AdminAiRoute,
 } as any)
+const StudentExamsIdTakeRoute = StudentExamsIdTakeRouteImport.update({
+  id: '/$id/take',
+  path: '/$id/take',
+  getParentRoute: () => StudentExamsRoute,
+} as any)
 const StudentExamsIdStartRoute = StudentExamsIdStartRouteImport.update({
-  id: '/start',
-  path: '/start',
-  getParentRoute: () => StudentExamsIdRoute,
+  id: '/$id/start',
+  path: '/$id/start',
+  getParentRoute: () => StudentExamsRoute,
 } as any)
 const StudentExamsIdResultRoute = StudentExamsIdResultRouteImport.update({
-  id: '/result',
-  path: '/result',
-  getParentRoute: () => StudentExamsIdRoute,
+  id: '/$id/result',
+  path: '/$id/result',
+  getParentRoute: () => StudentExamsRoute,
 } as any)
 const ApiPublicV1StudentsRoute = ApiPublicV1StudentsRouteImport.update({
   id: '/api/public/v1/students',
@@ -345,7 +345,6 @@ export interface FileRoutesByFullPath {
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
-  '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
@@ -356,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
+  '/student/exams/$id/take': typeof StudentExamsIdTakeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -394,7 +394,6 @@ export interface FileRoutesByTo {
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
-  '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams': typeof AdminExamsIndexRoute
   '/admin/students': typeof AdminStudentsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
@@ -405,6 +404,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
+  '/student/exams/$id/take': typeof StudentExamsIdTakeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -446,7 +446,6 @@ export interface FileRoutesById {
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
-  '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
@@ -457,6 +456,7 @@ export interface FileRoutesById {
   '/api/public/v1/students': typeof ApiPublicV1StudentsRoute
   '/student/exams/$id/result': typeof StudentExamsIdResultRoute
   '/student/exams/$id/start': typeof StudentExamsIdStartRoute
+  '/student/exams/$id/take': typeof StudentExamsIdTakeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -499,7 +499,6 @@ export interface FileRouteTypes {
     | '/admin/exams/ai'
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
-    | '/student/exams/$id'
     | '/admin/exams/'
     | '/admin/students/'
     | '/admin/exams/$id/results'
@@ -510,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
+    | '/student/exams/$id/take'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -548,7 +548,6 @@ export interface FileRouteTypes {
     | '/admin/exams/ai'
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
-    | '/student/exams/$id'
     | '/admin/exams'
     | '/admin/students'
     | '/admin/exams/$id/results'
@@ -559,6 +558,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
+    | '/student/exams/$id/take'
   id:
     | '__root__'
     | '/'
@@ -599,7 +599,6 @@ export interface FileRouteTypes {
     | '/admin/exams/ai'
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
-    | '/student/exams/$id'
     | '/admin/exams/'
     | '/admin/students/'
     | '/admin/exams/$id/results'
@@ -610,6 +609,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/students'
     | '/student/exams/$id/result'
     | '/student/exams/$id/start'
+    | '/student/exams/$id/take'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -871,13 +871,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExamsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/student/exams/$id': {
-      id: '/student/exams/$id'
-      path: '/$id'
-      fullPath: '/student/exams/$id'
-      preLoaderRoute: typeof StudentExamsIdRouteImport
-      parentRoute: typeof StudentExamsRoute
-    }
     '/api/public/fcm-dispatch': {
       id: '/api/public/fcm-dispatch'
       path: '/api/public/fcm-dispatch'
@@ -913,19 +906,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiMappingRouteImport
       parentRoute: typeof AdminAiRoute
     }
+    '/student/exams/$id/take': {
+      id: '/student/exams/$id/take'
+      path: '/$id/take'
+      fullPath: '/student/exams/$id/take'
+      preLoaderRoute: typeof StudentExamsIdTakeRouteImport
+      parentRoute: typeof StudentExamsRoute
+    }
     '/student/exams/$id/start': {
       id: '/student/exams/$id/start'
-      path: '/start'
+      path: '/$id/start'
       fullPath: '/student/exams/$id/start'
       preLoaderRoute: typeof StudentExamsIdStartRouteImport
-      parentRoute: typeof StudentExamsIdRoute
+      parentRoute: typeof StudentExamsRoute
     }
     '/student/exams/$id/result': {
       id: '/student/exams/$id/result'
-      path: '/result'
+      path: '/$id/result'
       fullPath: '/student/exams/$id/result'
       preLoaderRoute: typeof StudentExamsIdResultRouteImport
-      parentRoute: typeof StudentExamsIdRoute
+      parentRoute: typeof StudentExamsRoute
     }
     '/api/public/v1/students': {
       id: '/api/public/v1/students'
@@ -1067,26 +1067,16 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface StudentExamsIdRouteChildren {
+interface StudentExamsRouteChildren {
   StudentExamsIdResultRoute: typeof StudentExamsIdResultRoute
   StudentExamsIdStartRoute: typeof StudentExamsIdStartRoute
-}
-
-const StudentExamsIdRouteChildren: StudentExamsIdRouteChildren = {
-  StudentExamsIdResultRoute: StudentExamsIdResultRoute,
-  StudentExamsIdStartRoute: StudentExamsIdStartRoute,
-}
-
-const StudentExamsIdRouteWithChildren = StudentExamsIdRoute._addFileChildren(
-  StudentExamsIdRouteChildren,
-)
-
-interface StudentExamsRouteChildren {
-  StudentExamsIdRoute: typeof StudentExamsIdRouteWithChildren
+  StudentExamsIdTakeRoute: typeof StudentExamsIdTakeRoute
 }
 
 const StudentExamsRouteChildren: StudentExamsRouteChildren = {
-  StudentExamsIdRoute: StudentExamsIdRouteWithChildren,
+  StudentExamsIdResultRoute: StudentExamsIdResultRoute,
+  StudentExamsIdStartRoute: StudentExamsIdStartRoute,
+  StudentExamsIdTakeRoute: StudentExamsIdTakeRoute,
 }
 
 const StudentExamsRouteWithChildren = StudentExamsRoute._addFileChildren(

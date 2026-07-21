@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { startAttempt, saveAnswer, submitAttempt, recordLeave, saveReviewMarks } from "@/lib/exams.functions";
 import { formatDuration } from "@/lib/exam-utils";
 
-export const Route = createFileRoute("/student/exams/$id")({
+export const Route = createFileRoute("/student/exams/$id/take")({
   head: () => ({ meta: [{ title: "أداء الامتحان" }] }),
   component: TakeExamPage,
 });
