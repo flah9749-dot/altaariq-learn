@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { BroadcastDialog } from "@/components/chat/BroadcastDialog";
@@ -26,6 +28,22 @@ function AdminMessagesPage() {
   const [selected, setSelected] = useState<{ userId: string; name: string; parentPhone: string | null; code: string; className?: string; groupName?: string } | null>(null);
   const [q, setQ] = useState("");
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [classId, setClassId] = useState<string>("all");
+  const [groupId, setGroupId] = useState<string>("all");
+  const [tab, setTab] = useState<"all" | "unread" | "online">("all");
+
+  const { data: classes = [] } = useQuery({
+    queryKey: ["classes-basic"],
+    queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [],
+  });
+  const { data: groups = [] } = useQuery({
+    queryKey: ["groups-basic"],
+    queryFn: async () => (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [],
+  });
+  const filteredGroups = useMemo(
+    () => (classId === "all" ? groups : groups.filter((g: any) => g.class_id === classId)),
+    [groups, classId],
+  );
 
   const { data: students, isLoading } = useQuery({
     queryKey: ["messages-students"],
@@ -56,14 +74,27 @@ function AdminMessagesPage() {
   });
 
   const filtered = useMemo(() => {
-    const list = students ?? [];
-    if (!q.trim()) return list;
-    const s = q.trim().toLowerCase();
-    return list.filter((x: any) =>
-      x.full_name?.toLowerCase().includes(s) ||
-      x.code?.toLowerCase().includes(s) ||
-      x.classes?.name?.toLowerCase().includes(s));
-  }, [students, q]);
+    let list = students ?? [];
+    if (classId !== "all") list = list.filter((x: any) => x.class_id === classId);
+    if (groupId !== "all") list = list.filter((x: any) => x.group_id === groupId);
+    if (tab === "online") list = list.filter((x: any) => x.is_online);
+    if (tab === "unread") list = list.filter((x: any) => (threads?.get(x.user_id)?.unread ?? 0) > 0);
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      list = list.filter((x: any) =>
+        x.full_name?.toLowerCase().includes(s) ||
+        x.code?.toLowerCase().includes(s) ||
+        x.classes?.name?.toLowerCase().includes(s));
+    }
+    return list;
+  }, [students, q, classId, groupId, tab, threads]);
+
+  const unreadTotal = useMemo(() => {
+    if (!threads) return 0;
+    let n = 0; threads.forEach((v) => { n += v.unread; });
+    return n;
+  }, [threads]);
+  const onlineTotal = useMemo(() => (students ?? []).filter((x: any) => x.is_online).length, [students]);
 
   const sorted = useMemo(() => {
     if (!threads) return filtered;
@@ -73,6 +104,7 @@ function AdminMessagesPage() {
       return tb.localeCompare(ta);
     });
   }, [filtered, threads]);
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3 h-[calc(100vh-8rem)]">
@@ -86,9 +118,33 @@ function AdminMessagesPage() {
           </div>
           <div className="relative">
             <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث..." className="pr-8 h-9"/>
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو الكود..." className="pr-8 h-9"/>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={classId} onValueChange={(v) => { setClassId(v); setGroupId("all"); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="الصف"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الصفوف</SelectItem>
+                {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={groupId} onValueChange={setGroupId}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="المجموعة"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المجموعات</SelectItem>
+                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+            <TabsList className="grid grid-cols-3 h-8 w-full">
+              <TabsTrigger value="all" className="text-xs">الكل ({(students ?? []).length})</TabsTrigger>
+              <TabsTrigger value="unread" className="text-xs">غير مقروء {unreadTotal > 0 && <Badge className="ms-1 h-4 min-w-4 px-1 text-[10px]">{unreadTotal}</Badge>}</TabsTrigger>
+              <TabsTrigger value="online" className="text-xs">متصل ({onlineTotal})</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+
         <ScrollArea className="flex-1">
           {isLoading ? (
             <div className="p-3 space-y-2">{Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-14 w-full"/>)}</div>

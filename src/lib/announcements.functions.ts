@@ -79,8 +79,24 @@ export const upsertFile = createServerFn({ method: "POST" })
     const { data: row } = await supabaseAdmin.from("files").insert({
       ...data, owner_id: context.userId,
     }).select("id").single();
+    // Auto-notify students about the new file
+    try {
+      const { notifyStudents } = await import("./notify-helpers.server");
+      await notifyStudents({
+        title: "📎 ملف جديد",
+        body: data.name,
+        type: "file",
+        link: "/student/files",
+        target: data.target_class_id
+          ? { kind: "class", class_id: data.target_class_id }
+          : data.target_group_id
+            ? { kind: "group", group_id: data.target_group_id }
+            : { kind: "all" },
+      });
+    } catch {}
     return { id: row!.id };
   });
+
 
 export const deleteFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
