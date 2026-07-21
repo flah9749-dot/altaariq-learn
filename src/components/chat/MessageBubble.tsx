@@ -85,12 +85,12 @@ function MessageBubbleImpl({ m, own, onReply, onDelete }: Props) {
         {!m.deleted_at && (
           <div className={`absolute -top-2 ${own ? "left-1" : "right-1"} opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity`}>
             {onReply && (
-              <Button size="icon" variant="secondary" className="h-6 w-6 rounded-full shadow" onClick={() => onReply(m)}>
+              <Button size="icon" variant="secondary" className="h-6 w-6 rounded-full shadow" onClick={() => onReply(m)} aria-label="رد">
                 <Reply className="h-3 w-3" />
               </Button>
             )}
             {own && onDelete && (
-              <Button size="icon" variant="destructive" className="h-6 w-6 rounded-full shadow" onClick={() => onDelete(m)}>
+              <Button size="icon" variant="destructive" className="h-6 w-6 rounded-full shadow" onClick={() => onDelete(m)} aria-label="حذف">
                 <Trash2 className="h-3 w-3" />
               </Button>
             )}
