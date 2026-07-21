@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { useServerFn } from "@tanstack/react-start";
-import { Printer, Download, MessageCircle, Copy, Check, KeyRound, Loader2 } from "lucide-react";
+import { Printer, Download, MessageCircle, Copy, Check, KeyRound, Loader2, FileDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { StudentIdCard } from "./StudentIdCard";
@@ -87,44 +87,107 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
 
 
 
+  // High-DPI card capture (300+ DPI equivalent). Card is 360 CSS px wide,
+  // pixelRatio: 4 → 1440 px wide raster ≈ 406 DPI when printed at 90mm.
+  async function captureCard(): Promise<string | null> {
+    if (!cardRef.current) return null;
+    return toPng(cardRef.current, {
+      pixelRatio: 4,
+      cacheBust: true,
+      backgroundColor: "#ffffff",
+      quality: 1,
+      style: {
+        // Force color accuracy on capture; some browsers otherwise sample
+        // rendered pixels affected by the OS color profile.
+        colorAdjust: "exact",
+      } as any,
+    });
+  }
+
   async function download() {
-    if (!cardRef.current) return;
+    const pw = await ensurePassword();
+    if (!pw) return;
+    await new Promise((r) => setTimeout(r, 50));
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: "#fff" });
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `${student!.code}_card.png`;
       a.click();
-      toast.success("تم تحميل الكارت");
+      toast.success("تم تحميل الكارت (عالي الدقة)");
     } catch {
       toast.error("فشل التحميل");
+    }
+  }
+
+  async function downloadPdf() {
+    const pw = await ensurePassword();
+    if (!pw) return;
+    await new Promise((r) => setTimeout(r, 50));
+    try {
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
+      const { jsPDF } = await import("jspdf");
+      // Card physical size: 90mm width, height auto from image aspect ratio.
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((res) => (img.onload = res));
+      const cardW = 90;
+      const cardH = (img.height / img.width) * cardW;
+      // A4 portrait, center the card at top with 20mm margin — one page.
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const x = (pageW - cardW) / 2;
+      pdf.addImage(dataUrl, "PNG", x, 20, cardW, cardH, undefined, "FAST");
+      pdf.save(`${student!.code}_card.pdf`);
+      toast.success("تم تحميل PDF");
+    } catch {
+      toast.error("فشل تحميل PDF");
     }
   }
 
   async function print() {
     const pw = await ensurePassword();
     if (!pw) return;
-    // Wait a tick so the card re-renders with the password visible before capture.
     await new Promise((r) => setTimeout(r, 50));
-    if (!cardRef.current) return;
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true, backgroundColor: "#ffffff" });
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
       const w = window.open("", "_blank", "width=520,height=760");
-      if (!w) return;
-      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>${student!.full_name} — بطاقة طالب</title>
+      if (!w) { toast.error("السماح بالنوافذ المنبثقة مطلوب للطباعة"); return; }
+      // Fixed physical size: 90mm wide, height auto. print-color-adjust:exact
+      // guarantees identical colors on Chrome, Edge, Safari, Firefox.
+      w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">
+        <title>${student!.full_name} — بطاقة طالب</title>
         <style>
+          @page { size: A4; margin: 15mm; }
+          *,*::before,*::after{
+            -webkit-print-color-adjust:exact !important;
+            print-color-adjust:exact !important;
+            color-adjust:exact !important;
+          }
           html,body{margin:0;padding:0;background:#f4f4f5;font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;}
-          .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-          img{max-width:360px;width:100%;height:auto;display:block;border-radius:24px;box-shadow:0 10px 30px rgba(0,0,0,.15);}
-          @media print{ body{background:#fff} .wrap{padding:0} img{box-shadow:none} }
+          .wrap{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px;}
+          .card{width:90mm;height:auto;display:block;border-radius:6mm;box-shadow:0 10px 30px rgba(0,0,0,.15);image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;}
+          @media print{
+            body{background:#fff}
+            .wrap{padding:0;min-height:auto}
+            .card{box-shadow:none;border-radius:4mm;page-break-inside:avoid;break-inside:avoid;}
+          }
         </style></head>
-        <body><div class="wrap"><img src="${dataUrl}" alt="بطاقة الطالب"/></div>
-        <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300));</script></body></html>`);
+        <body><div class="wrap"><img class="card" src="${dataUrl}" alt="بطاقة الطالب"/></div>
+        <script>
+          const img=document.querySelector('img');
+          function go(){ setTimeout(()=>{ window.focus(); window.print(); }, 250); }
+          if(img.complete) go(); else img.addEventListener('load', go);
+        </script></body></html>`);
       w.document.close();
     } catch {
       toast.error("فشل الطباعة");
     }
   }
+
 
 
   async function whatsapp() {
@@ -193,11 +256,13 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
           <Button variant="outline" onClick={() => onOpenChange(false)}>إغلاق</Button>
           <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="outline" onClick={print}><Printer className="h-4 w-4 ml-1"/>طباعة</Button>
-            <Button variant="outline" onClick={download}><Download className="h-4 w-4 ml-1"/>تحميل</Button>
+            <Button variant="outline" onClick={download}><Download className="h-4 w-4 ml-1"/>PNG</Button>
+            <Button variant="outline" onClick={downloadPdf}><FileDown className="h-4 w-4 ml-1"/>PDF</Button>
             <Button onClick={whatsapp} disabled={resetting} className="bg-green-600 hover:bg-green-700 text-white">
               {resetting ? <Loader2 className="h-4 w-4 ml-1 animate-spin"/> : <MessageCircle className="h-4 w-4 ml-1"/>}
               إرسال واتساب
             </Button>
+
           </div>
         </DialogFooter>
       </DialogContent>
