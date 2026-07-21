@@ -39,7 +39,7 @@ async function fetchDashboard() {
     supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", todayISO),
     supabase.from("messages").select("id", { count: "exact", head: true }).is("read_at", null),
     supabase.from("rewards").select("id", { count: "exact", head: true }),
-    supabase.from("reward_redemptions").select("id,cost_points").not("id", "is", null),
+    supabase.from("reward_redemptions").select("id,points_spent").not("id", "is", null),
     supabase.from("points_log").select("points"),
     supabase.from("notifications").select("id", { count: "exact", head: true }),
     supabase.from("students").select("id,full_name,code,points,avatar_url").order("points", { ascending: false }).limit(5),
