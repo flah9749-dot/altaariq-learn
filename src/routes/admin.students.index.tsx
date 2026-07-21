@@ -299,12 +299,18 @@ function StudentsPage() {
                       {s.parent_whatsapp && (
                         <WhatsAppButton
                           phone={s.parent_whatsapp}
-                          template="wa.tpl.parent_intro"
-                          vars={{ name: s.full_name }}
+                          template="wa.tpl.student_card"
+                          vars={{
+                            name: s.full_name,
+                            code: s.code,
+                            grade: s.classes?.name ?? "—",
+                            class: s.groups?.name ?? "—",
+                          }}
                           size="icon"
                           variant="ghost"
                         />
                       )}
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
