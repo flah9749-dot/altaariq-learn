@@ -37,6 +37,7 @@ import { Route as AdminClassesRouteImport } from './routes/admin.classes'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as StudentExamsIdRouteImport } from './routes/student.exams.$id'
+import { Route as ApiPublicFcmDispatchRouteImport } from './routes/api/public/fcm-dispatch'
 import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id'
 import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
@@ -185,6 +186,11 @@ const StudentExamsIdRoute = StudentExamsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => StudentExamsRoute,
 } as any)
+const ApiPublicFcmDispatchRoute = ApiPublicFcmDispatchRouteImport.update({
+  id: '/api/public/fcm-dispatch',
+  path: '/api/public/fcm-dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminStudentsIdRoute = AdminStudentsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
+  '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
   '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
+  '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
   '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
+  '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
   '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/admin/exams/$id'
     | '/admin/exams/ai'
     | '/admin/students/$id'
+    | '/api/public/fcm-dispatch'
     | '/student/exams/$id'
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/admin/exams/$id'
     | '/admin/exams/ai'
     | '/admin/students/$id'
+    | '/api/public/fcm-dispatch'
     | '/student/exams/$id'
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/admin/exams/$id'
     | '/admin/exams/ai'
     | '/admin/students/$id'
+    | '/api/public/fcm-dispatch'
     | '/student/exams/$id'
     | '/admin/exams/$id/results'
     | '/admin/students/$id/analytics'
@@ -450,6 +462,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
   StudentRoute: typeof StudentRouteWithChildren
+  ApiPublicFcmDispatchRoute: typeof ApiPublicFcmDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -650,6 +663,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentExamsIdRouteImport
       parentRoute: typeof StudentExamsRoute
     }
+    '/api/public/fcm-dispatch': {
+      id: '/api/public/fcm-dispatch'
+      path: '/api/public/fcm-dispatch'
+      fullPath: '/api/public/fcm-dispatch'
+      preLoaderRoute: typeof ApiPublicFcmDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/students/$id': {
       id: '/admin/students/$id'
       path: '/$id'
@@ -845,17 +865,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
   StudentRoute: StudentRouteWithChildren,
+  ApiPublicFcmDispatchRoute: ApiPublicFcmDispatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
