@@ -48,7 +48,7 @@ export function StudentHeader() {
         />
       </aside>
 
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75 lg:hidden">
+      <header className="sticky top-0 z-30 border-b bg-background/95 lg:hidden">
         <div className="grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
