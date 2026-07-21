@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Settings, Save, Palette, FileText, MessageSquare, Trophy, Shield, Database, Download, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Settings, Save, Palette, FileText, MessageSquare, Trophy, Shield, Database, Download, Loader2, UserCog, Plus, Trash2, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AvatarUploader } from "@/components/common/AvatarUploader";
+import { useAuth } from "@/lib/auth-context";
+import { adminEmailFromUsername } from "@/lib/auth-emails";
+import { createAdmin, deleteAdmin, resetAdminPassword } from "@/lib/admin-account.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/settings")({
@@ -78,12 +84,18 @@ function SettingsPage() {
       <Tabs defaultValue="identity" dir="rtl">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="identity"><Palette className="h-4 w-4 ml-1"/>الهوية</TabsTrigger>
+          <TabsTrigger value="account"><UserCog className="h-4 w-4 ml-1"/>الحساب</TabsTrigger>
           <TabsTrigger value="exams"><FileText className="h-4 w-4 ml-1"/>الامتحانات</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 ml-1"/>الرسائل</TabsTrigger>
           <TabsTrigger value="rewards"><Trophy className="h-4 w-4 ml-1"/>الجوائز</TabsTrigger>
           <TabsTrigger value="security"><Shield className="h-4 w-4 ml-1"/>الأمان</TabsTrigger>
           <TabsTrigger value="backup"><Database className="h-4 w-4 ml-1"/>النسخ الاحتياطي</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="account" className="space-y-4">
+          <AccountPanel />
+        </TabsContent>
+
 
         {/* Identity */}
         <TabsContent value="identity" className="space-y-4">
@@ -240,5 +252,203 @@ function BackupPanel() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function AccountPanel() {
+  const { profile, user, refresh } = useAuth();
+  const qc = useQueryClient();
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPwd, setSavingPwd] = useState(false);
+  const [openNew, setOpenNew] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ fullName: "", username: "", password: "" });
+  const [resetFor, setResetFor] = useState<{ id: string; name: string } | null>(null);
+  const [resetPwd, setResetPwd] = useState("");
+
+  useEffect(() => { setEmail(user?.email ?? ""); }, [user?.email]);
+
+  const createFn = useServerFn(createAdmin);
+  const deleteFn = useServerFn(deleteAdmin);
+  const resetFn = useServerFn(resetAdminPassword);
+
+  const { data: admins = [] } = useQuery({
+    queryKey: ["admins-list"],
+    queryFn: async () => (await supabase.from("admins").select("id,user_id,username,full_name,avatar_url,created_at").order("created_at")).data ?? [],
+  });
+
+  async function saveEmail() {
+    if (!email.trim() || !email.includes("@")) return toast.error("بريد غير صحيح");
+    setSavingEmail(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: email.trim() });
+      if (error) throw new Error(error.message);
+      toast.success("تم تحديث البريد. قد يتطلب تأكيد.");
+      await refresh();
+    } catch (e: any) { toast.error(e?.message ?? "فشل التحديث"); }
+    finally { setSavingEmail(false); }
+  }
+
+  async function savePassword() {
+    if (pwd.length < 6) return toast.error("كلمة المرور 6 أحرف على الأقل");
+    if (pwd !== pwd2) return toast.error("كلمتا المرور غير متطابقتين");
+    setSavingPwd(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pwd });
+      if (error) throw new Error(error.message);
+      toast.success("تم تحديث كلمة المرور");
+      setPwd(""); setPwd2("");
+    } catch (e: any) { toast.error(e?.message ?? "فشل التحديث"); }
+    finally { setSavingPwd(false); }
+  }
+
+  async function submitNewAdmin() {
+    if (!newAdmin.fullName.trim() || newAdmin.username.length < 3 || newAdmin.password.length < 6)
+      return toast.error("أكمل الحقول بشكل صحيح");
+    try {
+      await createFn({ data: newAdmin });
+      toast.success("تم إنشاء الأدمن");
+      setOpenNew(false);
+      setNewAdmin({ fullName: "", username: "", password: "" });
+      qc.invalidateQueries({ queryKey: ["admins-list"] });
+    } catch (e: any) { toast.error(e?.message ?? "فشل الإنشاء"); }
+  }
+
+  async function submitReset() {
+    if (!resetFor || resetPwd.length < 6) return toast.error("كلمة مرور غير صالحة");
+    try {
+      await resetFn({ data: { admin_id: resetFor.id, password: resetPwd } });
+      toast.success("تم إعادة تعيين كلمة المرور");
+      setResetFor(null); setResetPwd("");
+    } catch (e: any) { toast.error(e?.message ?? "فشل"); }
+  }
+
+  async function removeAdmin(id: string) {
+    if (!confirm("حذف هذا الأدمن نهائيًا؟")) return;
+    try {
+      await deleteFn({ data: { admin_id: id } });
+      toast.success("تم الحذف");
+      qc.invalidateQueries({ queryKey: ["admins-list"] });
+    } catch (e: any) { toast.error(e?.message ?? "فشل الحذف"); }
+  }
+
+  const usernameFromEmail = (em: string | null | undefined) => em?.split("@")[0] ?? "";
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>الصورة الشخصية</CardTitle>
+          <CardDescription>صورتك التي تظهر للطلاب في المحادثات والإشعارات</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {profile ? (
+            <AvatarUploader table="admins" rowId={profile.id} currentUrl={profile.avatar_url}
+              fallback={profile.full_name ?? "م"} onChange={() => refresh()} />
+          ) : <Skeleton className="h-24" />}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>البريد الإلكتروني</CardTitle>
+          <CardDescription>البريد المستخدم للتواصل واستعادة الحساب</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 max-w-md">
+          <Input dir="ltr" className="text-left" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Button onClick={saveEmail} disabled={savingEmail || email === user?.email}>
+            {savingEmail ? <Loader2 className="h-4 w-4 ml-1 animate-spin"/> : <Save className="h-4 w-4 ml-1"/>}
+            حفظ البريد
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>تغيير كلمة المرور</CardTitle>
+          <CardDescription>ستحتاج لاستخدامها في تسجيل الدخول التالي</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 max-w-md">
+          <div className="space-y-1.5"><Label>كلمة المرور الجديدة</Label>
+            <Input type="password" dir="ltr" className="text-left" value={pwd} onChange={(e) => setPwd(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>تأكيد كلمة المرور</Label>
+            <Input type="password" dir="ltr" className="text-left" value={pwd2} onChange={(e) => setPwd2(e.target.value)} /></div>
+          <Button onClick={savePassword} disabled={savingPwd || !pwd}>
+            {savingPwd ? <Loader2 className="h-4 w-4 ml-1 animate-spin"/> : <KeyRound className="h-4 w-4 ml-1"/>}
+            تحديث كلمة المرور
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle>إدارة المدرسين (الأدمن)</CardTitle>
+            <CardDescription>أضف حسابات إدارية جديدة أو أعد تعيين كلمات مرورها</CardDescription>
+          </div>
+          <Button onClick={() => setOpenNew(true)}><Plus className="h-4 w-4 ml-1"/>إضافة أدمن</Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {admins.length === 0 && <p className="text-sm text-muted-foreground">لا يوجد أدمن مسجل.</p>}
+          {admins.map((a: any) => {
+            const isMe = a.user_id === user?.id;
+            return (
+              <div key={a.id} className="flex items-center justify-between border rounded-lg p-3 gap-2">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{a.full_name ?? a.username}
+                    {isMe && <span className="text-xs mr-2 text-primary">(أنت)</span>}
+                  </div>
+                  <div className="text-xs text-muted-foreground" dir="ltr">{a.username}</div>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => { setResetFor({ id: a.id, name: a.full_name ?? a.username }); setResetPwd(""); }}>
+                    <KeyRound className="h-4 w-4"/>
+                  </Button>
+                  {!isMe && (
+                    <Button variant="ghost" size="sm" onClick={() => removeAdmin(a.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive"/>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Dialog open={openNew} onOpenChange={setOpenNew}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>إضافة أدمن جديد</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5"><Label>الاسم الكامل</Label>
+              <Input value={newAdmin.fullName} onChange={(e) => setNewAdmin(s => ({ ...s, fullName: e.target.value }))}/></div>
+            <div className="space-y-1.5"><Label>اسم المستخدم (إنجليزي)</Label>
+              <Input dir="ltr" className="text-left" value={newAdmin.username} onChange={(e) => setNewAdmin(s => ({ ...s, username: e.target.value }))}/></div>
+            <div className="space-y-1.5"><Label>كلمة المرور</Label>
+              <Input type="password" dir="ltr" className="text-left" value={newAdmin.password} onChange={(e) => setNewAdmin(s => ({ ...s, password: e.target.value }))}/></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenNew(false)}>إلغاء</Button>
+            <Button onClick={submitNewAdmin}>إنشاء</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetFor} onOpenChange={(o) => !o && setResetFor(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>إعادة تعيين كلمة المرور — {resetFor?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-1.5">
+            <Label>كلمة المرور الجديدة</Label>
+            <Input type="password" dir="ltr" className="text-left" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)}/>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetFor(null)}>إلغاء</Button>
+            <Button onClick={submitReset}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

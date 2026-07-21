@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
+import { AvatarUploader } from "@/components/common/AvatarUploader";
 
 export const Route = createFileRoute("/student/dashboard")({
   head: () => ({ meta: [{ title: "الرئيسية — لوحة الطالب" }] }),
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/student/dashboard")({
 });
 
 function StudentDashboard() {
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const studentId = profile?.id;
 
   const { data, isLoading } = useQuery({
@@ -49,6 +50,16 @@ function StudentDashboard() {
 
   return (
     <div className="space-y-6">
+      {studentId && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">صورتي الشخصية</CardTitle></CardHeader>
+          <CardContent>
+            <AvatarUploader table="students" rowId={studentId} currentUrl={profile?.avatar_url}
+              fallback={profile?.full_name ?? "ط"} onChange={() => refresh()} />
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="overflow-hidden border-0 bg-gradient-to-l from-primary to-primary/80 text-primary-foreground">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
