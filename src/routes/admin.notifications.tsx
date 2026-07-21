@@ -44,19 +44,28 @@ function AdminNotificationsPage() {
 function QuickNotification() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [target, setTarget] = useState<"all"|"class"|"group">("all");
   const [classId, setClassId] = useState<string|undefined>();
   const [groupId, setGroupId] = useState<string|undefined>();
   const fn = useServerFn(broadcastNotification);
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () =>
     (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
-  const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () =>
-    (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
+  const { data: groups } = useQuery({ queryKey: ["groups", "all"], queryFn: async () =>
+    (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [] });
+
+  const filteredGroups = useMemo(
+    () => (groups ?? []).filter((g: any) => !classId || g.class_id === classId),
+    [groups, classId],
+  );
+
+  const target: "all"|"class"|"group" = groupId ? "group" : classId ? "class" : "all";
+  const targetLabel = target === "all" ? "جميع الطلاب"
+    : target === "group" ? `مجموعة: ${(groups ?? []).find((g:any)=>g.id===groupId)?.name ?? ""}`
+    : `صف: ${(classes ?? []).find((c:any)=>c.id===classId)?.name ?? ""}`;
 
   const send = useMutation({
     mutationFn: async () => fn({ data: { title, body, target, class_id: classId ?? null, group_id: groupId ?? null, student_ids: [], type: "admin" } }),
-    onSuccess: (r: any) => { toast.success(`تم إرسال الإشعار إلى ${r.count} طالب`); setTitle(""); setBody(""); },
+    onSuccess: (r: any) => { toast.success(`تم إرسال الإشعار إلى ${r.count} طالب`); setTitle(""); setBody(""); setClassId(undefined); setGroupId(undefined); },
     onError: (e: any) => toast.error(e?.message ?? "فشل الإرسال"),
   });
 
@@ -67,33 +76,28 @@ function QuickNotification() {
         <div><Label>العنوان</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان الإشعار"/></div>
         <div><Label>الرسالة</Label><Textarea rows={4} value={body} onChange={(e) => setBody(e.target.value)} /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>الفئة</Label>
-            <Select value={target} onValueChange={(v: any) => setTarget(v)}>
+          <div>
+            <Label>الصف الدراسي</Label>
+            <Select value={classId ?? "__all__"} onValueChange={(v) => { const nv = v === "__all__" ? undefined : v; setClassId(nv); setGroupId(undefined); }}>
               <SelectTrigger><SelectValue/></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">الجميع</SelectItem>
-                <SelectItem value="class">فصل</SelectItem>
-                <SelectItem value="group">مجموعة</SelectItem>
+                <SelectItem value="__all__">كل الصفوف</SelectItem>
+                {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          {target === "class" && (
-            <div><Label>الفصل</Label>
-              <Select value={classId} onValueChange={setClassId}>
-                <SelectTrigger><SelectValue placeholder="اختر"/></SelectTrigger>
-                <SelectContent>{(classes??[]).map((c:any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
-          {target === "group" && (
-            <div><Label>المجموعة</Label>
-              <Select value={groupId} onValueChange={setGroupId}>
-                <SelectTrigger><SelectValue placeholder="اختر"/></SelectTrigger>
-                <SelectContent>{(groups??[]).map((g:any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          )}
+          <div>
+            <Label>المجموعة {classId ? "(من الصف المختار)" : "(اختياري)"}</Label>
+            <Select value={groupId ?? "__all__"} onValueChange={(v) => setGroupId(v === "__all__" ? undefined : v)} disabled={filteredGroups.length === 0}>
+              <SelectTrigger><SelectValue placeholder={filteredGroups.length === 0 ? "لا توجد مجموعات" : "كل المجموعات"}/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">كل المجموعات</SelectItem>
+                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">سيتم الإرسال إلى: <span className="font-semibold text-foreground">{targetLabel}</span></p>
         <Button onClick={() => send.mutate()} disabled={!title.trim() || !body.trim() || send.isPending}>
           {send.isPending ? <Loader2 className="h-4 w-4 animate-spin ml-1"/> : <Send className="h-4 w-4 ml-1"/>}
           إرسال الإشعار
