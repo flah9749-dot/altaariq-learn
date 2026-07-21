@@ -433,13 +433,6 @@ export type Database = {
             referencedRelation: "questions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "attempt_answers_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "student_questions"
-            referencedColumns: ["id"]
-          },
         ]
       }
       backups: {
@@ -1212,13 +1205,6 @@ export type Database = {
             referencedRelation: "questions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "question_options_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "student_questions"
-            referencedColumns: ["id"]
-          },
         ]
       }
       questions: {
@@ -1656,103 +1642,11 @@ export type Database = {
       }
     }
     Views: {
-      student_question_options: {
-        Row: {
-          id: string | null
-          image_url: string | null
-          match_key: string | null
-          order_index: number | null
-          question_id: string | null
-          text: string | null
-        }
-        Insert: {
-          id?: string | null
-          image_url?: string | null
-          match_key?: string | null
-          order_index?: number | null
-          question_id?: string | null
-          text?: string | null
-        }
-        Update: {
-          id?: string | null
-          image_url?: string | null
-          match_key?: string | null
-          order_index?: number | null
-          question_id?: string | null
-          text?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "question_options_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "questions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "question_options_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "student_questions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_questions: {
-        Row: {
-          created_at: string | null
-          difficulty: string | null
-          exam_id: string | null
-          file_url: string | null
-          id: string | null
-          image_url: string | null
-          order_index: number | null
-          points: number | null
-          suggested_time_sec: number | null
-          text: string | null
-          type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          difficulty?: string | null
-          exam_id?: string | null
-          file_url?: string | null
-          id?: string | null
-          image_url?: string | null
-          order_index?: number | null
-          points?: number | null
-          suggested_time_sec?: number | null
-          text?: string | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          difficulty?: string | null
-          exam_id?: string | null
-          file_url?: string | null
-          id?: string | null
-          image_url?: string | null
-          order_index?: number | null
-          points?: number | null
-          suggested_time_sec?: number | null
-          text?: string | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "questions_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
+      admin_get_exam_questions: { Args: { _exam_id: string }; Returns: Json }
+      get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
