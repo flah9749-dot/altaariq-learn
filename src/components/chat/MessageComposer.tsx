@@ -105,7 +105,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
       <div className="flex items-end gap-1">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" title="إيموجي"><Smile className="h-5 w-5"/></Button>
+            <Button variant="ghost" size="icon" title="إيموجي" aria-label="اختر إيموجي"><Smile className="h-5 w-5"/></Button>
           </PopoverTrigger>
           <PopoverContent side="top" className="w-72 p-2" dir="rtl">
             <div className="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto">
