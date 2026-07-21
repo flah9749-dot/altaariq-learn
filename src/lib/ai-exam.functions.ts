@@ -45,12 +45,16 @@ export const generateExamWithAI = createServerFn({ method: "POST" })
 
     const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN } = await import("./ai-gateway.server");
 
+    const pointsInstruction = data.total_score && data.total_score > 0
+      ? `الدرجة الكلية للامتحان: ${data.total_score}. وزّع الدرجات على الأسئلة بحيث يكون مجموعها = ${data.total_score} بالضبط، مع مراعاة صعوبة كل سؤال (السهل درجة أقل، الصعب درجة أعلى). استخدم أرقامًا بنصف درجة عند الحاجة.`
+      : `درجة كل سؤال: ${data.points_per_question}.`;
+
     const systemPrompt = `أنت مساعد ذكاء اصطناعي تعليمي متخصص في إعداد امتحانات لمادة الدراسات الاجتماعية (تاريخ، جغرافيا، مواطنة) لمنصة "الطارق التعليمية".
 لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
 عدد الأسئلة المطلوب: ${data.num_questions}.
 الأنواع المسموح بها: ${data.question_types.join(", ")}.
 مستوى الصعوبة: ${data.difficulty}.
-درجة كل سؤال: ${data.points_per_question}.
+${pointsInstruction}
 تأكد من دقة الإجابات الصحيحة وتنوع الأسئلة.
 ${SCHEMA_HINT}`;
 
