@@ -146,11 +146,16 @@ function StudentsPage() {
   };
   const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const invalidateStudents = () => {
+    qc.invalidateQueries({ queryKey: ["students"] });
+    qc.invalidateQueries({ queryKey: ["students-grouped"] });
+  };
+
   const deleteMut = useMutation({
     mutationFn: async (ids: string[]) => delFn({ data: { ids } }),
     onSuccess: (r: any) => {
       toast.success(`تم حذف ${r.count} طالب`);
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       setSelected(new Set()); setConfirmDelete(null);
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
@@ -161,7 +166,7 @@ function StudentsPage() {
       toggleFn({ data: { ids, status } }),
     onSuccess: () => {
       toast.success("تم تحديث الحالة");
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       setSelected(new Set());
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل التحديث"),
@@ -171,13 +176,14 @@ function StudentsPage() {
     mutationFn: async ({ ids, year }: { ids: string[]; year: string }) => archiveFn({ data: { ids, year } }),
     onSuccess: (r: any) => {
       toast.success(`تم أرشفة ${r.count} طالب`);
-      qc.invalidateQueries({ queryKey: ["students"] });
+      invalidateStudents();
       qc.invalidateQueries({ queryKey: ["archived-students"] });
       setSelected(new Set());
       setArchiveOpen(false);
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الأرشفة"),
   });
+
 
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
