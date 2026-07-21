@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ export function NotificationsBell() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const markFn = useServerFn(markNotificationRead);
+  const navigate = useNavigate();
 
   const { data } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -28,11 +30,28 @@ export function NotificationsBell() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel(`notif-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload: any) => {
+          qc.invalidateQueries({ queryKey: ["notifications", user.id] });
+          const n = payload?.new;
+          if (!n) return;
+          let href: string = n.link ?? "#";
+          if (href === "/messages") {
+            href = window.location.pathname.startsWith("/admin") ? "/admin/messages" : "/student/messages";
+          }
+          toast(n.title ?? "إشعار جديد", {
+            description: n.body ?? "",
+            action: href && href !== "#" ? {
+              label: "عرض",
+              onClick: () => { navigate({ to: href }); },
+            } : undefined,
+          });
+        })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => qc.invalidateQueries({ queryKey: ["notifications", user.id] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, qc]);
+  }, [user, qc, navigate]);
 
   const unread = (data ?? []).filter((n: any) => !n.read).length;
 
