@@ -2,7 +2,7 @@
 // Server-only. Reads keys from process.env (Secrets).
 
 export type ProviderSlug =
-  | "gemini" | "openai" | "claude" | "groq"
+  | "lovable" | "gemini" | "openai" | "claude" | "groq"
   | "deepseek" | "mistral" | "openrouter";
 
 export type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
@@ -14,6 +14,7 @@ export type ProviderResult = {
 };
 
 const SECRET: Record<ProviderSlug, string> = {
+  lovable: "LOVABLE_API_KEY",
   gemini: "GEMINI_API_KEY",
   openai: "OPENAI_API_KEY",
   claude: "ANTHROPIC_API_KEY",
@@ -24,6 +25,7 @@ const SECRET: Record<ProviderSlug, string> = {
 };
 
 const DEFAULT_MODEL: Record<ProviderSlug, string> = {
+  lovable: "google/gemini-3.5-flash",
   gemini: "gemini-2.0-flash-exp",
   openai: "gpt-4o-mini",
   claude: "claude-3-5-sonnet-20241022",
@@ -34,7 +36,7 @@ const DEFAULT_MODEL: Record<ProviderSlug, string> = {
 };
 
 export const FALLBACK_ORDER: ProviderSlug[] = [
-  "gemini", "openai", "claude", "groq", "deepseek", "mistral", "openrouter",
+  "lovable", "gemini", "openai", "claude", "groq", "deepseek", "mistral", "openrouter",
 ];
 
 export function getKey(slug: ProviderSlug): string | undefined {
