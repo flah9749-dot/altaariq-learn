@@ -219,12 +219,15 @@ function StudentsPage() {
       {selected.size > 0 && (
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-2 print:hidden">
           <span className="text-sm font-medium">تم تحديد {selected.size} طالب</span>
-          <div className="mr-auto flex gap-2">
+          <div className="mr-auto flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => toggleMut.mutate({ ids: [...selected], status: "suspended" })}>
               <Ban className="h-4 w-4 ml-1" />إيقاف
             </Button>
             <Button size="sm" variant="outline" onClick={() => toggleMut.mutate({ ids: [...selected], status: "active" })}>
               <CheckCircle2 className="h-4 w-4 ml-1" />تفعيل
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setArchiveOpen(true)}>
+              <Archive className="h-4 w-4 ml-1" />أرشفة
             </Button>
             <Button size="sm" variant="destructive" onClick={() => setConfirmDelete({ ids: [...selected] })}>
               <Trash2 className="h-4 w-4 ml-1" />حذف
