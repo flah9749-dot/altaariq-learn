@@ -110,9 +110,8 @@ function ExamResultsPage() {
   const COLORS = ["hsl(var(--destructive))", "hsl(var(--warning))", "hsl(var(--primary))", "hsl(var(--success))"];
 
   const openReview = async (att: any) => {
-    const { data } = await supabase.from("attempt_answers")
-      .select("*, questions(id,text,type,points,explanation,correct_answer)").eq("attempt_id", att.id);
-    setReviewing({ attempt: att, answers: data ?? [] });
+    const { data } = await supabase.rpc("get_attempt_review", { _attempt_id: att.id });
+    setReviewing({ attempt: att, answers: (data as any) ?? [] });
   };
 
   const invalidateAll = () => {
@@ -140,9 +139,8 @@ function ExamResultsPage() {
 
   const openReviewRefresh = async () => {
     if (!reviewing?.attempt) return;
-    const { data } = await supabase.from("attempt_answers")
-      .select("*, questions(id,text,type,points,explanation,correct_answer)").eq("attempt_id", reviewing.attempt.id);
-    setReviewing((prev: any) => prev ? { ...prev, answers: data ?? [] } : prev);
+    const { data } = await supabase.rpc("get_attempt_review", { _attempt_id: reviewing.attempt.id });
+    setReviewing((prev: any) => prev ? { ...prev, answers: (data as any) ?? [] } : prev);
   };
 
   const approve = useMutation({
