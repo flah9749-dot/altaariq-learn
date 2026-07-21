@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
+  KeyRound, Copy, Check, RefreshCw, Eye, IdCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +18,9 @@ import { Progress } from "@/components/ui/progress";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
-import { formatArabicDate, formatArabicDateTime, type StudentRow } from "@/lib/students-utils";
+import { StudentCardDialog } from "@/components/students/StudentCardDialog";
+import { resetStudentPassword } from "@/lib/students.functions";
+import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/students/$id")({
   head: () => ({ meta: [{ title: "كارت الطالب — لوحة المدرس" }] }),
