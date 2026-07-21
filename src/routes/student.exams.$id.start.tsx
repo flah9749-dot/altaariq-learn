@@ -89,10 +89,29 @@ function StartExamPage() {
             </Alert>
           )}
 
-          <Button className="w-full h-12 text-base" disabled={qCount === 0}
-            onClick={() => nav({ to: "/student/exams/$id", params: { id } })}>
-            <Play className="h-5 w-5 ml-2" />ابدأ الامتحان الآن
-          </Button>
+          {(() => {
+            const st = deriveStatus(exam);
+            if (st === "ended") {
+              return (
+                <Alert variant="destructive"><AlertCircle className="h-4 w-4" />
+                  <AlertDescription>انتهى وقت هذا الامتحان ولم يعد متاحًا.</AlertDescription>
+                </Alert>
+              );
+            }
+            if (st === "scheduled") {
+              return (
+                <Alert><AlertCircle className="h-4 w-4" />
+                  <AlertDescription>الامتحان لم يبدأ بعد. يبدأ في: {exam.starts_at ? formatArabicDateTime(exam.starts_at) : "—"}</AlertDescription>
+                </Alert>
+              );
+            }
+            return (
+              <Button className="w-full h-12 text-base" disabled={qCount === 0}
+                onClick={() => nav({ to: "/student/exams/$id", params: { id } })}>
+                <Play className="h-5 w-5 ml-2" />ابدأ الامتحان الآن
+              </Button>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
