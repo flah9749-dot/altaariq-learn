@@ -84,12 +84,18 @@ function SettingsPage() {
       <Tabs defaultValue="identity" dir="rtl">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="identity"><Palette className="h-4 w-4 ml-1"/>الهوية</TabsTrigger>
+          <TabsTrigger value="account"><UserCog className="h-4 w-4 ml-1"/>الحساب</TabsTrigger>
           <TabsTrigger value="exams"><FileText className="h-4 w-4 ml-1"/>الامتحانات</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 ml-1"/>الرسائل</TabsTrigger>
           <TabsTrigger value="rewards"><Trophy className="h-4 w-4 ml-1"/>الجوائز</TabsTrigger>
           <TabsTrigger value="security"><Shield className="h-4 w-4 ml-1"/>الأمان</TabsTrigger>
           <TabsTrigger value="backup"><Database className="h-4 w-4 ml-1"/>النسخ الاحتياطي</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="account" className="space-y-4">
+          <AccountPanel />
+        </TabsContent>
+
 
         {/* Identity */}
         <TabsContent value="identity" className="space-y-4">
