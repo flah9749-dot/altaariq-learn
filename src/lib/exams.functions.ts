@@ -303,11 +303,14 @@ export const submitAttempt = createServerFn({ method: "POST" })
     if (aErr || !att) throw new Error("المحاولة غير موجودة");
     if (att.status !== "in_progress") throw new Error("تم تسليم هذه المحاولة");
 
-    const { data: questions } = await supabase.from("questions")
+    // Use admin client for grading writes — student RLS/triggers block scoring fields.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: questions } = await supabaseAdmin.from("questions")
       .select("id,type,points,correct_answer,question_options(id,is_correct)")
       .eq("exam_id", att.exam_id);
 
-    const { data: answers } = await supabase.from("attempt_answers")
+    const { data: answers } = await supabaseAdmin.from("attempt_answers")
       .select("question_id,answer").eq("attempt_id", att.id);
     const ansMap = new Map((answers ?? []).map((a: any) => [a.question_id, a.answer]));
 
@@ -317,7 +320,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
       const ans = ansMap.get(q.id);
       if (q.type === "essay") {
         needsReview = true;
-        await supabase.from("attempt_answers").upsert({
+        await supabaseAdmin.from("attempt_answers").upsert({
           attempt_id: att.id, question_id: q.id, answer: ans ?? null,
           is_correct: null, awarded_points: null,
         }, { onConflict: "attempt_id,question_id" });
@@ -325,7 +328,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
       }
       const ev = evaluateObjective(q, ans);
       score += ev.points;
-      await supabase.from("attempt_answers").upsert({
+      await supabaseAdmin.from("attempt_answers").upsert({
         attempt_id: att.id, question_id: q.id, answer: ans ?? null,
         is_correct: ev.correct, awarded_points: ev.points,
       }, { onConflict: "attempt_id,question_id" });
@@ -333,7 +336,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
 
     const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
     const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
-    const { error: upErr } = await supabase.from("exam_attempts").update({
+    const { error: upErr } = await supabaseAdmin.from("exam_attempts").update({
       status: needsReview ? "submitted" : "graded",
       submitted_at: new Date().toISOString(),
       score, total, percentage: pct, grade: computeGrade(pct),
@@ -341,13 +344,14 @@ export const submitAttempt = createServerFn({ method: "POST" })
     }).eq("id", att.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Save to results table (for legacy compatibility) + points
-    await supabase.from("results").insert({
+    // Save to results table (for legacy compatibility)
+    await supabaseAdmin.from("results").insert({
       exam_id: att.exam_id, student_id: att.student_id, score, total,
     });
 
     return { ok: true, score, total, percentage: pct, needs_review: needsReview };
   });
+
 
 export const gradeEssay = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
