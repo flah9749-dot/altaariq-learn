@@ -131,9 +131,18 @@ ${SCHEMA_HINT}`;
       return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
     };
 
-    const normalized = questions.map((q: any, i: number) => {
+    const normalized = await Promise.all(questions.map(async (q: any, i: number) => {
       const type = data.question_types.includes(q.type) ? q.type : "mcq";
-      const imageUrl = resolveImageUrl(q.image_url) ?? (type === "map" ? imageAttachments[0]?.data_url ?? null : null);
+      let imageUrl = resolveImageUrl(q.image_url) ?? (type === "map" ? imageAttachments[0]?.data_url ?? null : null);
+      // Auto-generate a map image when the question is a map question and no image is available
+      if (type === "map" && !imageUrl) {
+        const prompt = typeof q.map_image_prompt === "string" && q.map_image_prompt.trim()
+          ? q.map_image_prompt.trim()
+          : `Clear educational blank map illustration related to: ${String(q.text ?? data.topic ?? "geography")}. Flat vector style, high contrast, labeled borders, suitable as a quiz map, no text answers shown.`;
+        try {
+          imageUrl = await generateImageViaGateway(prompt);
+        } catch { imageUrl = null; }
+      }
       return {
         type,
         text: q.text ?? "",
@@ -149,7 +158,7 @@ ${SCHEMA_HINT}`;
           order_index: oi,
         })) : [],
       };
-    });
+    }));
 
     // Enforce total_score exactly if provided (scale then round to 0.5, fix drift on last question)
     if (data.total_score && data.total_score > 0 && normalized.length > 0) {
