@@ -357,6 +357,31 @@ function ExamEditor() {
 
                 {q.type === "map" && (
                   <div className="space-y-3 rounded-lg border p-3">
+                    <div className="flex flex-wrap gap-2 pb-2 border-b">
+                      <Button size="sm" variant="secondary" onClick={() => setAiMapDlg({ open: true, qi: i, topic: q.text || "", num: 6, busy: false })}>
+                        <Sparkles className="h-4 w-4 ml-1" />توليد الخريطة بالذكاء الاصطناعي
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={async () => {
+                        setLibDlg({ open: true, qi: i });
+                        if (!libItems) { try { const items = await listTplFn(); setLibItems(items as any[]); } catch { setLibItems([]); } }
+                      }}>
+                        <MapPin className="h-4 w-4 ml-1" />من المكتبة
+                      </Button>
+                      <Button size="sm" variant="ghost" disabled={!q.image_url} onClick={async () => {
+                        const title = window.prompt("عنوان القالب:", q.text || "قالب خريطة");
+                        if (!title?.trim()) return;
+                        try {
+                          await saveTplFn({ data: {
+                            title: title.trim(), image_url: q.image_url!, category: null, description: null,
+                            points: getMapPoints(q.correct_answer),
+                          } });
+                          toast.success("تم الحفظ في المكتبة");
+                          setLibItems(null);
+                        } catch (e: any) { toast.error(e?.message ?? "فشل الحفظ"); }
+                      }}>
+                        <Save className="h-4 w-4 ml-1" />حفظ في المكتبة
+                      </Button>
+                    </div>
                     <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                       <Input
                         placeholder="رابط صورة الخريطة أو ارفع صورة"
