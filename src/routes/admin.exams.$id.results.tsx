@@ -125,6 +125,19 @@ function ExamResultsPage() {
     setReviewing({ attempt: att, answers: (data as any) ?? [] });
   };
 
+  const search = Route.useSearch();
+  const autoOpenedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const target = search.attempt;
+    if (!target || autoOpenedRef.current === target) return;
+    const att = (attempts ?? []).find((a: any) => a.id === target);
+    if (att) {
+      autoOpenedRef.current = target;
+      openReview(att);
+    }
+  }, [search.attempt, attempts]);
+
+
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["exam-attempts", id] });
     qc.invalidateQueries({ queryKey: ["exam-answers", id] });
