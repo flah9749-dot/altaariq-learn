@@ -81,3 +81,35 @@ export function parseJsonLoose<T = unknown>(text: string): T {
   if (match) return JSON.parse(match[0]) as T;
   throw new Error("تعذّر تحليل رد AI كـ JSON");
 }
+
+// Generate an image via Lovable AI Gateway (chat-shape Gemini image model).
+// Returns a data URL string (data:image/...;base64,...) or null on failure.
+export async function generateImageViaGateway(prompt: string, opts: { model?: string } = {}): Promise<string | null> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) return null;
+  const model = opts.model ?? "google/gemini-2.5-flash-image-preview";
+  try {
+    const res = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as any;
+    const msg = json?.choices?.[0]?.message;
+    const imgs = msg?.images;
+    if (Array.isArray(imgs) && imgs[0]?.image_url?.url) return String(imgs[0].image_url.url);
+    // Some providers return the image inline in content parts
+    const parts = Array.isArray(msg?.content) ? msg.content : [];
+    for (const p of parts) {
+      if (p?.type === "image_url" && p?.image_url?.url) return String(p.image_url.url);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

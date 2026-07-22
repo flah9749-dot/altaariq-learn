@@ -31,6 +31,7 @@ const SCHEMA_HINT = `أعد ردًا بصيغة JSON فقط بالمخطط ال�
       "explanation": "شرح الإجابة (اختياري)",
       "options": [{"text": "...", "is_correct": true}],  // للاختيار من متعدد فقط
       "image_url": "attachment:اسم_الصورة" , // لأسئلة الخرائط فقط عند استخدام صورة مرفقة
+      "map_image_prompt": "وصف مختصر بالإنجليزية لصورة الخريطة المطلوبة (اختياري، لأسئلة الخرائط فقط عندما لا توجد صورة مرفقة). مثل: 'Blank political map of Australia highlighting Tasmania location, educational style, labeled regions'",
       "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل، وللخريطة: {"points":[{"label":"الموقع","x":50,"y":50,"tolerance":8}]}
     }
   ]
@@ -44,7 +45,7 @@ export const generateExamWithAI = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("مسموح للأدمن فقط");
 
-    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN } = await import("./ai-gateway.server");
+    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN, generateImageViaGateway } = await import("./ai-gateway.server");
 
     const pointsInstruction = data.total_score && data.total_score > 0
       ? `الدرجة الكلية للامتحان: ${data.total_score}. وزّع الدرجات على الأسئلة بحيث يكون مجموعها = ${data.total_score} بالضبط، مع مراعاة صعوبة كل سؤال (السهل درجة أقل، الصعب درجة أعلى). استخدم أرقامًا بنصف درجة عند الحاجة.`
@@ -66,11 +67,11 @@ ${SCHEMA_HINT}`;
       data.raw_text ? `المحتوى المرجعي:\n${data.raw_text.slice(0, 12000)}` : "",
       data.attachments.length ? `استخرج النص من المرفقات (صور/PDF) إن وُجدت واستخدمه لإنشاء الأسئلة.\nالمرفقات المتاحة:\n${data.attachments.map((a, index) => `- ${index + 1}. ${a.name} (${a.kind})`).join("\n")}` : "",
       data.question_types.includes("map") ? `تعليمات أسئلة الخرائط:
-- إذا وجدت خريطة في صورة مرفقة أو كان الموضوع مناسبًا للخرائط، أنشئ سؤالاً أو أكثر من النوع "map".
-- سؤال الخريطة يجب أن يحتوي image_url بقيمة "attachment:اسم_الصورة" عند استخدام صورة مرفقة.
-- استخدم إحداثيات نسبية على الخريطة من 0 إلى 100: x من اليمين/اليسار بصريًا داخل الصورة و y من أعلى الصورة إلى أسفلها.
-- correct_answer يجب أن يكون: {"points":[{"label":"اسم الموقع المطلوب","x":50,"y":50,"tolerance":8}]}.
-- لا تختر أسئلة خريطة إذا لم توجد صورة خريطة أو سياق جغرافي واضح.` : "",
+- إذا كان الموضوع مناسبًا للخرائط (جغرافيا، دول، قارات، مواقع، حدود، تضاريس...)، أنشئ سؤالاً أو أكثر من النوع "map".
+- إذا وُجدت صورة خريطة ضمن المرفقات، استخدمها وضع image_url = "attachment:اسم_الصورة".
+- إذا لم توجد صورة مرفقة، اترك image_url فارغًا وأضف حقل map_image_prompt بوصف مختصر بالإنجليزية لصورة الخريطة المطلوب توليدها تلقائيًا (يجب أن يصف خريطة تعليمية واضحة تُظهر المنطقة الجغرافية المطلوبة).
+- استخدم إحداثيات نسبية على الخريطة من 0 إلى 100: x من يسار الصورة إلى يمينها، y من أعلى الصورة إلى أسفلها.
+- correct_answer يجب أن يكون: {"points":[{"label":"اسم الموقع المطلوب","x":50,"y":50,"tolerance":8}]}.` : "",
       "أنشئ الآن الامتحان بصيغة JSON فقط.",
     ].filter(Boolean).join("\n\n");
     parts.push({ type: "text", text: textInstruction });
@@ -130,9 +131,18 @@ ${SCHEMA_HINT}`;
       return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
     };
 
-    const normalized = questions.map((q: any, i: number) => {
+    const normalized = await Promise.all(questions.map(async (q: any, i: number) => {
       const type = data.question_types.includes(q.type) ? q.type : "mcq";
-      const imageUrl = resolveImageUrl(q.image_url) ?? (type === "map" ? imageAttachments[0]?.data_url ?? null : null);
+      let imageUrl = resolveImageUrl(q.image_url) ?? (type === "map" ? imageAttachments[0]?.data_url ?? null : null);
+      // Auto-generate a map image when the question is a map question and no image is available
+      if (type === "map" && !imageUrl) {
+        const prompt = typeof q.map_image_prompt === "string" && q.map_image_prompt.trim()
+          ? q.map_image_prompt.trim()
+          : `Clear educational blank map illustration related to: ${String(q.text ?? data.topic ?? "geography")}. Flat vector style, high contrast, labeled borders, suitable as a quiz map, no text answers shown.`;
+        try {
+          imageUrl = await generateImageViaGateway(prompt);
+        } catch { imageUrl = null; }
+      }
       return {
         type,
         text: q.text ?? "",
@@ -148,7 +158,7 @@ ${SCHEMA_HINT}`;
           order_index: oi,
         })) : [],
       };
-    });
+    }));
 
     // Enforce total_score exactly if provided (scale then round to 0.5, fix drift on last question)
     if (data.total_score && data.total_score > 0 && normalized.length > 0) {
