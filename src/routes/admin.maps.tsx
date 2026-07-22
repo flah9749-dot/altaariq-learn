@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Map, Plus, Trash2, Search, ImagePlus, Save } from "lucide-react";
+import { Map, Plus, Trash2, Search, ImagePlus, Save, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { listMapTemplates, upsertMapTemplate, deleteMapTemplate } from "@/lib/map-templates.functions";
+import { analyzeMapImage } from "@/lib/ai-map.functions";
+import { InteractiveMapEditor, type MapEditorPoint } from "@/components/maps/InteractiveMapEditor";
 
 export const Route = createFileRoute("/admin/maps")({
   head: () => ({
