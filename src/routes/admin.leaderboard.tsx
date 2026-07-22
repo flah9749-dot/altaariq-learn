@@ -166,10 +166,11 @@ function LeaderboardPage() {
               <TableHead>المتوسط</TableHead>
               <TableHead>نسبة النجاح</TableHead>
               <TableHead>عدد الامتحانات</TableHead>
+              <TableHead className="text-center">إجراء</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {isLoading ? Array.from({length:5}).map((_,i)=> <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-8"/></TableCell></TableRow>) :
-               rows.length === 0 ? <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">لا يوجد طلاب</TableCell></TableRow> :
+              {isLoading ? Array.from({length:5}).map((_,i)=> <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-8"/></TableCell></TableRow>) :
+               rows.length === 0 ? <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">لا يوجد طلاب</TableCell></TableRow> :
                rows.map((r: any, i: number) => (
                 <TableRow key={r.id}>
                   <TableCell><Badge variant={i < 3 ? "default" : "outline"} className={i < 3 ? rankColor(i) : ""}>{i + 1}</Badge></TableCell>
@@ -181,6 +182,14 @@ function LeaderboardPage() {
                   <TableCell>{r.avg_score}%</TableCell>
                   <TableCell>{r.pass_rate}%</TableCell>
                   <TableCell>{r.exam_count}</TableCell>
+                  <TableCell className="text-center">
+                    <PointsAdjustDialog
+                      studentId={r.id}
+                      studentName={r.full_name}
+                      currentPoints={r.points ?? 0}
+                      trigger={<Button size="sm" variant="ghost" title="تعديل النقاط"><Sparkles className="h-4 w-4"/></Button>}
+                    />
+                  </TableCell>
                 </TableRow>
                ))}
             </TableBody>
