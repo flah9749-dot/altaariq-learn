@@ -98,7 +98,7 @@ ${SCHEMA_HINT}`;
     for (const p of normalized) {
       const key = `${p.prompt}|${p.label}`.toLowerCase();
       if (seenKeys.has(key)) continue;
-      const tooClose = points.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 8);
+      const tooClose = points.some((q: { x: number; y: number }) => Math.hypot(q.x - p.x, q.y - p.y) < 8);
       if (tooClose) continue;
       seenKeys.add(key);
       points.push(p);
