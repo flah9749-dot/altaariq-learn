@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight, Save, Plus, Trash2, GripVertical, CheckCircle2, XCircle,
-  Sparkles, Settings2, FileText,
+  Sparkles, Settings2, FileText, ImagePlus, MapPin,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,7 +62,37 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   if (type === "complete") base.correct_answer = "";
   if (type === "order") base.options = [{ text: "", is_correct: false, order_index: 0 }];
   if (type === "match") base.options = [{ text: "", is_correct: false, order_index: 0, match_key: "أ" }];
+  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
   return base;
+}
+
+const getMapPoints = (answer: any): Array<{ label: string; x: number; y: number; tolerance: number }> => {
+  const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
+  return raw.length ? raw.map((p: any) => ({
+    label: String(p?.label ?? "الموقع الصحيح"),
+    x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
+    y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
+    tolerance: Number.isFinite(Number(p?.tolerance)) ? Number(p.tolerance) : 8,
+  })) : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }];
+};
+
+const setMapPoint = (answer: any, index: number, patch: Partial<{ label: string; x: number; y: number; tolerance: number }>) => {
+  const points = getMapPoints(answer).map((p, i) => i === index ? { ...p, ...patch } : p);
+  return { points };
+};
+
+function readImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function prepareQuestionImage(file: File): Promise<File | Blob> {
+  const { compressImage } = await import("@/lib/message-utils");
+  return compressImage(file, 1800, 0.84);
 }
 
 function ExamEditor() {
@@ -210,7 +240,7 @@ function ExamEditor() {
                 <div className="flex items-center gap-2">
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
                   <Badge variant="outline">{i + 1}</Badge>
-                  <Select value={q.type} onValueChange={(v) => updateQ(i, { ...makeBlank(v as QuestionType), text: q.text, points: q.points })}>
+                  <Select value={q.type} onValueChange={(v) => updateQ(i, { ...makeBlank(v as QuestionType), text: q.text, points: q.points, image_url: v === "map" ? q.image_url : undefined })}>
                     <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
                     <SelectContent>{QUESTION_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                   </Select>
@@ -290,6 +320,60 @@ function ExamEditor() {
 
                 {q.type === "essay" && (
                   <p className="text-xs text-muted-foreground">سؤال مقالي — يتم تصحيحه يدويًا أو بمساعدة الذكاء الاصطناعي.</p>
+                )}
+
+                {q.type === "map" && (
+                  <div className="space-y-3 rounded-lg border p-3">
+                    <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                      <Input
+                        placeholder="رابط صورة الخريطة أو ارفع صورة"
+                        value={q.image_url ?? ""}
+                        onChange={(e) => updateQ(i, { image_url: e.target.value })}
+                      />
+                      <Button asChild variant="outline">
+                        <label className="cursor-pointer">
+                          <ImagePlus className="h-4 w-4 ml-1" />رفع خريطة
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 50 * 1024 * 1024) { toast.error("حجم الصورة أكبر من 50MB"); return; }
+                              try {
+                                const prepared = await prepareQuestionImage(file);
+                                const dataUrl = await readImage(prepared instanceof File ? prepared : new File([prepared], file.name, { type: "image/jpeg" }));
+                                updateQ(i, { image_url: dataUrl });
+                              } catch {
+                                toast.error("فشل تجهيز صورة الخريطة");
+                              } finally {
+                                e.currentTarget.value = "";
+                              }
+                            }}
+                          />
+                        </label>
+                      </Button>
+                    </div>
+                    {q.image_url ? (
+                      <MapTargetEditor
+                        imageUrl={q.image_url}
+                        points={getMapPoints(q.correct_answer)}
+                        onPick={(x, y) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, 0, { x, y }) })}
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">ارفع صورة خريطة ليتمكن الطالب من تحديد الموقع عليها.</div>
+                    )}
+                    {getMapPoints(q.correct_answer).map((p, pi) => (
+                      <div key={pi} className="grid gap-2 md:grid-cols-[1fr_90px_90px_100px]">
+                        <Input placeholder="اسم الموقع" value={p.label} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { label: e.target.value }) })} />
+                        <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { x: Number(e.target.value) }) })} />
+                        <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { y: Number(e.target.value) }) })} />
+                        <Input type="number" min={3} max={20} value={p.tolerance} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { tolerance: Number(e.target.value) }) })} />
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">اضغط على مكان الإجابة الصحيحة داخل الخريطة. يتم الحفظ بإحداثيات نسبية حتى تعمل على كل الشاشات.</p>
+                  </div>
                 )}
 
                 <Textarea placeholder="شرح الإجابة (اختياري)" value={q.explanation ?? ""} onChange={(e) => updateQ(i, { explanation: e.target.value })} rows={1} />
@@ -387,4 +471,30 @@ function ExamEditor() {
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return <div className={`space-y-1.5 ${className ?? ""}`}><Label>{label}</Label>{children}</div>;
+}
+
+function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: Array<{ label: string; x: number; y: number; tolerance: number }>; onPick: (x: number, y: number) => void }) {
+  return (
+    <button
+      type="button"
+      className="relative block w-full overflow-hidden rounded-lg border bg-muted text-right"
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
+        const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
+        onPick(Math.max(0, Math.min(100, x)), Math.max(0, Math.min(100, y)));
+      }}
+    >
+      <img src={imageUrl} alt="خريطة السؤال" className="max-h-96 w-full object-contain" />
+      {points.map((p, index) => (
+        <span
+          key={index}
+          className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+          style={{ left: `${p.x}%`, top: `${p.y}%` }}
+        >
+          <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+        </span>
+      ))}
+    </button>
+  );
 }
