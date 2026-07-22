@@ -145,6 +145,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => {
     import("@/lib/pwa-register").then((m) => m.registerInstallabilityServiceWorker());
+    import("@/lib/clock-sync").then((m) => m.startClockSync());
   }, []);
   return (
     <QueryClientProvider client={queryClient}>
