@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { listMapTemplates, upsertMapTemplate, deleteMapTemplate } from "@/lib/map-templates.functions";
-import { analyzeMapImage } from "@/lib/ai-map.functions";
+import { analyzeMapImage, cleanMapImage } from "@/lib/ai-map.functions";
 import { InteractiveMapEditor, type MapEditorPoint } from "@/components/maps/InteractiveMapEditor";
+import { Eraser } from "lucide-react";
 
 export const Route = createFileRoute("/admin/maps")({
   head: () => ({
