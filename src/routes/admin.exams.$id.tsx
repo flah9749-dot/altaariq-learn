@@ -207,6 +207,18 @@ function ExamEditor() {
           <ArrowRight className="h-4 w-4 ml-1" />القائمة
         </Button>
         <div className="mr-auto flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            const { exportExamToPdf } = await import("@/lib/exam-pdf");
+            await exportExamToPdf({ title: meta.title ?? "امتحان", subtitle: meta.subject ?? undefined, questions: questions as any, showAnswers: false });
+          }} disabled={questions.length === 0}>
+            <FileText className="h-4 w-4 ml-1" />PDF للطباعة
+          </Button>
+          <Button variant="outline" size="sm" onClick={async () => {
+            const { exportExamToPdf } = await import("@/lib/exam-pdf");
+            await exportExamToPdf({ title: meta.title ?? "امتحان", subtitle: meta.subject ?? undefined, questions: questions as any, showAnswers: true });
+          }} disabled={questions.length === 0}>
+            <FileText className="h-4 w-4 ml-1" />نموذج الإجابة
+          </Button>
           <Button variant={meta.published ? "outline" : "default"} size="sm" onClick={() => publish.mutate()}>
             {meta.published ? <><XCircle className="h-4 w-4 ml-1" />إلغاء النشر</> : <><CheckCircle2 className="h-4 w-4 ml-1" />نشر</>}
           </Button>

@@ -215,10 +215,18 @@ function AIExamPage() {
       ) : (
         <div className="space-y-4">
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
+            <CardHeader className="flex-row items-center justify-between flex-wrap gap-2">
               <CardTitle>مراجعة الامتحان: {preview.title}</CardTitle>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setPreview(null)}>إعادة التوليد</Button>
+                <Button variant="outline" onClick={async () => {
+                  const { exportExamToPdf } = await import("@/lib/exam-pdf");
+                  await exportExamToPdf({ title: preview.title, questions: preview.questions, showAnswers: false });
+                }}>تنزيل PDF للطباعة</Button>
+                <Button variant="outline" onClick={async () => {
+                  const { exportExamToPdf } = await import("@/lib/exam-pdf");
+                  await exportExamToPdf({ title: preview.title, questions: preview.questions, showAnswers: true });
+                }}>نموذج الإجابة PDF</Button>
                 <Button variant="outline" onClick={editInEditor}>تعديل في المحرر</Button>
                 <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
                   {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin ml-1" />}حفظ وفتح
