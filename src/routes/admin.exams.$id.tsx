@@ -503,29 +503,89 @@ function Field({ label, children, className }: { label: string; children: React.
   return <div className={`space-y-1.5 ${className ?? ""}`}><Label>{label}</Label>{children}</div>;
 }
 
-function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: MapPoint[]; onPick: (x: number, y: number) => void }) {
+function MapTargetEditor({
+  imageUrl,
+  points,
+  onPick,
+  onMove,
+  onRemove,
+}: {
+  imageUrl: string;
+  points: MapPoint[];
+  onPick: (x: number, y: number) => void;
+  onMove?: (index: number, x: number, y: number) => void;
+  onRemove?: (index: number) => void;
+}) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = React.useState<number | null>(null);
+  const draggedRef = React.useRef(false);
+
+  const coordsFromEvent = (clientX: number, clientY: number) => {
+    const el = containerRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const x = Math.round(((clientX - rect.left) / rect.width) * 1000) / 10;
+    const y = Math.round(((clientY - rect.top) / rect.height) * 1000) / 10;
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+  };
+
+  React.useEffect(() => {
+    if (dragging === null) return;
+    const move = (e: PointerEvent) => {
+      const c = coordsFromEvent(e.clientX, e.clientY);
+      if (c && onMove) { draggedRef.current = true; onMove(dragging, c.x, c.y); }
+    };
+    const up = () => setDragging(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  }, [dragging, onMove]);
+
   return (
-    <button
-      type="button"
-      className="relative block w-full overflow-hidden rounded-lg border bg-muted text-right"
-      onClick={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
-        const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
-        onPick(Math.max(0, Math.min(100, x)), Math.max(0, Math.min(100, y)));
-      }}
-    >
-      <img src={imageUrl} alt="خريطة السؤال" className="max-h-96 w-full object-contain" />
-      {points.map((p, index) => (
-        <span
-          key={index}
-          className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-destructive text-xs font-bold text-destructive-foreground shadow-lg"
-          style={{ left: `${p.x}%`, top: `${p.y}%` }}
-          title={p.label}
-        >
-          {index + 1}
-        </span>
-      ))}
-    </button>
+    <div className="space-y-2">
+      <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        💡 اضغط على أي مكان في الخريطة لإضافة نقطة جديدة — اسحب النقاط لنقل موضعها — استخدم زر ✕ أعلى كل نقطة لحذفها.
+      </div>
+      <div
+        ref={containerRef}
+        className="relative block w-full select-none overflow-hidden rounded-lg border-2 border-dashed border-primary/30 bg-muted text-right"
+        onClick={(event) => {
+          if (draggedRef.current) { draggedRef.current = false; return; }
+          const c = coordsFromEvent(event.clientX, event.clientY);
+          if (c) onPick(c.x, c.y);
+        }}
+        style={{ cursor: "crosshair" }}
+      >
+        <img src={imageUrl} alt="خريطة السؤال" className="pointer-events-none max-h-96 w-full object-contain" draggable={false} />
+        {points.map((p, index) => (
+          <div
+            key={index}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              role="button"
+              tabIndex={0}
+              title={`${p.label} — اسحب للنقل`}
+              onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); (e.target as Element).setPointerCapture?.(e.pointerId); setDragging(index); }}
+              className="flex h-8 w-8 cursor-grab items-center justify-center rounded-full border-2 border-white bg-destructive text-sm font-bold text-destructive-foreground shadow-lg active:cursor-grabbing"
+            >
+              {index + 1}
+            </div>
+            {onRemove && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onRemove(index); }}
+                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-slate-900 text-[10px] font-bold text-white shadow hover:bg-red-600"
+                title="حذف هذه النقطة"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
