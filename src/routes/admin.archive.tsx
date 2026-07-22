@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 // xlsx is dynamically imported inside exportExcel() to keep it out of the initial bundle
 import {
-  Archive, Search, Download, RotateCcw, ArrowUp, Eye,
+  Archive, Search, Download, RotateCcw, ArrowUp, Eye, Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/use-debounce";
-import { restoreStudents, promoteStudents } from "@/lib/archive.functions";
+import { restoreStudents, promoteStudents, bulkArchiveByCodes } from "@/lib/archive.functions";
 import { formatArabicDate, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/archive")({
