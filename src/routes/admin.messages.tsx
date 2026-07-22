@@ -38,12 +38,13 @@ function AdminMessagesPage() {
   });
   const { data: groups = [] } = useQuery({
     queryKey: ["groups-basic"],
-    queryFn: async () => (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("groups").select("id,name,class_id, classes(name)").order("name")).data ?? [],
   });
   const filteredGroups = useMemo(
     () => (classId === "all" ? groups : groups.filter((g: any) => g.class_id === classId)),
     [groups, classId],
   );
+
 
   const { data: students, isLoading } = useQuery({
     queryKey: ["messages-students"],
