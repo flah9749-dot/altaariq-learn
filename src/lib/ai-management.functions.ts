@@ -73,6 +73,50 @@ export const checkAIKeysStatus = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" as any });
     if (!isAdmin) throw new Error("Forbidden");
-    const { hasKey } = await import("./ai-multi-provider.server");
-    return Object.fromEntries(SLUGS.map(s => [s, hasKey(s)])) as Record<Slug, boolean>;
+    const { hasKey, getEnvKey } = await import("./ai-multi-provider.server");
+    const entries = await Promise.all(SLUGS.map(async (s) => {
+      const ok = await hasKey(s);
+      const env = !!getEnvKey(s);
+      return [s, { ok, env, db: ok && !env }] as const;
+    }));
+    return Object.fromEntries(entries) as Record<Slug, { ok: boolean; env: boolean; db: boolean }>;
   });
+
+export const saveProviderKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ slug: z.enum(SLUGS), key: z.string().min(8).max(500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" as any });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prov } = await supabaseAdmin.from("ai_providers").select("id").eq("slug", data.slug).maybeSingle();
+    if (!prov?.id) throw new Error("Provider not found");
+    // Remove old rows for this provider, then insert the new key.
+    await supabaseAdmin.from("ai_api_keys").delete().eq("provider_id", prov.id);
+    const { error } = await supabaseAdmin.from("ai_api_keys").insert({
+      provider_id: prov.id,
+      label: data.slug,
+      encrypted_key: data.key.trim(),
+      enabled: true,
+    });
+    if (error) throw error;
+    const { invalidateKeyCache } = await import("./ai-multi-provider.server");
+    invalidateKeyCache(data.slug as Slug);
+    return { ok: true };
+  });
+
+export const deleteProviderKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ slug: z.enum(SLUGS) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" as any });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prov } = await supabaseAdmin.from("ai_providers").select("id").eq("slug", data.slug).maybeSingle();
+    if (!prov?.id) throw new Error("Provider not found");
+    await supabaseAdmin.from("ai_api_keys").delete().eq("provider_id", prov.id);
+    const { invalidateKeyCache } = await import("./ai-multi-provider.server");
+    invalidateKeyCache(data.slug as Slug);
+    return { ok: true };
+  });
+
