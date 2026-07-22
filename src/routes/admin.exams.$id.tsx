@@ -22,7 +22,8 @@ import { upsertExam, saveQuestions, publishExam } from "@/lib/exams.functions";
 import { generateInteractiveMap } from "@/lib/ai-map.functions";
 import { listMapTemplates, upsertMapTemplate } from "@/lib/map-templates.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { QUESTION_TYPES, type QuestionType } from "@/lib/exam-utils";
+import { QUESTION_TYPES, type QuestionType, type MapSubQuestion } from "@/lib/exam-utils";
+import { MapPointQuestions } from "@/components/exams/MapPointQuestions";
 
 export const Route = createFileRoute("/admin/exams/$id")({
   head: () => ({ meta: [{ title: "تعديل الامتحان" }] }),
@@ -69,7 +70,7 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   return base;
 }
 
-type MapPoint = { label: string; prompt?: string; x: number; y: number };
+type MapPoint = { label: string; prompt?: string; x: number; y: number; questions?: MapSubQuestion[] };
 
 const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
@@ -78,6 +79,7 @@ const getMapPoints = (answer: any): MapPoint[] => {
     prompt: typeof p?.prompt === "string" ? p.prompt : "",
     x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
     y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+    questions: Array.isArray(p?.questions) ? p.questions : undefined,
   })) : [];
 };
 
@@ -435,9 +437,13 @@ function ExamEditor() {
                           <Button variant="ghost" size="icon" onClick={() => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                         <Input placeholder={`سؤال الرقم ${pi + 1} (مثال: ما اسم هذا المحيط؟) — اختياري`} value={p.prompt ?? ""} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { prompt: e.target.value }) })} />
+                        <MapPointQuestions
+                          value={p.questions ?? []}
+                          onChange={(qs) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { questions: qs }) })}
+                        />
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة رقم جديد. لكل رقم: اكتب سؤالاً (اختياري) + الإجابة الصحيحة. سيرى الطالب الأرقام على الخريطة ويجيب على كل رقم.</p>
+                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة رقم جديد. لكل رقم يمكنك كتابة الإجابة المختصرة (الحقل العلوي) و/أو إضافة أسئلة فرعية متعددة الأنواع (MCQ، صح/خطأ، إكمال، مقالي).</p>
 
                   </div>
                 )}
