@@ -440,31 +440,32 @@ export const submitAttempt = createServerFn({ method: "POST" })
         .from("students").select("user_id,full_name,code").eq("id", att.student_id).maybeSingle();
       const { data: ex } = await supabaseAdmin
         .from("exams").select("title").eq("id", att.exam_id).maybeSingle();
+      const { pushToUsers } = await import("./notify-helpers.server");
       if (stu?.user_id) {
+        const title = needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك";
+        const body = needsReview
+          ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
+          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%).`;
+        const link = `/student/exams/${att.exam_id}/result`;
         await supabaseAdmin.from("notifications").insert({
-          user_id: stu.user_id,
-          title: needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك",
-          body: needsReview
-            ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
-            : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%).`,
-          type: "exam_finished",
-          link: `/student/exams/${att.exam_id}/result`,
+          user_id: stu.user_id, title, body, type: "exam_finished", link,
         });
+        await pushToUsers([stu.user_id], { title, body, link });
       }
       // Notify admins → they can send the parent WhatsApp from the results page.
       const { data: admins } = await supabaseAdmin
         .from("admins").select("user_id").not("user_id", "is", null);
       const adminIds = Array.from(new Set((admins ?? []).map((a: any) => a.user_id).filter(Boolean)));
       if (adminIds.length) {
+        const title = needsReview ? "📝 طالب سلّم امتحاناً" : "✅ طالب أنهى امتحاناً";
+        const body = `${stu?.full_name ?? "طالب"}${stu?.code ? ` (${stu.code})` : ""} — "${ex?.title ?? ""}" · ${score}/${total} (${pct}%)${needsReview ? " · بحاجة تصحيح" : ""}. اضغط لإبلاغ ولي الأمر.`;
+        const link = `/admin/exams/${att.exam_id}/results`;
         await supabaseAdmin.from("notifications").insert(
           adminIds.map((uid: string) => ({
-            user_id: uid,
-            title: needsReview ? "📝 طالب سلّم امتحاناً" : "✅ طالب أنهى امتحاناً",
-            body: `${stu?.full_name ?? "طالب"}${stu?.code ? ` (${stu.code})` : ""} — "${ex?.title ?? ""}" · ${score}/${total} (${pct}%)${needsReview ? " · بحاجة تصحيح" : ""}. اضغط لإبلاغ ولي الأمر.`,
-            type: "exam_submitted_admin",
-            link: `/admin/exams/${att.exam_id}/results`,
+            user_id: uid, title, body, type: "exam_submitted_admin", link,
           })),
         );
+        await pushToUsers(adminIds, { title, body, link });
       }
     } catch { /* non-blocking */ }
 
@@ -566,13 +567,14 @@ export const approveAttempt = createServerFn({ method: "POST" })
       const { data: stu } = await supabaseAdmin
         .from("students").select("user_id").eq("id", att.student_id).maybeSingle();
       if (stu?.user_id) {
+        const title = "🏆 تم إعلان نتيجة امتحانك";
+        const body = `تم اعتماد نتيجة امتحان "${att.exams?.title ?? ""}"${pts > 0 ? ` — حصلت على ${pts} نقطة` : ""}. اضغط لعرض التفاصيل.`;
+        const link = `/student/exams/${att.exam_id}/result`;
         await supabaseAdmin.from("notifications").insert({
-          user_id: stu.user_id,
-          title: "🏆 تم إعلان نتيجة امتحانك",
-          body: `تم اعتماد نتيجة امتحان "${att.exams?.title ?? ""}"${pts > 0 ? ` — حصلت على ${pts} نقطة` : ""}. اضغط لعرض التفاصيل.`,
-          type: "exam_graded",
-          link: `/student/exams/${att.exam_id}/result`,
+          user_id: stu.user_id, title, body, type: "exam_graded", link,
         });
+        const { pushToUsers } = await import("./notify-helpers.server");
+        await pushToUsers([stu.user_id], { title, body, link });
       }
     } catch { /* non-blocking */ }
 
