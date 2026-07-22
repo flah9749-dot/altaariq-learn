@@ -587,20 +587,22 @@ async function awardAttemptPoints(supabaseAdmin: any, attempt: any): Promise<num
 // Single source of truth for crediting a student's points balance + level +
 // audit log. Used by auto-approved submissions AND admin approvals so both
 // paths stay in sync (map exams historically silently skipped this).
+//
+// IMPORTANT: the `trg_apply_points` DB trigger fires AFTER INSERT on
+// points_log and already bumps students.points, recomputes the level, and
+// inserts the student notification. We must NOT also update students.points
+// here or every approval double-counts.
 async function creditStudentPoints(
   supabaseAdmin: any,
   opts: { student_id: string; exam_id: string; points: number; reason_prefix: string },
 ): Promise<void> {
   if (!opts.points || opts.points <= 0) return;
   const { data: ex } = await supabaseAdmin.from("exams").select("title").eq("id", opts.exam_id).maybeSingle();
-  await supabaseAdmin.from("points_log").insert({
+  const { error } = await supabaseAdmin.from("points_log").insert({
     student_id: opts.student_id, points: opts.points,
     reason: `${opts.reason_prefix}: ${ex?.title ?? ""}`,
   });
-  const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", opts.student_id).maybeSingle();
-  const totalPts = (Number(stu?.points) || 0) + opts.points;
-  const level = Math.max(1, Math.floor(totalPts / 100) + 1);
-  await supabaseAdmin.from("students").update({ points: totalPts, level }).eq("id", opts.student_id);
+  if (error) throw new Error(`points_log insert failed: ${error.message}`);
 }
 
 export const approveAttempt = createServerFn({ method: "POST" })
