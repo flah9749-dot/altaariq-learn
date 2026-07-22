@@ -19,8 +19,8 @@ const BuildInput = z.object({
   // asked to answer with grid cells (e.g. "H14") which we convert to x/y — this
   // is dramatically more accurate than free-form pixel guessing.
   grid_image_data_url: z.string().optional(),
-  grid_cols: z.number().int().min(4).max(40).optional(),
-  grid_rows: z.number().int().min(4).max(40).optional(),
+  grid_cols: z.number().int().min(4).max(60).optional(),
+  grid_rows: z.number().int().min(4).max(60).optional(),
 });
 
 export type MapExamPoint = {
