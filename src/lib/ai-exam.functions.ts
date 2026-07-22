@@ -155,6 +155,10 @@ ${SCHEMA_HINT}`;
           imageUrl = await generateImageViaGateway(prompt);
         } catch { imageUrl = null; }
       }
+      // Auto-strip every label/number/legend from the map so only our markers remain visible to the student.
+      if (type === "map" && imageUrl) {
+        imageUrl = await cleanMapLabels(imageUrl);
+      }
       return {
         type,
         text: q.text ?? "",
