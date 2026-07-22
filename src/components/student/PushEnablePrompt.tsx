@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, BellOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -8,11 +8,9 @@ const DISMISS_KEY = "push_prompt_dismissed_at";
 const DISMISS_DAYS = 3;
 
 /**
- * Persistent banner urging students to enable browser push notifications so
- * they receive alerts (new exams, results, messages) even when the app is
- * closed. Auto-hides for `granted`, `denied`, unsupported browsers, or when
- * the user dismissed it recently. Also silently refreshes the FCM token on
- * every mount when permission is already granted.
+ * Banner that lets students enable browser push notifications when permission
+ * is still "default", and — once granted — shows a small chip so they can
+ * disable notifications on this device whenever they want.
  */
 export function PushEnablePrompt() {
   const { user } = useAuth();
@@ -44,7 +42,38 @@ export function PushEnablePrompt() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  if (!supported || !user || perm !== "default" || dismissed) return null;
+  if (!supported || !user) return null;
+
+  // Already enabled — show a small "disable" chip.
+  if (perm === "granted") {
+    return (
+      <div className="mx-auto mb-3 flex max-w-6xl items-center justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loading}
+          onClick={async () => {
+            setLoading(true);
+            try {
+              const { disablePush } = await import("@/lib/push-notifications");
+              const ok = await disablePush(user.id);
+              if (ok) {
+                try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
+                setDismissed(true);
+                toast.message("لإعادة التفعيل لاحقاً، اسمح بالإشعارات من إعدادات المتصفح.");
+              }
+            } finally { setLoading(false); }
+          }}
+          className="gap-2"
+        >
+          <BellOff className="h-4 w-4" />
+          {loading ? "جارٍ الإيقاف..." : "إيقاف الإشعارات"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (perm !== "default" || dismissed) return null;
 
   return (
     <div className="mx-auto mb-3 flex max-w-6xl items-center gap-3 rounded-xl border border-primary/30 bg-gradient-to-l from-primary/10 to-secondary/10 p-3 shadow-sm">
