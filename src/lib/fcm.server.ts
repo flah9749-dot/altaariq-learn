@@ -106,7 +106,6 @@ export async function sendFcm(payloads: FcmPayload[]): Promise<FcmSendResult[]> 
       const message: any = {
         token: p.token,
         webpush: {
-          fcm_options: p.link ? { link: p.link } : undefined,
           notification: {
             title: p.title,
             body: p.body,
