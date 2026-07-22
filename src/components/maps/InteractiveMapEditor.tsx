@@ -148,7 +148,7 @@ export function InteractiveMapEditor({
               src={imageUrl}
               alt="خريطة"
               draggable={false}
-              className="block h-auto max-w-full pointer-events-none"
+              className="block h-auto w-full pointer-events-none"
             />
             {points.map((p, i) => {
               const isSel = i === selected;
