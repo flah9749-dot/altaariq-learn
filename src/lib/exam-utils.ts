@@ -158,8 +158,17 @@ export function evalMapSubQuestion(
   ans: any,
 ): { correct: boolean | null; points: number; needsReview?: boolean } {
   const pts = Math.max(0, Number(sq.points) || 0);
-  if (sq.type === "essay") return { correct: null, points: 0, needsReview: true };
+  // Essay with a saved model answer → try text matching first (auto-grade).
+  if (sq.type === "essay") {
+    if (ans == null || ans === "") return { correct: null, points: 0, needsReview: true };
+    if (sq.answer && String(sq.answer).trim()) {
+      const ok = textAnswerMatches(sq.answer, ans);
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    return { correct: null, points: 0, needsReview: true };
+  }
   if (ans == null || ans === "") return { correct: null, points: 0 };
+
   switch (sq.type) {
     case "mcq": {
       const correctIdx = (sq.options ?? []).findIndex((o) => o.is_correct);
