@@ -36,8 +36,9 @@ export async function buildGridOverlay(
     el.src = dataUrl;
   });
 
-  // Keep the image at a reasonable size (vision models don't need > ~1600px)
-  const maxSide = 1600;
+  // Keep the image at a reasonable size (vision models don't need > ~1280px,
+  // and smaller keeps the createServerFn payload well within limits).
+  const maxSide = 1280;
   const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
   const W = Math.round(img.naturalWidth * scale);
   const H = Math.round(img.naturalHeight * scale);
