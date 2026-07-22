@@ -148,6 +148,7 @@ export async function disablePush(userId: string): Promise<boolean> {
       // Fallback: remove all tokens saved from this browser (best effort).
       await supabase.from("push_tokens").delete().eq("user_id", userId).eq("user_agent", navigator.userAgent);
     }
+    setLocallyDisabled(true);
     toast.success("تم إيقاف الإشعارات على هذا الجهاز");
     return true;
   } catch (e: any) {
