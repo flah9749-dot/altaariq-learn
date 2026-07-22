@@ -20,8 +20,9 @@ export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () 
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () =>
     (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
-  const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () =>
-    (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
+  const { data: groups } = useQuery({ queryKey: ["groups-with-class"], queryFn: async () =>
+    (await supabase.from("groups").select("id,name,class_id, classes(name)").order("name")).data ?? [] });
+
 
   const send = useMutation({
     mutationFn: async () => fn({ data: { body, target, class_id: classId ?? null, group_id: groupId ?? null, student_ids: [], message_type: "text" } }),
