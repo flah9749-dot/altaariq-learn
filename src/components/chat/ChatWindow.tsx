@@ -17,14 +17,16 @@ import { sendMessage, markThreadRead, deleteMessage } from "@/lib/messaging.func
 import { applyTemplate, type TemplateVars } from "@/lib/message-utils";
 
 interface Props {
-  peerId: string;              // the other party's user_id
+  peerId: string;              // the other party's user_id (sends go to this id)
   peerName?: string;
   peerSubtitle?: string;
   headerRight?: React.ReactNode;
   templateVars?: TemplateVars; // for template substitutions
+  /** Optional extra peer user_ids to include in the same thread view (e.g. other admins). */
+  extraPeerIds?: string[];
 }
 
-export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templateVars }: Props) {
+export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templateVars, extraPeerIds }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -39,14 +41,22 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
   const readFn = useServerFn(markThreadRead);
   const delFn = useServerFn(deleteMessage);
 
-  const key = ["thread", user?.id, peerId];
+  const allPeerIds = useMemo(() => {
+    const set = new Set<string>([peerId, ...(extraPeerIds ?? [])].filter(Boolean));
+    return Array.from(set);
+  }, [peerId, extraPeerIds]);
+  const peerKey = allPeerIds.slice().sort().join(",");
+
+  const key = ["thread", user?.id, peerKey];
 
   const { data: messages, isLoading, error: messagesError } = useQuery({
     queryKey: key,
-    enabled: !!user && !!peerId,
+    enabled: !!user && allPeerIds.length > 0,
     queryFn: async () => {
+      const list = allPeerIds.map((p) => `"${p}"`).join(",");
       const { data, error } = await supabase.from("messages")
-        .select("*").or(`and(sender_id.eq.${user!.id},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${user!.id})`)
+        .select("*")
+        .or(`and(sender_id.eq.${user!.id},recipient_id.in.(${list})),and(recipient_id.eq.${user!.id},sender_id.in.(${list}))`)
         .order("created_at", { ascending: true }).limit(500);
       if (error) throw error;
       return data ?? [];
