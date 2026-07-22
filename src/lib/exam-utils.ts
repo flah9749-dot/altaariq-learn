@@ -50,3 +50,73 @@ export const STATUS_COLOR: Record<ExamStatus, string> = {
   scheduled: "bg-warning text-warning-foreground",
   ended: "bg-destructive text-destructive-foreground",
 };
+
+// ---------------- Map sub-questions (multi-question per marker) ----------------
+export type MapSubQuestionType = "short" | "mcq" | "true_false" | "complete" | "essay";
+
+export type MapSubQuestion = {
+  id: string;
+  type: MapSubQuestionType;
+  text: string;
+  answer?: string;
+  options?: Array<{ text: string; is_correct: boolean }>;
+  points: number;
+};
+
+export const MAP_SUB_QUESTION_TYPES: Array<{ value: MapSubQuestionType; label: string }> = [
+  { value: "short", label: "إجابة قصيرة" },
+  { value: "mcq", label: "اختيار من متعدد" },
+  { value: "true_false", label: "صح/خطأ" },
+  { value: "complete", label: "إكمال" },
+  { value: "essay", label: "مقالي" },
+];
+
+export function makeMapSubQuestion(type: MapSubQuestionType = "short"): MapSubQuestion {
+  const id = `sq_${Math.random().toString(36).slice(2, 10)}`;
+  const base: MapSubQuestion = { id, type, text: "", answer: "", points: 1 };
+  if (type === "mcq") base.options = [
+    { text: "", is_correct: true },
+    { text: "", is_correct: false },
+  ];
+  if (type === "true_false") base.answer = "true";
+  return base;
+}
+
+function normArabic(s: any): string {
+  return String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u064B-\u0652\u0670]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, " ");
+}
+
+export function evalMapSubQuestion(
+  sq: MapSubQuestion,
+  ans: any,
+): { correct: boolean | null; points: number; needsReview?: boolean } {
+  const pts = Math.max(0, Number(sq.points) || 0);
+  if (sq.type === "essay") return { correct: null, points: 0, needsReview: true };
+  if (ans == null || ans === "") return { correct: null, points: 0 };
+  switch (sq.type) {
+    case "mcq": {
+      const correctIdx = (sq.options ?? []).findIndex((o) => o.is_correct);
+      const ok = correctIdx >= 0 && Number(ans) === correctIdx;
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "true_false": {
+      const ok = String(ans) === String(sq.answer ?? "true");
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+    case "short":
+    case "complete": {
+      const expected = normArabic(sq.answer);
+      const given = normArabic(ans);
+      const ok = !!expected && (expected === given || expected.includes(given) || given.includes(expected));
+      return { correct: ok, points: ok ? pts : 0 };
+    }
+  }
+  return { correct: null, points: 0 };
+}
