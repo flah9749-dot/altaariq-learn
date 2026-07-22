@@ -728,6 +728,7 @@ export type Database = {
           duration_minutes: number
           ends_at: string | null
           exam_kind: string
+          exam_start_notified_at: string | null
           group_ids: string[]
           id: string
           num_variants: number
@@ -752,6 +753,7 @@ export type Database = {
           duration_minutes?: number
           ends_at?: string | null
           exam_kind?: string
+          exam_start_notified_at?: string | null
           group_ids?: string[]
           id?: string
           num_variants?: number
@@ -776,6 +778,7 @@ export type Database = {
           duration_minutes?: number
           ends_at?: string | null
           exam_kind?: string
+          exam_start_notified_at?: string | null
           group_ids?: string[]
           id?: string
           num_variants?: number
@@ -1799,6 +1802,7 @@ export type Database = {
     }
     Functions: {
       admin_get_exam_questions: { Args: { _exam_id: string }; Returns: Json }
+      dispatch_due_exam_start_notifications: { Args: never; Returns: number }
       get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
       get_my_role: {
         Args: never
