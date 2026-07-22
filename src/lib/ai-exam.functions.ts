@@ -31,6 +31,7 @@ const SCHEMA_HINT = `أعد ردًا بصيغة JSON فقط بالمخطط ال�
       "explanation": "شرح الإجابة (اختياري)",
       "options": [{"text": "...", "is_correct": true}],  // للاختيار من متعدد فقط
       "image_url": "attachment:اسم_الصورة" , // لأسئلة الخرائط فقط عند استخدام صورة مرفقة
+      "map_image_prompt": "وصف مختصر بالإنجليزية لصورة الخريطة المطلوبة (اختياري، لأسئلة الخرائط فقط عندما لا توجد صورة مرفقة). مثل: 'Blank political map of Australia highlighting Tasmania location, educational style, labeled regions'",
       "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل، وللخريطة: {"points":[{"label":"الموقع","x":50,"y":50,"tolerance":8}]}
     }
   ]
