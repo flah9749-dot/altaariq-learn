@@ -330,28 +330,34 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
     case "map": {
-      const normalizePoints = (value: any) => {
-        if (!value) return [] as Array<{ x: number; y: number; tolerance?: number }>;
-        if (Array.isArray(value?.points)) return value.points;
-        if (Array.isArray(value)) return value;
-        if (typeof value.x === "number" && typeof value.y === "number") return [value];
-        return [];
-      };
-      const expected = normalizePoints(q.correct_answer);
-      const given = normalizePoints(ans);
-      if (!expected.length || !given.length) return { correct: null, points: 0 };
+      const normalizeText = (s: any) =>
+        String(s ?? "")
+          .trim()
+          .toLowerCase()
+          .replace(/[\u064B-\u0652\u0670]/g, "") // strip Arabic diacritics
+          .replace(/[أإآ]/g, "ا")
+          .replace(/ى/g, "ي")
+          .replace(/ة/g, "ه")
+          .replace(/\s+/g, " ");
+      const expectedPoints: any[] = Array.isArray(q.correct_answer?.points)
+        ? q.correct_answer.points
+        : Array.isArray(q.correct_answer)
+        ? q.correct_answer
+        : [];
+      const expectedLabels = expectedPoints.map((p: any) => normalizeText(p?.label));
+      const givenLabels: string[] = Array.isArray(ans?.labels)
+        ? ans.labels.map(normalizeText)
+        : Array.isArray(ans)
+        ? ans.map(normalizeText)
+        : [];
+      if (!expectedLabels.length || !givenLabels.length) return { correct: null, points: 0 };
       let matched = 0;
-      expected.forEach((target: any, idx: number) => {
-        const answer = given[idx];
-        if (!answer) return;
-        const dx = Number(answer.x) - Number(target.x);
-        const dy = Number(answer.y) - Number(target.y);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const tolerance = Number(target.tolerance ?? 8);
-        if (Number.isFinite(distance) && distance <= tolerance) matched += 1;
+      expectedLabels.forEach((label, idx) => {
+        const g = givenLabels[idx];
+        if (label && g && (label === g || label.includes(g) || g.includes(label))) matched += 1;
       });
-      const partial = pts * (matched / expected.length);
-      return { correct: matched === expected.length, points: Math.round(partial * 100) / 100 };
+      const partial = pts * (matched / expectedLabels.length);
+      return { correct: matched === expectedLabels.length, points: Math.round(partial * 100) / 100 };
     }
     default:
       return { correct: null, points: 0 };

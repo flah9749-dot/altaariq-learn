@@ -62,23 +62,35 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   if (type === "complete") base.correct_answer = "";
   if (type === "order") base.options = [{ text: "", is_correct: false, order_index: 0 }];
   if (type === "match") base.options = [{ text: "", is_correct: false, order_index: 0, match_key: "أ" }];
-  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
+  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
   return base;
 }
 
-const getMapPoints = (answer: any): Array<{ label: string; x: number; y: number; tolerance: number }> => {
+type MapPoint = { label: string; x: number; y: number };
+
+const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
   return raw.length ? raw.map((p: any) => ({
     label: String(p?.label ?? "الموقع الصحيح"),
     x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
     y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
-    tolerance: Number.isFinite(Number(p?.tolerance)) ? Number(p.tolerance) : 8,
-  })) : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }];
+  })) : [{ label: "الموقع الصحيح", x: 50, y: 50 }];
 };
 
-const setMapPoint = (answer: any, index: number, patch: Partial<{ label: string; x: number; y: number; tolerance: number }>) => {
+const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
   const points = getMapPoints(answer).map((p, i) => i === index ? { ...p, ...patch } : p);
   return { points };
+};
+
+const addMapPoint = (answer: any, x = 50, y = 50) => {
+  const points = getMapPoints(answer);
+  const idx = points.length + 1;
+  return { points: [...points, { label: `الموقع ${idx}`, x, y }] };
+};
+
+const removeMapPoint = (answer: any, index: number) => {
+  const points = getMapPoints(answer).filter((_, i) => i !== index);
+  return { points: points.length ? points : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
 };
 
 function readImage(file: File): Promise<string> {
@@ -372,20 +384,21 @@ function ExamEditor() {
                       <MapTargetEditor
                         imageUrl={q.image_url}
                         points={getMapPoints(q.correct_answer)}
-                        onPick={(x, y) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, 0, { x, y }) })}
+                        onPick={(x, y) => updateQ(i, { correct_answer: addMapPoint(q.correct_answer, x, y) })}
                       />
                     ) : (
-                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">ارفع صورة خريطة ليتمكن الطالب من تحديد الموقع عليها.</div>
+                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">ارفع صورة خريطة ثم اضغط على المواقع المطلوبة لإضافتها.</div>
                     )}
                     {getMapPoints(q.correct_answer).map((p, pi) => (
-                      <div key={pi} className="grid gap-2 md:grid-cols-[1fr_90px_90px_100px]">
-                        <Input placeholder="اسم الموقع" value={p.label} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { label: e.target.value }) })} />
+                      <div key={pi} className="grid gap-2 md:grid-cols-[32px_1fr_90px_90px_auto] items-center">
+                        <Badge variant="outline" className="justify-center">{pi + 1}</Badge>
+                        <Input placeholder="اسم الموقع (سيكتبه الطالب)" value={p.label} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { label: e.target.value }) })} />
                         <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { x: Number(e.target.value) }) })} />
                         <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { y: Number(e.target.value) }) })} />
-                        <Input type="number" min={3} max={20} value={p.tolerance} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { tolerance: Number(e.target.value) }) })} />
+                        <Button variant="ghost" size="icon" onClick={() => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground">اضغط على مكان الإجابة الصحيحة داخل الخريطة. يتم الحفظ بإحداثيات نسبية حتى تعمل على كل الشاشات.</p>
+                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة نقطة جديدة. اكتب اسم المكان في كل نقطة — سيرى الطالب أرقام النقاط ويكتب أسماءها.</p>
                   </div>
                 )}
 
@@ -486,7 +499,7 @@ function Field({ label, children, className }: { label: string; children: React.
   return <div className={`space-y-1.5 ${className ?? ""}`}><Label>{label}</Label>{children}</div>;
 }
 
-function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: Array<{ label: string; x: number; y: number; tolerance: number }>; onPick: (x: number, y: number) => void }) {
+function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: MapPoint[]; onPick: (x: number, y: number) => void }) {
   return (
     <button
       type="button"
@@ -502,10 +515,11 @@ function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; point
       {points.map((p, index) => (
         <span
           key={index}
-          className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+          className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-destructive text-xs font-bold text-destructive-foreground shadow-lg"
           style={{ left: `${p.x}%`, top: `${p.y}%` }}
+          title={p.label}
         >
-          <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+          {index + 1}
         </span>
       ))}
     </button>

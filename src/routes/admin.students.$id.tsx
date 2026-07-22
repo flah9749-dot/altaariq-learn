@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
-  KeyRound, Copy, Check, RefreshCw, Eye, IdCard,
+  KeyRound, Copy, Check, RefreshCw, Eye, IdCard, Plus, Minus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { StudentCardDialog } from "@/components/students/StudentCardDialog";
 import { resetStudentPassword } from "@/lib/students.functions";
+import { awardPoints } from "@/lib/gamification";
 import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/students/$id")({
@@ -32,9 +37,13 @@ function StudentDetailPage() {
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const [pointsOpen, setPointsOpen] = useState(false);
+  const [pointsDelta, setPointsDelta] = useState<string>("10");
+  const [pointsReason, setPointsReason] = useState<string>("");
   const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const qc = useQueryClient();
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["student", id],
@@ -73,6 +82,24 @@ function StudentDetailPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
   });
 
+  const adjustPoints = useMutation({
+    mutationFn: async () => {
+      const delta = Math.trunc(Number(pointsDelta));
+      if (!Number.isFinite(delta) || delta === 0) throw new Error("أدخل قيمة صحيحة غير صفر");
+      const reason = pointsReason.trim() || (delta > 0 ? "تعديل يدوي — إضافة" : "تعديل يدوي — خصم");
+      await awardPoints({ studentId: id, points: delta, reason, kind: delta >= 0 ? "earn" : "deduct", refType: "manual" });
+    },
+    onSuccess: () => {
+      toast.success("تم تعديل النقاط");
+      setPointsOpen(false);
+      setPointsDelta("10");
+      setPointsReason("");
+      qc.invalidateQueries({ queryKey: ["student", id] });
+      qc.invalidateQueries({ queryKey: ["student-stats", id] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل تعديل النقاط"),
+  });
+
   async function copyCreds() {
     if (!creds && !student) return;
     const text = `الكود: ${student?.code}\n${creds?.password ? `كلمة المرور: ${creds.password}` : ""}`.trim();
@@ -100,6 +127,7 @@ function StudentDetailPage() {
           <ArrowRight className="h-4 w-4 ml-1" />القائمة
         </Button>
         <div className="mr-auto flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPointsOpen(true)}><Trophy className="h-4 w-4 ml-1 text-gold" />تعديل النقاط</Button>
           <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}><IdCard className="h-4 w-4 ml-1" />عرض الكارت</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
           <Button size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 ml-1" />تعديل</Button>
@@ -239,6 +267,38 @@ function StudentDetailPage() {
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
       <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
+
+      <Dialog open={pointsOpen} onOpenChange={setPointsOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-gold" />تعديل نقاط الطالب</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              الرصيد الحالي: <b className="text-gold">{student.points}</b> نقطة
+            </div>
+            <div className="space-y-1.5">
+              <Label>القيمة (استخدم علامة سالب للخصم)</Label>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="icon" onClick={() => setPointsDelta(String(-Math.abs(Number(pointsDelta) || 0)))}><Minus className="h-4 w-4" /></Button>
+                <Input type="number" value={pointsDelta} onChange={(e) => setPointsDelta(e.target.value)} className="text-center font-bold" />
+                <Button type="button" variant="outline" size="icon" onClick={() => setPointsDelta(String(Math.abs(Number(pointsDelta) || 0)))}><Plus className="h-4 w-4" /></Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                الرصيد بعد التعديل: <b>{Math.max(0, (student.points ?? 0) + (Number(pointsDelta) || 0))}</b>
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>السبب (اختياري)</Label>
+              <Textarea rows={2} value={pointsReason} onChange={(e) => setPointsReason(e.target.value)} placeholder="مثال: مشاركة متميزة في الحصة" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPointsOpen(false)}>إلغاء</Button>
+            <Button onClick={() => adjustPoints.mutate()} disabled={adjustPoints.isPending}>حفظ التعديل</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

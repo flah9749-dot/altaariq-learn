@@ -327,36 +327,58 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
 }
 
 function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: (v: any) => void }) {
-  const answerPoint = Array.isArray(value?.points) ? value.points[0] : null;
-  const targetLabel = q?.correct_answer?.points?.[0]?.label ?? "الموقع المطلوب";
+  const points: Array<{ x: number; y: number }> = Array.isArray(q?.correct_answer?.points)
+    ? q.correct_answer.points
+    : [];
+  const labels: string[] = Array.isArray(value?.labels)
+    ? value.labels
+    : new Array(points.length).fill("");
 
   if (!q?.image_url) {
     return <p className="text-sm text-muted-foreground">لا توجد صورة خريطة لهذا السؤال.</p>;
   }
+  if (!points.length) {
+    return <p className="text-sm text-muted-foreground">لم يتم تحديد أي مواقع على الخريطة.</p>;
+  }
+
+  const setLabel = (i: number, val: string) => {
+    const next = [...labels];
+    while (next.length < points.length) next.push("");
+    next[i] = val;
+    onChange({ labels: next.slice(0, points.length) });
+  };
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        className="relative block w-full overflow-hidden rounded-lg border bg-muted text-right"
-        onClick={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
-          const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
-          onChange({ points: [{ label: targetLabel, x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }] });
-        }}
-      >
+      <div className="relative block w-full overflow-hidden rounded-lg border bg-muted">
         <img src={q.image_url} alt="خريطة السؤال" className="max-h-[28rem] w-full object-contain" />
-        {answerPoint && (
+        {points.map((p, i) => (
           <span
-            className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow"
-            style={{ left: `${answerPoint.x}%`, top: `${answerPoint.y}%` }}
+            key={i}
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-primary text-xs font-bold text-primary-foreground shadow-lg"
+            style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            title={`الموضع رقم ${i + 1}`}
           >
-            <MapPin className="inline h-3 w-3 ml-1" />إجابتك
+            {i + 1}
           </span>
-        )}
-      </button>
-      <p className="text-xs text-muted-foreground">اضغط على الموضع الصحيح داخل الخريطة. يمكنك تغيير الإجابة بالضغط مرة أخرى.</p>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        <MapPin className="inline h-3 w-3 ml-1" />
+        اكتب اسم المكان المُشار إليه بكل رقم على الخريطة.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {points.map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Badge variant="outline" className="w-8 justify-center">{i + 1}</Badge>
+            <Input
+              placeholder={`اسم الموضع رقم ${i + 1}`}
+              value={labels[i] ?? ""}
+              onChange={(e) => setLabel(i, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

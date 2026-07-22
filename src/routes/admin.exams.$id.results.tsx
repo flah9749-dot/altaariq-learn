@@ -437,10 +437,13 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
 function formatAnswer(answer: any, type?: string) {
   if (answer == null || answer === "") return "لا إجابة";
   if (type === "map") {
-    const point = Array.isArray(answer?.points) ? answer.points[0] : answer;
-    if (point && typeof point === "object") {
-      return `${point.label ?? "موضع محدد"} — x:${Number(point.x ?? 0).toFixed(1)} / y:${Number(point.y ?? 0).toFixed(1)}`;
+    const labels = Array.isArray(answer?.labels) ? answer.labels : Array.isArray(answer) ? answer : null;
+    if (labels) {
+      const list = labels.map((l: any, i: number) => `${i + 1}. ${String(l ?? "").trim() || "—"}`).join(" | ");
+      return list || "لا إجابة";
     }
+    const point = Array.isArray(answer?.points) ? answer.points[0] : answer;
+    if (point && typeof point === "object" && "label" in point) return String(point.label ?? "");
   }
   return typeof answer === "object" ? JSON.stringify(answer) : String(answer);
 }

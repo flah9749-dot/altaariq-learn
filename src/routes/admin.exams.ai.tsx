@@ -251,7 +251,8 @@ function AIExamPage() {
                       onPick={(x, y) => setPreview((p) => {
                         if (!p) return p;
                         const pts = getMapPointsPreview(q.correct_answer);
-                        const next = pts.length ? [{ ...pts[0], x, y }, ...pts.slice(1)] : [{ label: "الموقع الصحيح", x, y, tolerance: 8 }];
+                        const idxNext = pts.length + 1;
+                        const next = [...pts, { label: `الموقع ${idxNext}`, x, y }];
                         return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
                       })}
                     />
@@ -288,7 +289,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
 }
 
-type MapPoint = { label: string; x: number; y: number; tolerance: number };
+type MapPoint = { label: string; x: number; y: number };
 
 function getMapPointsPreview(answer: any): MapPoint[] {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
@@ -296,7 +297,6 @@ function getMapPointsPreview(answer: any): MapPoint[] {
     label: String(p?.label ?? "الموقع الصحيح"),
     x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
     y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
-    tolerance: Math.max(3, Math.min(20, Number(p?.tolerance ?? 8))),
   }));
 }
 
@@ -348,23 +348,26 @@ function MapPreview({ question, onChangeImage, onPick }: {
           {points.map((p, index) => (
             <span
               key={index}
-              className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-destructive text-xs font-bold text-destructive-foreground shadow-lg"
               style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              title={p.label}
             >
-              <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+              {index + 1}
             </span>
           ))}
         </button>
       ) : (
         <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          لم يتم إرفاق صورة خريطة. ارفع صورة ليتمكن الطالب من تحديد الموقع عليها.
+          لم يتم إرفاق صورة خريطة. ارفع صورة ليتمكن الطالب من كتابة أسماء المواقع عليها.
         </div>
       )}
 
       {points.length > 0 && (
-        <div className="text-xs text-muted-foreground">
-          الموقع الصحيح: <span className="font-medium text-foreground">{points[0].label}</span> — (x: {points[0].x}, y: {points[0].y}, نطاق: {points[0].tolerance})
-        </div>
+        <ol className="text-xs text-muted-foreground list-decimal pr-5 space-y-0.5">
+          {points.map((p, idx) => (
+            <li key={idx}><span className="font-medium text-foreground">{p.label}</span> — (x: {p.x}, y: {p.y})</li>
+          ))}
+        </ol>
       )}
     </div>
   );
