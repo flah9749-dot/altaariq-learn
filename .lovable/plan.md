@@ -1,104 +1,95 @@
-## نظام الخرائط التفاعلية الذكية (AI Interactive Maps)
 
-سنبني هذا النظام على أساس نوع سؤال `map` الموجود حالياً (الذي يدعم نقاطاً مرقمة + سؤال لكل نقطة)، ونضيف عليه:
+# 🗺️ امتحان الخرائط الذكي (AI Map Exam)
 
-### 1. توسيع بنية النقطة (MapPoint)
+نوع امتحان مستقل بالكامل — ليس سؤالاً داخل امتحان عادي. له تدفق إنشاء خاص، شاشة مراجعة خاصة، وواجهة طالب مخصصة.
 
-في `src/lib/exam-utils.ts` (أو ملف types جديد) نوسع الشكل:
+## المرحلة 1 — قاعدة البيانات
 
-```ts
-type MapQuestion = {
-  id: string;
-  type: "mcq" | "true_false" | "short" | "essay" | "complete";
-  text: string;              // نص السؤال
-  answer: string | string[]; // الإجابة/الإجابات
-  options?: string[];        // للاختيار من متعدد
-  points: number;            // درجة السؤال
-};
+إضافة عمود `exam_kind` لجدول `exams`:
+- `'standard'` (الافتراضي، الامتحانات الحالية تبقى كما هي)
+- `'map'` (النوع الجديد)
 
-type MapPoint = {
-  id: string;
-  number: number;            // الرقم الظاهر (قابل للتعديل)
-  x: number; y: number;      // 0..100
-  color?: string;            // لون Marker
-  size?: number;             // حجم Marker
-  questions: MapQuestion[];  // ← عدة أسئلة لكل Marker
-};
-```
+جدول جديد `map_exam_pages` (خريطة واحدة أو أكثر لكل امتحان):
+- `exam_id`, `order_index`, `original_image_url`, `clean_image_url`, `title`, `map_type` (مصر/الوطن العربي/تضاريس/...).
 
-يبقى التوافق الخلفي: نقرأ الشكل القديم `{label, prompt, x, y}` ونحوّله إلى `questions:[{type:"short", text:prompt, answer:label, points:...}]`.
+جدول جديد `map_exam_markers`:
+- `page_id`, `number` (1، 2، 3...), `x`, `y` (نسبة مئوية), `label` (اسم المكان — داخلي للأدمن).
 
-### 2. محرر الخريطة الاحترافي (`MapEditor` جديد)
+جدول جديد `map_exam_questions`:
+- `marker_id`, `type` (mcq/true_false/short/essay), `text`, `answer`, `options` (JSONB), `points`, `order_index`.
 
-مكوّن `src/components/exams/MapEditor.tsx`:
-- رفع الخريطة (JPG/PNG/SVG/WEBP) → تخزين في bucket `exam-files`.
-- Zoom + Pan + Rotate (باستخدام transform CSS، بدون مكتبات ثقيلة).
-- Click لإضافة Marker، Drag لتحريكه، × للحذف.
-- Panel جانبي لكل Marker: تعديل الرقم، اللون، الحجم، وإدارة قائمة الأسئلة (إضافة/حذف/تعديل نوع/نص/إجابة/درجة).
-- يعمل باللمس (touch events) للهاتف والتابلت.
+RLS + GRANT كاملة (أدمن يدير، الطالب يقرأ عند فتح امتحان منشور، الإجابات تُخزن في `attempt_answers` الحالي مع `question_ref` جديد).
 
-يحلّ محل محرر الخريطة الحالي داخل `admin.exams.$id.tsx`.
+## المرحلة 2 — Backend (Server Functions)
 
-### 3. توليد الخريطة بالذكاء الاصطناعي
+`src/lib/map-exam.functions.ts` جديد:
+- `createMapExam` — إنشاء هيكل امتحان خرائط فارغ.
+- `uploadMapPage` — رفع صورة/PDF/سكرين شوت (تحويل PDF لصورة أول صفحة).
+- `aiAutoBuildMapPage` — التدفق الكامل بالـ AI:
+  1. تحليل الخريطة (`identifyMapType`) — التعرف على نوع الخريطة.
+  2. تنظيف الصورة (يستخدم `cleanMapImage` الحالي — مسح كل النصوص/الأسماء/الأسهم).
+  3. تحليل النقاط (يستخدم `analyzeMapImage` الحالي — إحداثيات دقيقة).
+  4. توليد سؤال + إجابة لكل نقطة (MCQ/short حسب نوع الخريطة).
+- `saveMapExamDraft` — حفظ نتائج المراجعة (Markers + أسئلة + إجابات + درجات).
+- `submitMapExamAttempt` — استلام إجابات الطالب.
+- `gradeMapExamAttempt` — تصحيح تلقائي للموضوعية، الاحتفاظ بالمقالية للأدمن (نفس منطق `evalMapSubQuestion` الحالي).
 
-زر جديد داخل نفس صفحة توليد الامتحان بالـ AI (`admin.exams.ai.tsx`) بعنوان **"✨ إنشاء خريطة بالذكاء الاصطناعي"** يفتح Dialog:
+يستخدم نظام تعدد المزودين الموجود مع Fallback (`callLovableChat`).
 
-- المدخلات: اسم الدرس/الموضوع أو ملف (صورة/PDF/سكرين شوت).
-- عدد النقاط المرغوب، عدد الأسئلة لكل نقطة، أنواع الأسئلة المسموح بها.
+## المرحلة 3 — واجهة الأدمن
 
-سيرفر فنكشن جديد `src/lib/ai-map.functions.ts`:
-- إن لم توجد صورة → نستدعي `generateImageViaGateway` بوصف مناسب لتوليد خريطة تعليمية.
-- نرسل الصورة + التعليمات للـ AI (multimodal) ليعيد JSON يحوي: قائمة نقاط بإحداثيات نسبية + اسم كل مكان + عدة أسئلة لكل مكان + إجاباتها + الدرجات.
-- نطبّق نفس مسار Fallback الموجود في `ai-gateway.server.ts`.
+**نقطة الدخول**: في `/admin/exams` زر جديد بجانب "امتحان جديد" و"AI":
+- `🗺️ امتحان خرائط ذكي` → مسار جديد `/admin/exams/map/new`.
 
-النتيجة تُفتح مباشرة في **شاشة المراجعة** (نفس `MapEditor`) — لا يتم الحفظ التلقائي.
+**صفحة إنشاء امتحان الخرائط** (`admin.exams.map.new.tsx`):
+- الخطوة 1: بيانات أساسية (عنوان، صف، مدة، درجة).
+- الخطوة 2: رفع خريطة (Drag&drop + كاميرا + PDF).
+- الخطوة 3: زرّان بارزان:
+  - `🧠 إنشاء تلقائي بالذكاء الاصطناعي` (يشغّل `aiAutoBuildMapPage` كامل).
+  - `✏️ إنشاء يدوي` (يفتح المحرر مباشرة دون AI).
+- الخطوة 4 (شاشة المراجعة): محرر تفاعلي موحّد يعتمد على `InteractiveMapEditor` الحالي مع توسعة:
+  - سحب Markers / حذف / إضافة / تغيير الرقم.
+  - Panel جانبي لكل Marker: قائمة أسئلة (يدعم أنواع MCQ/TF/Short/Essay) + درجات.
+  - زر "إضافة خريطة أخرى" (multi-page).
+  - زر "إعادة التنظيف" / "إعادة التحليل".
+- الخطوة 5: حفظ ونشر.
 
-### 4. عرض السؤال للطالب
+## المرحلة 4 — واجهة الطالب
 
-تحديث `MapAnswerInput` في `src/routes/student.exams.$id.take.tsx`:
-- عرض الخريطة مع الأرقام والألوان.
-- أسفل الخريطة قائمة الأسئلة مجمّعة برقم Marker، كل سؤال بحقل مناسب لنوعه (MCQ radios، صح/خطأ، نص، مقالي، إكمال).
-- الحفظ التلقائي كما هو.
+مسار `student.exams.$id.take.tsx` يفحص `exam.exam_kind`:
+- إذا `standard` → نفس المسار الحالي (بدون تغيير).
+- إذا `map` → مكوّن جديد `MapExamRunner`:
+  - عرض الخريطة النظيفة (Responsive: pinch/zoom على الموبايل).
+  - Markers مرقّمة فوق الصورة (نفس التنسيق البصري للمحرر).
+  - أسفلها قائمة الأسئلة مجمّعة حسب الرقم: `الرقم (1) → ما اسم...؟`.
+  - حفظ تلقائي كل بضع ثوان (نفس آلية الحفظ الحالية).
+  - عدة صفحات خرائط تُعرض واحدة تلو الأخرى مع Progress.
+- صفحة النتيجة (`student.exams.$id.result`) تعرض الخريطة مع الإجابة الصحيحة بجانب إجابة الطالب لكل Marker.
 
-### 5. التصحيح
+## المرحلة 5 — التصحيح والنتائج
 
-توسيع منطق التصحيح في `src/lib/exams.functions.ts` لسؤال الـ map:
-- MCQ / true_false / complete / short → مقارنة نصية طبيعية (استخدام `normalizeArabic` الحالي)، تصحيح تلقائي.
-- essay → يُترك للمعلم كـ `needs_review` (نفس المنطق الحالي).
-- الدرجة = مجموع درجات الأسئلة لكل النقاط.
+- الموضوعية: تصحيح آلي فور التسليم (نفس `evalMapSubQuestion`).
+- المقالية: تظهر في `/admin/exams/$id/results` مع اقتراح تصحيح AI الموجود.
+- عرض النتائج الإجمالية يعمل كما هو (نفس جدول `results`).
 
-### 6. مكتبة الخرائط
+## المرحلة 6 — الاختبار
 
-جدول جديد `map_templates`:
-- عنوان، فئة (مصر/الوطن العربي/أفريقيا/العالم/مناخ/تضاريس/سكان/تاريخ/اقتصاد)، رابط الصورة، JSON بالنقاط والأسئلة، صاحب الخريطة.
-- RLS: الأدمن يرى/يعدّل/يحذف.
-- صفحة جديدة `admin.maps.tsx` تعرض المكتبة (بحث + تصنيف)، مع أزرار: **استخدام في امتحان** / **نسخ** / **تعديل** / **حذف**.
-- زر "حفظ كقالب في المكتبة" من داخل `MapEditor`.
+بعد التنفيذ:
+1. اختبار E2E عبر Playwright: رفع خريطة → AI auto → مراجعة → حفظ → دخول كطالب → حل → عرض نتيجة.
+2. اختبار المسار اليدوي (بدون AI).
+3. اختبار Responsive على viewport موبايل + تابلت + سطح مكتب.
+4. اختبار Fallback بين مزودي الـ AI.
 
-### 7. طباعة الـ PDF
+## قواعد الحفاظ على الكود القائم
 
-تحديث `src/lib/exam-pdf.ts` ليطبع كل الأسئلة الفرعية لكل Marker تحت الخريطة.
+- **لا نلمس** نظام سؤال الخريطة داخل الامتحان العادي (`question.type='map'`) — يبقى كما هو للتوافق.
+- **نُعيد استخدام**: `analyzeMapImage`, `cleanMapImage`, `InteractiveMapEditor`, `MapPointQuestions`, `evalMapSubQuestion`, `callLovableChat`, `attempt_answers`.
+- **جديد فقط**: `exam_kind`, 3 جداول `map_exam_*`, `map-exam.functions.ts`, مسارات `/admin/exams/map/new` و `MapExamRunner`.
 
-### 8. الأداء
+## التقنيات
 
-- تجزئة النقاط ورندر Markers كـ `absolute` divs (سريع حتى 100+).
-- الأسئلة ضمن قائمة عادية (100 نقطة × 10 أسئلة = 1000 عنصر، مقبول).
-- لا نستخدم مكتبات ثقيلة (لا Leaflet، لا Konva).
-
-### خطوات التنفيذ (بالترتيب)
-
-1. **Migration**: إنشاء جدول `map_templates` + GRANT + RLS.
-2. توسيع types + دوال تحويل توافقية (backward compat) لقراءة الشكل القديم.
-3. بناء `MapEditor` الجديد ودمجه في محرر الامتحان.
-4. إضافة server function للـ AI + Dialog في صفحة `admin.exams.ai.tsx`.
-5. تحديث `MapAnswerInput` للطالب لدعم عدة أسئلة بأنواع مختلفة.
-6. تحديث التصحيح في `exams.functions.ts`.
-7. بناء صفحة `admin.maps.tsx` + ربط زر "حفظ كقالب".
-8. تحديث تصدير PDF.
-9. اختبار: رفع خريطة، توليد AI، تعديل، حل من الطالب، تصحيح، حفظ في المكتبة، طباعة PDF.
-
-### خارج النطاق
-
-- لن نضيف مكتبة خرائط جاهزة (Leaflet/Mapbox) — كل شيء صور رفع.
-- لن نغيّر أنواع الأسئلة الأخرى.
-- تدوير الخريطة سيكون بزوايا 90° فقط (بدون free-rotate) لتبسيط الإحداثيات.
+- Frontend: React + TS + shadcn/ui + Tailwind (RTL).
+- محرر الخريطة: HTML5 + pointer events (يعمل touch/mouse).
+- تحويل PDF → صورة: `pdfjs-dist` (موجود بالفعل في المشروع).
+- AI: `callLovableChat` مع Gemini 3 Pro Vision للتحليل، Nano Banana للتنظيف، fallback chain موجود.
+- Storage: bucket جديد `map-exams` (RLS: أدمن write، مصادق read).

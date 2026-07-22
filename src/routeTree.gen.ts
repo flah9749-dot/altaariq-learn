@@ -63,6 +63,7 @@ import { Route as ApiPublicV1StatsRouteImport } from './routes/api/public/v1.sta
 import { Route as ApiPublicV1LeaderboardRouteImport } from './routes/api/public/v1.leaderboard'
 import { Route as AdminStudentsQuickCodeRouteImport } from './routes/admin.students.quick.$code'
 import { Route as AdminStudentsIdAnalyticsRouteImport } from './routes/admin.students.$id.analytics'
+import { Route as AdminExamsMapNewRouteImport } from './routes/admin.exams.map.new'
 import { Route as AdminExamsIdResultsRouteImport } from './routes/admin.exams.$id.results'
 
 const StudentRoute = StudentRouteImport.update({
@@ -336,6 +337,11 @@ const AdminStudentsIdAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AdminStudentsIdRoute,
   } as any)
+const AdminExamsMapNewRoute = AdminExamsMapNewRouteImport.update({
+  id: '/exams/map/new',
+  path: '/exams/map/new',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminExamsIdResultsRoute = AdminExamsIdResultsRouteImport.update({
   id: '/results',
   path: '/results',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
+  '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
   '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
@@ -442,6 +449,7 @@ export interface FileRoutesByTo {
   '/admin/students': typeof AdminStudentsIndexRoute
   '/student/exams': typeof StudentExamsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
+  '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
   '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
@@ -500,6 +508,7 @@ export interface FileRoutesById {
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
+  '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
   '/admin/students/quick/$code': typeof AdminStudentsQuickCodeRoute
   '/api/public/v1/leaderboard': typeof ApiPublicV1LeaderboardRoute
@@ -559,6 +568,7 @@ export interface FileRouteTypes {
     | '/admin/students/'
     | '/student/exams/'
     | '/admin/exams/$id/results'
+    | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
     | '/api/public/v1/leaderboard'
@@ -612,6 +622,7 @@ export interface FileRouteTypes {
     | '/admin/students'
     | '/student/exams'
     | '/admin/exams/$id/results'
+    | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
     | '/api/public/v1/leaderboard'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/admin/students/'
     | '/student/exams/'
     | '/admin/exams/$id/results'
+    | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
     | '/admin/students/quick/$code'
     | '/api/public/v1/leaderboard'
@@ -1072,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudentsIdAnalyticsRouteImport
       parentRoute: typeof AdminStudentsIdRoute
     }
+    '/admin/exams/map/new': {
+      id: '/admin/exams/map/new'
+      path: '/exams/map/new'
+      fullPath: '/admin/exams/map/new'
+      preLoaderRoute: typeof AdminExamsMapNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/exams/$id/results': {
       id: '/admin/exams/$id/results'
       path: '/results'
@@ -1145,6 +1164,7 @@ interface AdminRouteChildren {
   AdminStudentsIdRoute: typeof AdminStudentsIdRouteWithChildren
   AdminExamsIndexRoute: typeof AdminExamsIndexRoute
   AdminStudentsIndexRoute: typeof AdminStudentsIndexRoute
+  AdminExamsMapNewRoute: typeof AdminExamsMapNewRoute
   AdminStudentsQuickCodeRoute: typeof AdminStudentsQuickCodeRoute
 }
 
@@ -1176,6 +1196,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStudentsIdRoute: AdminStudentsIdRouteWithChildren,
   AdminExamsIndexRoute: AdminExamsIndexRoute,
   AdminStudentsIndexRoute: AdminStudentsIndexRoute,
+  AdminExamsMapNewRoute: AdminExamsMapNewRoute,
   AdminStudentsQuickCodeRoute: AdminStudentsQuickCodeRoute,
 }
 
