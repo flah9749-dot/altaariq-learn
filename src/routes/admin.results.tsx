@@ -21,7 +21,14 @@ import { formatArabicDate } from "@/lib/students-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/results")({
-  head: () => ({ meta: [{ title: "النتائج — لوحة المدرس" }] }),
+  head: () => ({ meta: [
+    { title: "نتائج الطلاب — الطارق التعليمية" },
+    { name: "description", content: "متابعة نتائج الطلاب ومراجعة الدرجات وإرسال تقارير ولي الأمر في منصة الطارق التعليمية." },
+    { property: "og:title", content: "نتائج الطلاب — الطارق التعليمية" },
+    { property: "og:description", content: "متابعة نتائج الطلاب ومراجعة الدرجات وإرسال تقارير ولي الأمر في منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ResultsPage,
 });
 
