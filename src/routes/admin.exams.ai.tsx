@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText } from "lucide-react";
+import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText, MapPin, ImagePlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,19 +235,36 @@ function AIExamPage() {
                     <span className="text-xs text-muted-foreground mr-auto">{q.points} درجة</span>
                   </div>
                   <p className="font-medium">{q.text}</p>
-                  {q.image_url && <img src={q.image_url} alt="خريطة السؤال" className="max-h-72 rounded-lg border" />}
-                  {q.options?.length > 0 && (
-                    <ul className="space-y-1 text-sm">
-                      {q.options.map((o: any, oi: number) => (
-                        <li key={oi} className={`flex items-center gap-2 ${o.is_correct ? "text-success font-medium" : "text-muted-foreground"}`}>
-                          {o.is_correct ? "✓" : "○"} {o.text}
-                        </li>
-                      ))}
-                    </ul>
+
+                  {q.type === "map" ? (
+                    <MapPreview
+                      question={q}
+                      onChangeImage={(url) => setPreview((p) => p ? { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, image_url: url } : qq) } : p)}
+                      onPick={(x, y) => setPreview((p) => {
+                        if (!p) return p;
+                        const pts = getMapPointsPreview(q.correct_answer);
+                        const next = pts.length ? [{ ...pts[0], x, y }, ...pts.slice(1)] : [{ label: "الموقع الصحيح", x, y, tolerance: 8 }];
+                        return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
+                      })}
+                    />
+                  ) : (
+                    <>
+                      {q.image_url && <img src={q.image_url} alt="صورة السؤال" className="max-h-72 rounded-lg border" />}
+                      {q.options?.length > 0 && (
+                        <ul className="space-y-1 text-sm">
+                          {q.options.map((o: any, oi: number) => (
+                            <li key={oi} className={`flex items-center gap-2 ${o.is_correct ? "text-success font-medium" : "text-muted-foreground"}`}>
+                              {o.is_correct ? "✓" : "○"} {o.text}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {q.correct_answer != null && !q.options?.length && (
+                        <p className="text-sm text-success">الإجابة: {typeof q.correct_answer === "object" ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}</p>
+                      )}
+                    </>
                   )}
-                  {q.correct_answer != null && !q.options?.length && (
-                    <p className="text-sm text-success">الإجابة: {typeof q.correct_answer === "object" ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}</p>
-                  )}
+
                   {q.explanation && <p className="text-xs text-muted-foreground border-t pt-2">{q.explanation}</p>}
                 </div>
               ))}
@@ -261,4 +278,86 @@ function AIExamPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
+}
+
+type MapPoint = { label: string; x: number; y: number; tolerance: number };
+
+function getMapPointsPreview(answer: any): MapPoint[] {
+  const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
+  return raw.map((p: any) => ({
+    label: String(p?.label ?? "الموقع الصحيح"),
+    x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
+    y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+    tolerance: Math.max(3, Math.min(20, Number(p?.tolerance ?? 8))),
+  }));
+}
+
+function MapPreview({ question, onChangeImage, onPick }: {
+  question: any;
+  onChangeImage: (url: string) => void;
+  onPick: (x: number, y: number) => void;
+}) {
+  const points = getMapPointsPreview(question.correct_answer);
+  const imageUrl: string | null = question.image_url ?? null;
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { toast.error("حجم الصورة أكبر من 50MB"); return; }
+    try {
+      const prepared = await prepareAttachmentFile(file);
+      const url = await readFile(prepared instanceof File ? prepared : new File([prepared], file.name, { type: "image/jpeg" }));
+      onChangeImage(url);
+    } catch { toast.error("فشل تجهيز الصورة"); }
+    finally { input.value = ""; }
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg border p-2 bg-muted/30">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild size="sm" variant="outline">
+          <label className="cursor-pointer">
+            <ImagePlus className="h-4 w-4 ml-1" />{imageUrl ? "استبدال صورة الخريطة" : "رفع صورة الخريطة"}
+            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          </label>
+        </Button>
+        {imageUrl && <span className="text-xs text-muted-foreground">اضغط على الخريطة لتحديد الموقع الصحيح</span>}
+      </div>
+
+      {imageUrl ? (
+        <button
+          type="button"
+          className="relative block w-full overflow-hidden rounded-lg border bg-background"
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
+            const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
+            onPick(Math.max(0, Math.min(100, x)), Math.max(0, Math.min(100, y)));
+          }}
+        >
+          <img src={imageUrl} alt="خريطة السؤال" className="max-h-96 w-full object-contain" />
+          {points.map((p, index) => (
+            <span
+              key={index}
+              className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+              style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            >
+              <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+            </span>
+          ))}
+        </button>
+      ) : (
+        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          لم يتم إرفاق صورة خريطة. ارفع صورة ليتمكن الطالب من تحديد الموقع عليها.
+        </div>
+      )}
+
+      {points.length > 0 && (
+        <div className="text-xs text-muted-foreground">
+          الموقع الصحيح: <span className="font-medium text-foreground">{points[0].label}</span> — (x: {points[0].x}, y: {points[0].y}, نطاق: {points[0].tolerance})
+        </div>
+      )}
+    </div>
+  );
 }
