@@ -20,8 +20,9 @@ export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () 
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () =>
     (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
-  const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () =>
-    (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
+  const { data: groups } = useQuery({ queryKey: ["groups-with-class"], queryFn: async () =>
+    (await supabase.from("groups").select("id,name,class_id, classes(name)").order("name")).data ?? [] });
+
 
   const send = useMutation({
     mutationFn: async () => fn({ data: { body, target, class_id: classId ?? null, group_id: groupId ?? null, student_ids: [], message_type: "text" } }),
@@ -57,10 +58,16 @@ export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () 
             <div><Label>المجموعة</Label>
               <Select value={groupId} onValueChange={setGroupId}>
                 <SelectTrigger><SelectValue placeholder="اختر مجموعة"/></SelectTrigger>
-                <SelectContent>{(groups ?? []).map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{(groups ?? []).map((g: any) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}{g.classes?.name ? ` — ${g.classes.name}` : ""}
+                  </SelectItem>
+                ))}</SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">يمكنك اختيار المجموعة مباشرة بدون تحديد الصف.</p>
             </div>
           )}
+
           <div><Label>نص الرسالة</Label>
             <Textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="اكتب رسالتك للطلاب..."/>
           </div>
