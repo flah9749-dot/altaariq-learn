@@ -37,9 +37,13 @@ function StudentDetailPage() {
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const [pointsOpen, setPointsOpen] = useState(false);
+  const [pointsDelta, setPointsDelta] = useState<string>("10");
+  const [pointsReason, setPointsReason] = useState<string>("");
   const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const qc = useQueryClient();
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["student", id],
