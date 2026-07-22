@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3, Users, FileText, TrendingUp, Award, Download, FileSpreadsheet,
-  Trophy, MessageSquare, Gift, Activity as ActivityIcon,
+  Trophy, MessageSquare, Gift, Activity as ActivityIcon, Search, Sparkles,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
