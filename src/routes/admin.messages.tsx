@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { MessageSquare, Search, Send, Users2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -16,7 +17,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { BroadcastDialog } from "@/components/chat/BroadcastDialog";
+import { getAllAdminPeerIds } from "@/lib/messaging.functions";
 import { formatChatTime } from "@/lib/message-utils";
+
 
 export const Route = createFileRoute("/admin/messages")({
   head: () => ({ meta: [{ title: "الرسائل — لوحة المدرس" }] }),
@@ -53,26 +56,48 @@ function AdminMessagesPage() {
       .not("user_id", "is", null).eq("status", "active").order("full_name")).data ?? [],
   });
 
-  const { data: threads } = useQuery({
-    queryKey: ["message-threads", user?.id],
+  const getAdminIds = useServerFn(getAllAdminPeerIds);
+  const { data: adminIdsData } = useQuery({
+    queryKey: ["all-admin-peer-ids"],
     enabled: !!user,
+    queryFn: () => getAdminIds(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const adminIds = useMemo(() => {
+    const set = new Set<string>([user?.id, ...((adminIdsData?.ids ?? []) as string[])].filter(Boolean) as string[]);
+    return Array.from(set);
+  }, [adminIdsData, user?.id]);
+  const otherAdminIds = useMemo(
+    () => adminIds.filter((id) => id !== user?.id),
+    [adminIds, user?.id],
+  );
+  const adminIdsKey = adminIds.slice().sort().join(",");
+
+  const { data: threads } = useQuery({
+    queryKey: ["message-threads", adminIdsKey],
+    enabled: !!user && adminIds.length > 0,
     queryFn: async () => {
+      const inList = adminIds.map((p) => `"${p}"`).join(",");
       const { data } = await supabase.from("messages")
         .select("sender_id,recipient_id,body,created_at,read,attachment_name")
-        .or(`sender_id.eq.${user!.id},recipient_id.eq.${user!.id}`)
-        .order("created_at", { ascending: false }).limit(1000);
+        .or(`sender_id.in.(${inList}),recipient_id.in.(${inList})`)
+        .order("created_at", { ascending: false }).limit(2000);
+      const adminSet = new Set(adminIds);
       const map = new Map<string, { last: any; unread: number }>();
       for (const m of data ?? []) {
-        const other = (m.sender_id === user!.id ? m.recipient_id : m.sender_id) as string | null;
-        if (!other) continue;
+        // The "other party" is the non-admin side of the conversation.
+        const other = (adminSet.has(m.sender_id as string) ? m.recipient_id : m.sender_id) as string | null;
+        if (!other || adminSet.has(other)) continue; // ignore admin<->admin noise
         const cur = map.get(other) ?? { last: null, unread: 0 };
         if (!cur.last) cur.last = m;
+        // Count unread only for messages addressed to THIS admin (per-admin inbox state).
         if (m.recipient_id === user!.id && !m.read) cur.unread++;
         map.set(other, cur);
       }
       return map;
     },
   });
+
 
   const filtered = useMemo(() => {
     let list = students ?? [];
@@ -210,10 +235,12 @@ function AdminMessagesPage() {
             peerName={selected.name}
             peerSubtitle={`${selected.code}${selected.className ? " • " + selected.className : ""}${selected.groupName ? " • " + selected.groupName : ""}`}
             templateVars={{ student_name: selected.name, code: selected.code }}
+            selfPeerIds={otherAdminIds}
             headerRight={selected.parentPhone ? (
               <WhatsAppButton phone={selected.parentPhone} template="wa.tpl.parent_intro" vars={{ name: selected.name }} label="واتساب ولي الأمر" size="sm" />
             ) : null}
           />
+
         ) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted-foreground p-8 text-center">
             <MessageSquare className="h-16 w-16 opacity-30" />
