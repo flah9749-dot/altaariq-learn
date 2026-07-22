@@ -32,7 +32,7 @@ const SCHEMA_HINT = `أعد ردًا بصيغة JSON فقط بالمخطط ال�
       "options": [{"text": "...", "is_correct": true}],  // للاختيار من متعدد فقط
       "image_url": "attachment:اسم_الصورة" , // لأسئلة الخرائط فقط عند استخدام صورة مرفقة
       "map_image_prompt": "وصف مختصر بالإنجليزية لصورة الخريطة المطلوبة (اختياري، لأسئلة الخرائط فقط عندما لا توجد صورة مرفقة). مثل: 'Blank political map of Australia highlighting Tasmania location, educational style, labeled regions'",
-      "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل، وللخريطة: {"points":[{"label":"اسم المكان الصحيح","x":50,"y":50}, ...]} — سيرى الطالب أرقاماً فوق الخريطة ويكتب أسماء المواقع.
+      "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل، وللخريطة: {"points":[{"prompt":"سؤال هذا الرقم مثل: ما اسم هذا المحيط؟","label":"الإجابة الصحيحة","x":50,"y":50}, ...]} — كل نقطة على الخريطة تمثل سؤالاً مستقلاً، يرى الطالب الأرقام على الخريطة وسؤال كل رقم ويكتب الإجابة.
     }
   ]
 }`;
@@ -71,7 +71,7 @@ ${SCHEMA_HINT}`;
 - إذا وُجدت صورة خريطة ضمن المرفقات، استخدمها وضع image_url = "attachment:اسم_الصورة".
 - إذا لم توجد صورة مرفقة، اترك image_url فارغًا وأضف حقل map_image_prompt بوصف مختصر بالإنجليزية لصورة الخريطة المطلوب توليدها تلقائيًا (يجب أن يصف خريطة تعليمية واضحة تُظهر المنطقة الجغرافية المطلوبة).
 - استخدم إحداثيات نسبية على الخريطة من 0 إلى 100: x من يسار الصورة إلى يمينها، y من أعلى الصورة إلى أسفلها.
-- correct_answer يجب أن يكون: {"points":[{"label":"اسم المكان الصحيح","x":50,"y":50}, ...]} — يمكنك إضافة عدة مواقع على نفس الخريطة، وسيكتب الطالب أسماءها بجانب أرقامها.` : "",
+- correct_answer يجب أن يكون: {"points":[{"prompt":"سؤال هذا الرقم (مثال: ما اسم هذا المحيط؟ ما هذه السلسلة الجبلية؟)","label":"الإجابة الصحيحة","x":50,"y":50}, ...]} — يمكنك وضع عدة نقاط مرقّمة على نفس الخريطة، كل نقطة سؤال مستقل بدرجته. اجعل الأسئلة متنوعة: محيطات، جبال، أنهار، دول، مدن، حدود...` : "",
       "أنشئ الآن الامتحان بصيغة JSON فقط.",
     ].filter(Boolean).join("\n\n");
     parts.push({ type: "text", text: textInstruction });
@@ -122,12 +122,13 @@ ${SCHEMA_HINT}`;
       const points = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
       const clean = points
         .map((p: any) => ({
-          label: String(p?.label ?? "الموقع الصحيح"),
+          label: String(p?.label ?? "الإجابة الصحيحة"),
+          prompt: typeof p?.prompt === "string" ? p.prompt : (typeof p?.question === "string" ? p.question : ""),
           x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
           y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
         }))
         .filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
-      return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
+      return { points: clean.length ? clean : [{ label: "الإجابة الصحيحة", prompt: "", x: 50, y: 50 }] };
     };
 
     const normalized = await Promise.all(questions.map(async (q: any, i: number) => {

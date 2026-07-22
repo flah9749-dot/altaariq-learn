@@ -113,12 +113,17 @@ function renderMap(q: PaperQuestion, showAnswers: boolean) {
     : `<div style="padding:16px;border:1px dashed #94a3b8;border-radius:8px;color:#64748b;">(لم تُرفق صورة الخريطة)</div>`;
   const list = points.length
     ? `<ol style="margin-top:8px;padding-inline-start:20px;">
-        ${points.map((p: any, i: number) =>
-          `<li style="margin-bottom:4px;">${i + 1}. ${showAnswers ? `<b style="color:#16a34a;">${escapeHtml(p.label)}</b>` : `<span style="display:inline-block;border-bottom:1px dashed #94a3b8;min-width:180px;">&nbsp;</span>`}</li>`
-        ).join("")}
+        ${points.map((p: any, i: number) => {
+          const prompt = typeof p?.prompt === "string" && p.prompt.trim() ? escapeHtml(p.prompt) : "";
+          const promptHtml = prompt ? `<span style="color:#0f172a;">${prompt}</span> — ` : "";
+          const answerHtml = showAnswers
+            ? `<b style="color:#16a34a;">${escapeHtml(p.label)}</b>`
+            : `<span style="display:inline-block;border-bottom:1px dashed #94a3b8;min-width:180px;">&nbsp;</span>`;
+          return `<li style="margin-bottom:4px;">${promptHtml}${answerHtml}</li>`;
+        }).join("")}
       </ol>`
     : "";
-  const hint = !showAnswers ? `<div style="margin-top:4px;color:#64748b;font-size:11px;">اكتب اسم كل مكان بجوار رقمه.</div>` : "";
+  const hint = !showAnswers ? `<div style="margin-top:4px;color:#64748b;font-size:11px;">أجب على كل رقم موجود على الخريطة.</div>` : "";
   return `<div>${img}${list}${hint}</div>`;
 }
 

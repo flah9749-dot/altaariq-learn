@@ -62,19 +62,20 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   if (type === "complete") base.correct_answer = "";
   if (type === "order") base.options = [{ text: "", is_correct: false, order_index: 0 }];
   if (type === "match") base.options = [{ text: "", is_correct: false, order_index: 0, match_key: "أ" }];
-  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
+  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", prompt: "", x: 50, y: 50 }] };
   return base;
 }
 
-type MapPoint = { label: string; x: number; y: number };
+type MapPoint = { label: string; prompt?: string; x: number; y: number };
 
 const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
   return raw.length ? raw.map((p: any) => ({
-    label: String(p?.label ?? "الموقع الصحيح"),
-    x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
-    y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
-  })) : [{ label: "الموقع الصحيح", x: 50, y: 50 }];
+    label: String(p?.label ?? ""),
+    prompt: typeof p?.prompt === "string" ? p.prompt : "",
+    x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
+    y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+  })) : [];
 };
 
 const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
@@ -85,27 +86,26 @@ const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
 const addMapPoint = (answer: any, x = 50, y = 50) => {
   const points = getMapPoints(answer);
   const idx = points.length + 1;
-  return { points: [...points, { label: `الموقع ${idx}`, x, y }] };
+  return { points: [...points, { label: `الموقع ${idx}`, prompt: "", x, y }] };
 };
 
 const removeMapPoint = (answer: any, index: number) => {
   const points = getMapPoints(answer).filter((_, i) => i !== index);
-  return { points: points.length ? points : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
-};
-
-function readImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+  return { points: points.length ? points : [{ label: "الموقع الصحيح", prompt: "", x: 50, y: 50 }] };
 }
 
 async function prepareQuestionImage(file: File): Promise<File | Blob> {
   const { compressImage } = await import("@/lib/message-utils");
   return compressImage(file, 1800, 0.84);
 }
+
+const readImage = (file: File | Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 function ExamEditor() {
   const { id } = Route.useParams();
@@ -390,15 +390,19 @@ function ExamEditor() {
                       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">ارفع صورة خريطة ثم اضغط على المواقع المطلوبة لإضافتها.</div>
                     )}
                     {getMapPoints(q.correct_answer).map((p, pi) => (
-                      <div key={pi} className="grid gap-2 md:grid-cols-[32px_1fr_90px_90px_auto] items-center">
-                        <Badge variant="outline" className="justify-center">{pi + 1}</Badge>
-                        <Input placeholder="اسم الموقع (سيكتبه الطالب)" value={p.label} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { label: e.target.value }) })} />
-                        <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { x: Number(e.target.value) }) })} />
-                        <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { y: Number(e.target.value) }) })} />
-                        <Button variant="ghost" size="icon" onClick={() => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <div key={pi} className="rounded-lg border p-2 space-y-2 bg-background">
+                        <div className="grid gap-2 md:grid-cols-[32px_1fr_90px_90px_auto] items-center">
+                          <Badge variant="outline" className="justify-center">{pi + 1}</Badge>
+                          <Input placeholder="الإجابة الصحيحة (اسم الموقع)" value={p.label} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { label: e.target.value }) })} />
+                          <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { x: Number(e.target.value) }) })} />
+                          <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { y: Number(e.target.value) }) })} />
+                          <Button variant="ghost" size="icon" onClick={() => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                        <Input placeholder={`سؤال الرقم ${pi + 1} (مثال: ما اسم هذا المحيط؟) — اختياري`} value={p.prompt ?? ""} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { prompt: e.target.value }) })} />
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة نقطة جديدة. اكتب اسم المكان في كل نقطة — سيرى الطالب أرقام النقاط ويكتب أسماءها.</p>
+                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة رقم جديد. لكل رقم: اكتب سؤالاً (اختياري) + الإجابة الصحيحة. سيرى الطالب الأرقام على الخريطة ويجيب على كل رقم.</p>
+
                   </div>
                 )}
 

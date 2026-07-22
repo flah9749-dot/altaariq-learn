@@ -252,7 +252,7 @@ function AIExamPage() {
                         if (!p) return p;
                         const pts = getMapPointsPreview(q.correct_answer);
                         const idxNext = pts.length + 1;
-                        const next = [...pts, { label: `الموقع ${idxNext}`, x, y }];
+                        const next = [...pts, { label: `الإجابة ${idxNext}`, prompt: "", x, y }];
                         return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
                       })}
                     />
@@ -289,12 +289,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
 }
 
-type MapPoint = { label: string; x: number; y: number };
+type MapPoint = { label: string; prompt?: string; x: number; y: number };
 
 function getMapPointsPreview(answer: any): MapPoint[] {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
   return raw.map((p: any) => ({
-    label: String(p?.label ?? "الموقع الصحيح"),
+    label: String(p?.label ?? "الإجابة الصحيحة"),
+    prompt: typeof p?.prompt === "string" ? p.prompt : "",
     x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
     y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
   }));
@@ -365,7 +366,11 @@ function MapPreview({ question, onChangeImage, onPick }: {
       {points.length > 0 && (
         <ol className="text-xs text-muted-foreground list-decimal pr-5 space-y-0.5">
           {points.map((p, idx) => (
-            <li key={idx}><span className="font-medium text-foreground">{p.label}</span> — (x: {p.x}, y: {p.y})</li>
+            <li key={idx}>
+              {p.prompt?.trim() ? <span className="text-foreground">{p.prompt} → </span> : null}
+              <span className="font-medium text-foreground">{p.label}</span>
+              <span className="opacity-60"> (x: {p.x}, y: {p.y})</span>
+            </li>
           ))}
         </ol>
       )}

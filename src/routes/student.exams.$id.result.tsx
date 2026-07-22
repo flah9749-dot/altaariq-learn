@@ -167,7 +167,8 @@ function ResultPage() {
                     <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {correctOpts}</p>
                   )}
                   {a.questions?.type === "map" && a.is_correct !== true && Array.isArray(a.questions?.correct_answer?.points) && a.questions.correct_answer.points.length > 0 && (
-                    <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {a.questions.correct_answer.points.map((p: any, idx: number) => `${idx + 1}. ${p.label}`).join(" — ")}</p>
+                    <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {a.questions.correct_answer.points.map((p: any, idx: number) => `${idx + 1}. ${p.prompt?.trim() ? `${p.prompt} → ` : ""}${p.label}`).join(" — ")}</p>
+
                   )}
                   {a.questions?.explanation && <p className="text-xs text-muted-foreground mt-2 border-t pt-2">💡 {a.questions.explanation}</p>}
                   {a.ai_feedback && <p className="text-xs text-primary mt-2 border-t pt-2">🤖 تعليق: {a.ai_feedback}</p>}
