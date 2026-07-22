@@ -928,6 +928,42 @@ export type Database = {
         }
         Relationships: []
       }
+      map_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          data: Json
+          description: string | null
+          id: string
+          image_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          description?: string | null
+          id?: string
+          image_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          description?: string | null
+          id?: string
+          image_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_templates: {
         Row: {
           body: string

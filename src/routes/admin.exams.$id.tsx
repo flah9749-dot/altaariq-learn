@@ -19,6 +19,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { upsertExam, saveQuestions, publishExam } from "@/lib/exams.functions";
+import { generateInteractiveMap } from "@/lib/ai-map.functions";
+import { listMapTemplates, upsertMapTemplate } from "@/lib/map-templates.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { QUESTION_TYPES, type QuestionType } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/admin/exams/$id")({
@@ -114,9 +117,15 @@ function ExamEditor() {
   const upsertFn = useServerFn(upsertExam);
   const saveQFn = useServerFn(saveQuestions);
   const pubFn = useServerFn(publishExam);
+  const aiMapFn = useServerFn(generateInteractiveMap);
+  const listTplFn = useServerFn(listMapTemplates);
+  const saveTplFn = useServerFn(upsertMapTemplate);
 
   const [meta, setMeta] = useState<any | null>(null);
   const [questions, setQuestions] = useState<Q[]>([]);
+  const [aiMapDlg, setAiMapDlg] = useState<{ open: boolean; qi: number; topic: string; num: number; busy: boolean }>({ open: false, qi: -1, topic: "", num: 6, busy: false });
+  const [libDlg, setLibDlg] = useState<{ open: boolean; qi: number }>({ open: false, qi: -1 });
+  const [libItems, setLibItems] = useState<any[] | null>(null);
   const loadedAiDraft = useRef(false);
 
   const { data: exam, isLoading } = useQuery({
@@ -348,6 +357,31 @@ function ExamEditor() {
 
                 {q.type === "map" && (
                   <div className="space-y-3 rounded-lg border p-3">
+                    <div className="flex flex-wrap gap-2 pb-2 border-b">
+                      <Button size="sm" variant="secondary" onClick={() => setAiMapDlg({ open: true, qi: i, topic: q.text || "", num: 6, busy: false })}>
+                        <Sparkles className="h-4 w-4 ml-1" />توليد الخريطة بالذكاء الاصطناعي
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={async () => {
+                        setLibDlg({ open: true, qi: i });
+                        if (!libItems) { try { const items = await listTplFn(); setLibItems(items as any[]); } catch { setLibItems([]); } }
+                      }}>
+                        <MapPin className="h-4 w-4 ml-1" />من المكتبة
+                      </Button>
+                      <Button size="sm" variant="ghost" disabled={!q.image_url} onClick={async () => {
+                        const title = window.prompt("عنوان القالب:", q.text || "قالب خريطة");
+                        if (!title?.trim()) return;
+                        try {
+                          await saveTplFn({ data: {
+                            title: title.trim(), image_url: q.image_url!, category: null, description: null,
+                            points: getMapPoints(q.correct_answer),
+                          } });
+                          toast.success("تم الحفظ في المكتبة");
+                          setLibItems(null);
+                        } catch (e: any) { toast.error(e?.message ?? "فشل الحفظ"); }
+                      }}>
+                        <Save className="h-4 w-4 ml-1" />حفظ في المكتبة
+                      </Button>
+                    </div>
                     <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                       <Input
                         placeholder="رابط صورة الخريطة أو ارفع صورة"
@@ -497,6 +531,75 @@ function ExamEditor() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={aiMapDlg.open} onOpenChange={(v) => setAiMapDlg((p) => ({ ...p, open: v }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>توليد سؤال خريطة بالذكاء الاصطناعي</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5"><Label>الموضوع/الدرس</Label>
+              <Input value={aiMapDlg.topic} onChange={(e) => setAiMapDlg((p) => ({ ...p, topic: e.target.value }))} placeholder="مثال: تضاريس أستراليا، عواصم أوروبا..." />
+            </div>
+            <div className="space-y-1.5"><Label>عدد النقاط</Label>
+              <Input type="number" min={1} max={20} value={aiMapDlg.num} onChange={(e) => setAiMapDlg((p) => ({ ...p, num: Number(e.target.value) }))} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              سيقوم الذكاء الاصطناعي بتوليد صورة خريطة (إن لم تكن مرفوعة) وتحديد النقاط والأسئلة والإجابات تلقائيًا.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAiMapDlg((p) => ({ ...p, open: false }))}>إلغاء</Button>
+            <Button disabled={aiMapDlg.busy || !aiMapDlg.topic.trim()} onClick={async () => {
+              setAiMapDlg((p) => ({ ...p, busy: true }));
+              try {
+                const currentQ = questions[aiMapDlg.qi];
+                const r: any = await aiMapFn({ data: {
+                  topic: aiMapDlg.topic.trim(),
+                  num_points: aiMapDlg.num,
+                  map_image_data_url: currentQ?.image_url ?? null,
+                } });
+                updateQ(aiMapDlg.qi, {
+                  text: currentQ?.text?.trim() ? currentQ.text : r.title,
+                  image_url: r.image_url ?? currentQ?.image_url ?? null,
+                  correct_answer: { points: r.points },
+                });
+                toast.success(`تم توليد ${r.points.length} نقطة`);
+                setAiMapDlg({ open: false, qi: -1, topic: "", num: 6, busy: false });
+              } catch (e: any) { toast.error(e?.message ?? "فشل التوليد"); setAiMapDlg((p) => ({ ...p, busy: false })); }
+            }}>
+              {aiMapDlg.busy ? "جارٍ التوليد..." : <><Sparkles className="h-4 w-4 ml-1" />توليد</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={libDlg.open} onOpenChange={(v) => setLibDlg({ open: v, qi: libDlg.qi })}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>مكتبة الخرائط</DialogTitle></DialogHeader>
+          {libItems === null ? (
+            <Skeleton className="h-32" />
+          ) : libItems.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">لا توجد قوالب بعد. أنشئ قوالب من صفحة "مكتبة الخرائط".</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {libItems.map((t: any) => (
+                <Card key={t.id} className="cursor-pointer hover:border-primary transition" onClick={() => {
+                  const pts = Array.isArray(t.data?.points) ? t.data.points : [];
+                  updateQ(libDlg.qi, { image_url: t.image_url, correct_answer: { points: pts } });
+                  toast.success(`تم إدراج "${t.title}"`);
+                  setLibDlg({ open: false, qi: -1 });
+                }}>
+                  <div className="bg-muted h-32"><img src={t.image_url} alt={t.title} className="w-full h-full object-contain" /></div>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">{t.title}</CardTitle></CardHeader>
+                  <CardContent className="pt-0 flex justify-between text-xs text-muted-foreground">
+                    <span>{t.category ?? ""}</span>
+                    <span>{(t.data?.points?.length ?? 0)} نقطة</span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

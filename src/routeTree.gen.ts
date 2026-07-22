@@ -32,6 +32,7 @@ import { Route as AdminResultsRouteImport } from './routes/admin.results'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
+import { Route as AdminMapsRouteImport } from './routes/admin.maps'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminLeaderboardRouteImport } from './routes/admin.leaderboard'
 import { Route as AdminFilesRouteImport } from './routes/admin.files'
@@ -177,6 +178,11 @@ const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
 const AdminMessagesRoute = AdminMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMapsRoute = AdminMapsRouteImport.update({
+  id: '/maps',
+  path: '/maps',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLiveRoute = AdminLiveRouteImport.update({
@@ -354,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -463,6 +471,7 @@ export interface FileRoutesById {
   '/admin/files': typeof AdminFilesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
+  '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/admin/files'
     | '/admin/leaderboard'
     | '/admin/live'
+    | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -575,6 +585,7 @@ export interface FileRouteTypes {
     | '/admin/files'
     | '/admin/leaderboard'
     | '/admin/live'
+    | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -629,6 +640,7 @@ export interface FileRouteTypes {
     | '/admin/files'
     | '/admin/leaderboard'
     | '/admin/live'
+    | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/reports'
@@ -841,6 +853,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/admin/messages'
       preLoaderRoute: typeof AdminMessagesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/maps': {
+      id: '/admin/maps'
+      path: '/maps'
+      fullPath: '/admin/maps'
+      preLoaderRoute: typeof AdminMapsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/live': {
@@ -1111,6 +1130,7 @@ interface AdminRouteChildren {
   AdminFilesRoute: typeof AdminFilesRoute
   AdminLeaderboardRoute: typeof AdminLeaderboardRoute
   AdminLiveRoute: typeof AdminLiveRoute
+  AdminMapsRoute: typeof AdminMapsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -1141,6 +1161,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFilesRoute: AdminFilesRoute,
   AdminLeaderboardRoute: AdminLeaderboardRoute,
   AdminLiveRoute: AdminLiveRoute,
+  AdminMapsRoute: AdminMapsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminReportsRoute: AdminReportsRoute,
