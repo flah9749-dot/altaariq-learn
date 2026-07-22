@@ -624,14 +624,10 @@ export const approveAttempt = createServerFn({ method: "POST" })
     }).eq("id", data.attempt_id);
 
     if (pts > 0) {
-      await supabaseAdmin.from("points_log").insert({
-        student_id: att.student_id, points: pts,
-        reason: `اعتماد نتيجة امتحان: ${att.exams?.title ?? ""}`,
+      await creditStudentPoints(supabaseAdmin, {
+        student_id: att.student_id, exam_id: att.exam_id, points: pts,
+        reason_prefix: "اعتماد نتيجة امتحان",
       });
-      const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
-      const total = (Number(stu?.points) || 0) + pts;
-      const level = Math.max(1, Math.floor(total / 100) + 1);
-      await supabaseAdmin.from("students").update({ points: total, level }).eq("id", att.student_id);
     }
 
     await logActivity(supabaseAdmin, context.userId, "approve_attempt", "exam_attempt", att.id, { points_awarded: pts });
