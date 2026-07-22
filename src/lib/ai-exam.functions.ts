@@ -45,7 +45,7 @@ export const generateExamWithAI = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("مسموح للأدمن فقط");
 
-    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN } = await import("./ai-gateway.server");
+    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN, generateImageViaGateway } = await import("./ai-gateway.server");
 
     const pointsInstruction = data.total_score && data.total_score > 0
       ? `الدرجة الكلية للامتحان: ${data.total_score}. وزّع الدرجات على الأسئلة بحيث يكون مجموعها = ${data.total_score} بالضبط، مع مراعاة صعوبة كل سؤال (السهل درجة أقل، الصعب درجة أعلى). استخدم أرقامًا بنصف درجة عند الحاجة.`
