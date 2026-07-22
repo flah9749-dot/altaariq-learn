@@ -35,6 +35,7 @@ export function getPermission(): NotificationPermission | "unsupported" {
 
 const LOCAL_DISABLED_KEY = "push_locally_disabled_v1";
 const FCM_SCOPE = "/firebase-cloud-messaging-push-scope/";
+const LEGACY_FCM_SCOPE = "/firebase-cloud-messaging-push-scope";
 export function isLocallyDisabled(): boolean {
   try { return typeof window !== "undefined" && localStorage.getItem(LOCAL_DISABLED_KEY) === "1"; } catch { return false; }
 }
@@ -49,6 +50,11 @@ export function setPushLocallyDisabled(v: boolean) {
 async function registerSW(): Promise<ServiceWorkerRegistration> {
   const apiKey = await resolveApiKey();
   const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`;
+  try {
+    const oldReg = await navigator.serviceWorker.getRegistration(LEGACY_FCM_SCOPE);
+    const oldUrl = oldReg?.active?.scriptURL || oldReg?.waiting?.scriptURL || oldReg?.installing?.scriptURL || "";
+    if (oldReg && !oldUrl.includes(`apiKey=${encodeURIComponent(apiKey)}`)) await oldReg.unregister();
+  } catch { /* ignore stale worker cleanup */ }
   // Always call register with the current URL so older devices update away from
   // stale workers that were installed with an old/missing Firebase apiKey.
   const reg = await navigator.serviceWorker.register(swUrl, { scope: FCM_SCOPE });
