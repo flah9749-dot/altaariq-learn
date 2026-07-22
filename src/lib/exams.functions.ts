@@ -330,7 +330,6 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
     case "map": {
-      const { evalMapSubQuestion } = require("./exam-utils") as typeof import("./exam-utils");
       const normalizeText = (s: any) =>
         String(s ?? "")
           .trim()
