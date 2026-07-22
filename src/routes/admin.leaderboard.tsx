@@ -27,6 +27,7 @@ function LeaderboardPage() {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [period, setPeriod] = useState<"all" | "30" | "7">("all");
+  const [search, setSearch] = useState("");
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
   const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () => (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
