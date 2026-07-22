@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Bot, KeyRound, CheckCircle2, XCircle, Loader2, Power, Zap, Settings2, ExternalLink, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Bot, KeyRound, CheckCircle2, XCircle, Loader2, Power, Zap, Settings2, ExternalLink, AlertCircle, Save, Trash2, Eye, EyeOff, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { testAIProvider, toggleAIProvider, setProviderPriority, checkAIKeysStatus } from "@/lib/ai-management.functions";
+import { testAIProvider, toggleAIProvider, setProviderPriority, checkAIKeysStatus, saveProviderKey, deleteProviderKey } from "@/lib/ai-management.functions";
 
 export const Route = createFileRoute("/admin/ai")({
   head: () => ({ meta: [{ title: "إدارة الذكاء الاصطناعي" }] }),
@@ -34,6 +35,10 @@ function AIManagementPage() {
   const toggleFn = useServerFn(toggleAIProvider);
   const priorityFn = useServerFn(setProviderPriority);
   const keyStatusFn = useServerFn(checkAIKeysStatus);
+  const saveKeyFn = useServerFn(saveProviderKey);
+  const deleteKeyFn = useServerFn(deleteProviderKey);
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [showKey, setShowKey] = useState<Record<string, boolean>>({});
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ["ai-providers"],
@@ -82,7 +87,26 @@ function AIManagementPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ai-providers"] }); },
   });
 
-  const missingKeys = PROVIDERS.filter(p => keyStatus && !keyStatus[p.slug]).length;
+  const saveKeyMut = useMutation({
+    mutationFn: async (v: { slug: string; key: string }) => saveKeyFn({ data: { slug: v.slug as any, key: v.key } }),
+    onSuccess: (_r, v) => {
+      toast.success("✅ تم حفظ المفتاح");
+      setEditing((s) => { const c = { ...s }; delete c[v.slug]; return c; });
+      qc.invalidateQueries({ queryKey: ["ai-keys-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل حفظ المفتاح"),
+  });
+
+  const deleteKeyMut = useMutation({
+    mutationFn: async (slug: string) => deleteKeyFn({ data: { slug: slug as any } }),
+    onSuccess: () => {
+      toast.success("تم حذف المفتاح المخصص");
+      qc.invalidateQueries({ queryKey: ["ai-keys-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
+  });
+
+  const missingKeys = PROVIDERS.filter(p => keyStatus && !keyStatus[p.slug]?.ok).length;
 
   return (
     <div className="space-y-6">
@@ -100,7 +124,7 @@ function AIManagementPage() {
             className="gap-2"
             disabled={testMut.isPending || !keyStatus}
             onClick={async () => {
-              const targets = PROVIDERS.filter(p => keyStatus?.[p.slug]);
+              const targets = PROVIDERS.filter(p => keyStatus?.[p.slug]?.ok);
               if (!targets.length) { toast.error("لا يوجد مزود بمفتاح صالح"); return; }
               toast.info(`جاري اختبار ${targets.length} مزود...`);
               for (const t of targets) {
@@ -135,7 +159,9 @@ function AIManagementPage() {
           ? Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-64"/>)
           : PROVIDERS.map((meta) => {
               const row = providers?.find(p => p.slug === meta.slug) as any;
-              const hasKey = keyStatus?.[meta.slug] ?? false;
+              const ks = keyStatus?.[meta.slug];
+              const hasKey = ks?.ok ?? false;
+              const isFromDb = ks?.db ?? false;
               const stat = row && stats?.[row.id];
               const testing = testMut.isPending && testMut.variables === meta.slug;
               const statusColor = row?.test_status === "ok" ? "text-green-600" : row?.test_status === "fail" ? "text-red-600" : "text-muted-foreground";
@@ -197,9 +223,63 @@ function AIManagementPage() {
                         }}
                         className="h-7 w-16"
                       />
-                      <span className="text-muted-foreground">Secret:</span>
-                      <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{meta.secret}</code>
+                      {isFromDb ? (
+                        <Badge variant="outline" className="gap-1 text-[10px]"><Database className="h-3 w-3"/>مخصص</Badge>
+                      ) : hasKey ? (
+                        <Badge variant="outline" className="text-[10px]">من Secrets</Badge>
+                      ) : null}
                     </div>
+
+                    {/* Change key inline */}
+                    <div className="space-y-2 rounded-lg border border-dashed p-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <KeyRound className="h-3.5 w-3.5"/>
+                        <span>تغيير مفتاح {meta.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type={showKey[meta.slug] ? "text" : "password"}
+                          placeholder="ألصق مفتاح API الجديد هنا"
+                          value={editing[meta.slug] ?? ""}
+                          onChange={(e) => setEditing((s) => ({ ...s, [meta.slug]: e.target.value }))}
+                          className="h-8 text-xs font-mono"
+                          autoComplete="off"
+                        />
+                        <Button
+                          type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+                          onClick={() => setShowKey((s) => ({ ...s, [meta.slug]: !s[meta.slug] }))}
+                          title={showKey[meta.slug] ? "إخفاء" : "إظهار"}
+                        >
+                          {showKey[meta.slug] ? <EyeOff className="h-3.5 w-3.5"/> : <Eye className="h-3.5 w-3.5"/>}
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm" className="flex-1 gap-1 h-8"
+                          disabled={!editing[meta.slug] || editing[meta.slug].trim().length < 8 || (saveKeyMut.isPending && saveKeyMut.variables?.slug === meta.slug)}
+                          onClick={() => saveKeyMut.mutate({ slug: meta.slug, key: editing[meta.slug] })}
+                        >
+                          {saveKeyMut.isPending && saveKeyMut.variables?.slug === meta.slug
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin"/>
+                            : <Save className="h-3.5 w-3.5"/>}
+                          حفظ
+                        </Button>
+                        {isFromDb && (
+                          <Button
+                            size="sm" variant="outline" className="gap-1 h-8"
+                            disabled={deleteKeyMut.isPending && deleteKeyMut.variables === meta.slug}
+                            onClick={() => {
+                              if (confirm("حذف المفتاح المخصص والرجوع إلى Secrets؟")) {
+                                deleteKeyMut.mutate(meta.slug);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5"/>حذف
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
                   </CardContent>
                   <div className="p-3 pt-0 flex items-center gap-2 border-t mt-2">
                     <Button
