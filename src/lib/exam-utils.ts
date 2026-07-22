@@ -97,13 +97,32 @@ export function normalizeAnswerText(s: any): string {
     .replace(/\s+/g, " ");
 }
 
-function simplifyAnswerText(s: string): string {
-  const ignored = new Set(["في", "على", "من", "الي", "الى", "عن", "ما", "اسم", "هذا", "هذه", "هو", "هي"]);
-  return s
-    .split(" ")
-    .map((word) => (word.startsWith("ال") && word.length > 3 ? word.slice(2) : word))
-    .filter((word) => word && !ignored.has(word))
-    .join(" ");
+// Generic words that don't uniquely identify a place/answer.
+// Matching only on these must NOT count as correct (e.g. "البحر" alone
+// should not match "البحر الكاريبي").
+const GENERIC_WORDS = new Set([
+  // fillers / prepositions
+  "في", "على", "من", "الي", "الى", "عن", "ما", "اسم", "هذا", "هذه", "هو", "هي",
+  "the", "of", "a", "an",
+  // generic geographic terms
+  "بحر", "محيط", "خليج", "نهر", "جبل", "جبال", "هضبه", "سهل", "سهول",
+  "صحراء", "صحرا", "واحه", "بحيره", "جزيره", "شبه",
+  "قاره", "دوله", "مدينه", "عاصمه", "منطقه", "اقليم", "وادي", "مضيق", "قناه",
+  "sea", "ocean", "gulf", "river", "mount", "mountain", "mountains",
+  "desert", "island", "lake", "bay", "strait", "peninsula", "continent",
+  "city", "country", "region",
+]);
+
+function stripArabicArticle(word: string): string {
+  return word.startsWith("ال") && word.length > 3 ? word.slice(2) : word;
+}
+
+function tokenize(s: string): string[] {
+  return s.split(" ").map(stripArabicArticle).filter(Boolean);
+}
+
+function essentialTokens(s: string): string[] {
+  return tokenize(s).filter((w) => !GENERIC_WORDS.has(w));
 }
 
 function editDistance(a: string, b: string): number {
@@ -123,6 +142,18 @@ function editDistance(a: string, b: string): number {
   return prev[b.length];
 }
 
+// Token comparison tolerant of small spelling errors.
+function tokenFuzzyMatch(e: string, g: string): boolean {
+  if (!e || !g) return false;
+  if (e === g) return true;
+  if (e.length >= 3 && g.includes(e)) return true;
+  if (g.length >= 3 && e.includes(g)) return true;
+  const len = Math.max(e.length, g.length);
+  const tolerance = len >= 8 ? 2 : len >= 5 ? 1 : 0;
+  if (tolerance === 0) return false;
+  return editDistance(e, g) <= tolerance;
+}
+
 function splitExpectedAnswers(expected: any): string[] {
   return String(expected ?? "")
     .split(/\s*(?:[،,؛;|/]|\bاو\b|\bأو\b)\s*/)
@@ -133,23 +164,31 @@ function splitExpectedAnswers(expected: any): string[] {
 export function textAnswerMatches(expected: any, given: any): boolean {
   const normalizedGiven = normalizeAnswerText(given);
   if (!normalizedGiven) return false;
-  const simplifiedGiven = simplifyAnswerText(normalizedGiven);
-  const compactGiven = simplifiedGiven.replace(/\s+/g, "");
+  const givenTokens = tokenize(normalizedGiven);
+  const givenEssentials = givenTokens.filter((w) => !GENERIC_WORDS.has(w));
 
   return splitExpectedAnswers(expected).some((normalizedExpected) => {
     if (!normalizedExpected) return false;
-    const simplifiedExpected = simplifyAnswerText(normalizedExpected);
-    const compactExpected = simplifiedExpected.replace(/\s+/g, "");
-    if (normalizedExpected === normalizedGiven || simplifiedExpected === simplifiedGiven) return true;
-    if (normalizedGiven.length >= 3 && normalizedExpected.includes(normalizedGiven)) return true;
-    if (normalizedExpected.length >= 3 && normalizedGiven.includes(normalizedExpected)) return true;
-    if (simplifiedGiven.length >= 3 && simplifiedExpected.includes(simplifiedGiven)) return true;
-    if (simplifiedExpected.length >= 3 && simplifiedGiven.includes(simplifiedExpected)) return true;
-    if (compactExpected.length >= 4 && compactGiven.length >= 4) {
-      const maxDistance = Math.max(compactExpected.length, compactGiven.length) >= 8 ? 2 : 1;
-      return editDistance(compactExpected, compactGiven) <= maxDistance;
+    if (normalizedExpected === normalizedGiven) return true;
+
+    const expectedEssentials = essentialTokens(normalizedExpected);
+
+    // Expected is entirely made of generic words → fallback to whole-string fuzzy.
+    if (expectedEssentials.length === 0) {
+      const compactE = normalizedExpected.replace(/\s+/g, "");
+      const compactG = normalizedGiven.replace(/\s+/g, "");
+      return tokenFuzzyMatch(compactE, compactG);
     }
-    return false;
+
+    // Reject answers containing only generic terms
+    // (e.g. student wrote "البحر" for expected "البحر الكاريبي").
+    if (givenEssentials.length === 0) return false;
+
+    // Every distinctive token in the expected answer must appear in the given
+    // answer (order-independent, spelling-tolerant).
+    return expectedEssentials.every((eTok) =>
+      givenEssentials.some((gTok) => tokenFuzzyMatch(eTok, gTok)),
+    );
   });
 }
 
