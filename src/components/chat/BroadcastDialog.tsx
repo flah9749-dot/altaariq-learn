@@ -58,10 +58,16 @@ export function BroadcastDialog({ open, onClose }: { open: boolean; onClose: () 
             <div><Label>المجموعة</Label>
               <Select value={groupId} onValueChange={setGroupId}>
                 <SelectTrigger><SelectValue placeholder="اختر مجموعة"/></SelectTrigger>
-                <SelectContent>{(groups ?? []).map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{(groups ?? []).map((g: any) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}{g.classes?.name ? ` — ${g.classes.name}` : ""}
+                  </SelectItem>
+                ))}</SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">يمكنك اختيار المجموعة مباشرة بدون تحديد الصف.</p>
             </div>
           )}
+
           <div><Label>نص الرسالة</Label>
             <Textarea rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="اكتب رسالتك للطلاب..."/>
           </div>
