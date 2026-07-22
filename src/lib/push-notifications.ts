@@ -52,8 +52,23 @@ async function registerSW(): Promise<ServiceWorkerRegistration> {
   // Always call register with the current URL so older devices update away from
   // stale workers that were installed with an old/missing Firebase apiKey.
   const reg = await navigator.serviceWorker.register(swUrl, { scope: FCM_SCOPE });
+  await reg.update().catch(() => undefined);
   // getToken/PushManager.subscribe require an ACTIVE service worker.
-  if (!reg.active) {
+  const pendingWorker = reg.installing || reg.waiting;
+  if (pendingWorker) {
+    await new Promise<void>((resolve) => {
+      if (pendingWorker.state === "activated") return resolve();
+      const timeout = window.setTimeout(resolve, 3000);
+      const onChange = () => {
+        if (pendingWorker.state === "activated") {
+          window.clearTimeout(timeout);
+          pendingWorker.removeEventListener("statechange", onChange);
+          resolve();
+        }
+      };
+      pendingWorker.addEventListener("statechange", onChange);
+    });
+  } else if (!reg.active) {
     await new Promise<void>((resolve) => {
       const sw = reg.installing || reg.waiting;
       if (!sw) return resolve();
