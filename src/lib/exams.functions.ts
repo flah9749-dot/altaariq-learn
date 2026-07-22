@@ -296,7 +296,7 @@ export const recordLeave = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-function evaluateObjective(q: any, ans: any): { correct: boolean | null; points: number } {
+function evaluateObjective(q: any, ans: any): { correct: boolean | null; points: number; needsReview?: boolean } {
   const pts = Number(q.points) || 0;
   if (ans == null) return { correct: null, points: 0 };
   switch (q.type) {
@@ -330,11 +330,12 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
     case "map": {
+      const { evalMapSubQuestion } = require("./exam-utils") as typeof import("./exam-utils");
       const normalizeText = (s: any) =>
         String(s ?? "")
           .trim()
           .toLowerCase()
-          .replace(/[\u064B-\u0652\u0670]/g, "") // strip Arabic diacritics
+          .replace(/[\u064B-\u0652\u0670]/g, "")
           .replace(/[أإآ]/g, "ا")
           .replace(/ى/g, "ي")
           .replace(/ة/g, "ه")
@@ -344,20 +345,42 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
         : Array.isArray(q.correct_answer)
         ? q.correct_answer
         : [];
-      const expectedLabels = expectedPoints.map((p: any) => normalizeText(p?.label));
+      if (!expectedPoints.length) return { correct: null, points: 0 };
       const givenLabels: string[] = Array.isArray(ans?.labels)
-        ? ans.labels.map(normalizeText)
-        : Array.isArray(ans)
-        ? ans.map(normalizeText)
-        : [];
-      if (!expectedLabels.length || !givenLabels.length) return { correct: null, points: 0 };
-      let matched = 0;
-      expectedLabels.forEach((label, idx) => {
-        const g = givenLabels[idx];
-        if (label && g && (label === g || label.includes(g) || g.includes(label))) matched += 1;
+        ? ans.labels
+        : Array.isArray(ans) ? ans : [];
+      const givenItems: Record<string, Record<string, any>> =
+        ans?.items && typeof ans.items === "object" ? ans.items : {};
+      let totalWeight = 0, awarded = 0, needsReview = false, anyAnswered = false;
+      expectedPoints.forEach((p: any, pi: number) => {
+        const subs: any[] = Array.isArray(p?.questions) ? p.questions : [];
+        if (subs.length > 0) {
+          subs.forEach((sq: any) => {
+            const w = Number(sq.points) || 0;
+            if (w <= 0) {
+              if (sq.type === "essay") needsReview = true;
+              return;
+            }
+            totalWeight += w;
+            const a = givenItems[String(pi)]?.[sq.id];
+            if (a != null && a !== "") anyAnswered = true;
+            const ev = evalMapSubQuestion(sq, a);
+            awarded += ev.points;
+            if (ev.needsReview) needsReview = true;
+          });
+        } else {
+          totalWeight += 1;
+          const g = normalizeText(givenLabels[pi]);
+          const label = normalizeText(p?.label);
+          if (g) anyAnswered = true;
+          if (label && g && (label === g || label.includes(g) || g.includes(label))) awarded += 1;
+        }
       });
-      const partial = pts * (matched / expectedLabels.length);
-      return { correct: matched === expectedLabels.length, points: Math.round(partial * 100) / 100 };
+      if (!anyAnswered) return { correct: null, points: 0, needsReview };
+      const raw = totalWeight > 0 ? (awarded / totalWeight) * pts : 0;
+      const rounded = Math.round(raw * 100) / 100;
+      const correct = needsReview ? null : rounded === pts;
+      return { correct, points: rounded, needsReview };
     }
     default:
       return { correct: null, points: 0 };
