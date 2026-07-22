@@ -10,6 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
+import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
+import { upsertSession } from "@/lib/assistant-archive";
+import { useAuth } from "@/lib/auth-context";
+
 
 export const Route = createFileRoute("/student/assistant")({
   component: StudentAssistantPage,
@@ -43,7 +47,11 @@ async function prepareAttachmentFile(file: File): Promise<File | Blob> {
 }
 
 function StudentAssistantPage() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [archiveTick, setArchiveTick] = useState(0);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -61,10 +69,22 @@ function StudentAssistantPage() {
           attachments: atts.map((a) => ({ kind: a.kind, name: a.name, data_url: a.data_url })),
         },
       });
-      setMessages((m) => [...m, { role: "assistant", content: r.reply }]);
+      const finalMsgs: Msg[] = [...next, { role: "assistant", content: r.reply }];
+      setMessages(finalMsgs);
+      const saved = upsertSession(
+        "student",
+        userId,
+        sessionId,
+        finalMsgs.map((m) => ({ role: m.role, content: m.content, files: m.files })),
+      );
+      if (saved) {
+        setSessionId(saved.id);
+        setArchiveTick((t) => t + 1);
+      }
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الاتصال بالمساعد"),
   });
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
