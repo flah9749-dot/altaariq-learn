@@ -6,6 +6,8 @@ export function cellToPercent(
   cell: string,
   cols: number,
   rows: number,
+  offsetX = 0.5,
+  offsetY = 0.5,
 ): { x: number; y: number } | null {
   if (!cell || typeof cell !== "string") return null;
   const m = /^([A-Za-z]{1,2})\s*(\d{1,3})$/.exec(cell.trim());
@@ -16,8 +18,10 @@ export function cellToPercent(
   else colIdx = (letters.charCodeAt(0) - 64) * 26 + (letters.charCodeAt(1) - 65);
   const rowIdx = parseInt(m[2], 10) - 1;
   if (colIdx < 0 || colIdx >= cols || rowIdx < 0 || rowIdx >= rows) return null;
+  const ox = Math.max(0, Math.min(1, Number.isFinite(offsetX) ? offsetX : 0.5));
+  const oy = Math.max(0, Math.min(1, Number.isFinite(offsetY) ? offsetY : 0.5));
   return {
-    x: Math.round(((colIdx + 0.5) / cols) * 1000) / 10,
-    y: Math.round(((rowIdx + 0.5) / rows) * 1000) / 10,
+    x: Math.round(((colIdx + ox) / cols) * 1000) / 10,
+    y: Math.round(((rowIdx + oy) / rows) * 1000) / 10,
   };
 }

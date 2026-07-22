@@ -20,7 +20,14 @@ import { startAttempt, saveAnswer, submitAttempt, recordLeave, saveReviewMarks }
 import { formatDuration } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/student/exams/$id/take")({
-  head: () => ({ meta: [{ title: "أداء الامتحان" }] }),
+  head: () => ({ meta: [
+    { title: "أداء الامتحان — الطارق التعليمية" },
+    { name: "description", content: "واجهة أداء امتحانات الطالب في منصة الطارق التعليمية." },
+    { property: "og:title", content: "أداء الامتحان — الطارق التعليمية" },
+    { property: "og:description", content: "واجهة أداء امتحانات الطالب في منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: TakeExamPage,
 });
 
@@ -350,18 +357,20 @@ function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: 
 
   return (
     <div className="space-y-3">
-      <div className="relative block w-full overflow-hidden rounded-lg border bg-muted">
-        <img src={q.image_url} alt="خريطة السؤال" className="max-h-[28rem] w-full object-contain" />
-        {points.map((p, i) => (
-          <span
-            key={i}
-            className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-primary text-xs font-bold text-primary-foreground shadow-lg"
-            style={{ left: `${p.x}%`, top: `${p.y}%` }}
-            title={`الموضع رقم ${i + 1}`}
-          >
-            {i + 1}
-          </span>
-        ))}
+      <div className="w-full overflow-auto rounded-lg border bg-muted p-2 text-center">
+        <div className="relative inline-block max-w-full align-top">
+          <img src={q.image_url} alt="خريطة السؤال" className="block max-h-[28rem] max-w-full" />
+          {points.map((p, i) => (
+            <span
+              key={i}
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-primary text-xs font-bold text-primary-foreground shadow-lg"
+              style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              title={`الموضع رقم ${i + 1}`}
+            >
+              {i + 1}
+            </span>
+          ))}
+        </div>
       </div>
       <p className="text-xs text-muted-foreground">
         <MapPin className="inline h-3 w-3 ml-1" />

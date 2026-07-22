@@ -26,7 +26,14 @@ import { QUESTION_TYPES, type QuestionType, type MapSubQuestion } from "@/lib/ex
 import { MapPointQuestions } from "@/components/exams/MapPointQuestions";
 
 export const Route = createFileRoute("/admin/exams/$id")({
-  head: () => ({ meta: [{ title: "تعديل الامتحان" }] }),
+  head: () => ({ meta: [
+    { title: "تعديل الامتحان — الطارق التعليمية" },
+    { name: "description", content: "تحرير إعدادات وأسئلة امتحانات منصة الطارق التعليمية." },
+    { property: "og:title", content: "تعديل الامتحان — الطارق التعليمية" },
+    { property: "og:description", content: "تحرير إعدادات وأسئلة امتحانات منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ExamEditor,
 });
 
@@ -658,8 +665,11 @@ function MapTargetEditor({
         💡 اضغط على أي مكان في الخريطة لإضافة نقطة جديدة — اسحب النقاط لنقل موضعها — استخدم زر ✕ أعلى كل نقطة لحذفها.
       </div>
       <div
+        className="w-full overflow-auto rounded-lg border-2 border-dashed border-primary/30 bg-muted p-2 text-center"
+      >
+      <div
         ref={containerRef}
-        className="relative block w-full select-none overflow-hidden rounded-lg border-2 border-dashed border-primary/30 bg-muted text-right"
+        className="relative inline-block max-w-full select-none align-top text-right"
         onClick={(event) => {
           if (draggedRef.current) { draggedRef.current = false; return; }
           const c = coordsFromEvent(event.clientX, event.clientY);
@@ -667,7 +677,7 @@ function MapTargetEditor({
         }}
         style={{ cursor: "crosshair" }}
       >
-        <img src={imageUrl} alt="خريطة السؤال" className="pointer-events-none max-h-96 w-full object-contain" draggable={false} />
+        <img src={imageUrl} alt="خريطة السؤال" className="pointer-events-none block max-h-96 max-w-full" draggable={false} />
         {points.map((p, index) => (
           <div
             key={index}
@@ -696,6 +706,7 @@ function MapTargetEditor({
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

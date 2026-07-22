@@ -75,6 +75,8 @@ ${data.focus ? `ركّز على: ${data.focus}.` : ""}
 
 ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية ${cols}×${rows}: الأعمدة A..${String.fromCharCode(64 + Math.min(cols, 26))} (يسار→يمين)، الصفوف 1..${rows} (أعلى→أسفل). كل خانة مكتوب فوقها اسمها (مثل "H14") بلون أحمر.
 - لكل نقطة أعِد الحقل "cell" باسم الخانة التي يقع مركز المعلم داخلها بالضبط.
+- أعِد أيضًا "cell_x" و"cell_y" كأرقام من 0 إلى 1 تمثل موضع مركز المعلم داخل هذه الخانة: 0 قرب الحافة اليسرى/العليا، 0.5 منتصف الخانة، 1 قرب الحافة اليمنى/السفلى.
+- ضع الرقم على مركز المعلم الجغرافي نفسه (جزيرة/نهر/جبل/محيط)، وليس على النص المكتوب أو السهم أو مفتاح الخريطة.
 - **اقرأ اسم الخانة من الشبكة نفسها**، لا تحسبها ذهنيًا.
 - إذا كنت غير متأكد من الخانة الصحيحة احذف النقطة.
 ` : `قواعد الإحداثيات (حرجة):
@@ -91,7 +93,7 @@ ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية
   "title": "عنوان مقترح",
   "summary": "وصف مختصر",
   "points": [
-    { "label": "الإجابة القصيرة", "prompt": "السؤال؟", "hint": "تلميح اختياري"${useGrid ? `, "cell": "H14"` : `, "x": 50, "y": 50`} }
+    { "label": "الإجابة القصيرة", "prompt": "السؤال؟", "hint": "تلميح اختياري"${useGrid ? `, "cell": "H14", "cell_x": 0.5, "cell_y": 0.5` : `, "x": 50, "y": 50`} }
   ]
 }`;
 
@@ -133,7 +135,7 @@ ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية
       let x = Number(p?.x ?? 50);
       let y = Number(p?.y ?? 50);
       if (useGrid && typeof p?.cell === "string") {
-        const conv = cellToPercent(p.cell, cols, rows);
+        const conv = cellToPercent(p.cell, cols, rows, Number(p?.cell_x ?? 0.5), Number(p?.cell_y ?? 0.5));
         if (conv) { x = conv.x; y = conv.y; }
       }
       return {
@@ -170,7 +172,10 @@ ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية
     return {
       title: String(parsed?.title ?? "خريطة").trim() || "خريطة",
       summary: String(parsed?.summary ?? "").trim(),
-      image_url_clean: cleaned,
+      // Keep marker coordinates tied to the exact uploaded image. Some image
+      // editing models subtly crop/reframe cleaned maps, which makes otherwise
+      // correct x/y values look wrong in the exam viewer.
+      image_url_clean: data.image_data_url,
       points,
     };
   });

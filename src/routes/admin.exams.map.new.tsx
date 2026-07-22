@@ -21,7 +21,14 @@ import { autoBuildMapPage, createMapExam } from "@/lib/map-exam.functions";
 import type { MapSubQuestion } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/admin/exams/map/new")({
-  head: () => ({ meta: [{ title: "امتحان خرائط ذكي — إنشاء" }] }),
+  head: () => ({ meta: [
+    { title: "إنشاء امتحان خرائط ذكي — الطارق التعليمية" },
+    { name: "description", content: "إنشاء امتحانات خرائط تفاعلية للطلاب مع نقاط مرقمة واستهداف الصفوف والمجموعات." },
+    { property: "og:title", content: "إنشاء امتحان خرائط ذكي — الطارق التعليمية" },
+    { property: "og:description", content: "إنشاء امتحانات خرائط تفاعلية للطلاب مع نقاط مرقمة واستهداف الصفوف والمجموعات." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: NewMapExamPage,
 });
 
@@ -52,7 +59,8 @@ function NewMapExamPage() {
 
   const [title, setTitle] = useState("امتحان خرائط ذكي");
   const [description, setDescription] = useState("");
-  const [classId, setClassId] = useState<string>("");
+  const [classId, setClassId] = useState<string>("all");
+  const [groupId, setGroupId] = useState<string>("all");
   const [duration, setDuration] = useState(30);
   const [publish, setPublish] = useState(false);
   const [pages, setPages] = useState<MapPage[]>([]);
@@ -64,6 +72,15 @@ function NewMapExamPage() {
     queryKey: ["classes"],
     queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [],
   });
+  const { data: groups } = useQuery({
+    queryKey: ["groups-with-class"],
+    queryFn: async () => (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [],
+  });
+
+  const filteredGroups = useMemo(
+    () => classId === "all" ? [] : (groups ?? []).filter((g: any) => g.class_id === classId),
+    [groups, classId],
+  );
 
   const totalPts = useMemo(
     () => pages.reduce((s, pg) => s + pg.points.reduce((a, p) => {
@@ -114,7 +131,7 @@ function NewMapExamPage() {
       let gridRows: number | undefined;
       try {
         const { buildGridOverlay } = await import("@/lib/map-grid");
-        const g = await buildGridOverlay(pg.original_url, 20, 20);
+        const g = await buildGridOverlay(pg.original_url, 24, 24);
         gridImage = g.dataUrl;
         gridCols = g.info.cols;
         gridRows = g.info.rows;
@@ -185,8 +202,8 @@ function NewMapExamPage() {
       const r: any = await createFn({ data: {
         title: title.trim(),
         description,
-        class_id: classId || null,
-        group_ids: [],
+        class_id: classId === "all" ? null : classId,
+        group_ids: groupId === "all" ? [] : [groupId],
         duration_minutes: duration,
         publish,
         pages: pages.map((pg) => ({
@@ -232,12 +249,22 @@ function NewMapExamPage() {
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>الصف</Label>
-            <Select value={classId || "none"} onValueChange={(v) => setClassId(v === "none" ? "" : v)}>
+            <Label>الصف المستهدف</Label>
+            <Select value={classId} onValueChange={(v) => { setClassId(v); setGroupId("all"); }}>
               <SelectTrigger><SelectValue placeholder="اختر الصف" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">— بدون تحديد —</SelectItem>
+                <SelectItem value="all">كل الصفوف</SelectItem>
                 {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>المجموعة المستهدفة</Label>
+            <Select value={groupId} onValueChange={setGroupId} disabled={classId === "all" || filteredGroups.length === 0}>
+              <SelectTrigger><SelectValue placeholder={classId === "all" ? "اختر الصف أولاً" : "كل المجموعات"} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل مجموعات الصف</SelectItem>
+                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
