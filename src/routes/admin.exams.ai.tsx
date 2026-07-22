@@ -289,7 +289,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
 }
 
-type MapPoint = { label: string; x: number; y: number; tolerance: number };
+type MapPoint = { label: string; x: number; y: number };
 
 function getMapPointsPreview(answer: any): MapPoint[] {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
@@ -297,7 +297,6 @@ function getMapPointsPreview(answer: any): MapPoint[] {
     label: String(p?.label ?? "الموقع الصحيح"),
     x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
     y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
-    tolerance: Math.max(3, Math.min(20, Number(p?.tolerance ?? 8))),
   }));
 }
 
