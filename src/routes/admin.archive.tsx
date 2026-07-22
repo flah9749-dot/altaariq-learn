@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 // xlsx is dynamically imported inside exportExcel() to keep it out of the initial bundle
 import {
-  Archive, Search, Download, RotateCcw, ArrowUp, Eye,
+  Archive, Search, Download, RotateCcw, ArrowUp, Eye, Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/use-debounce";
-import { restoreStudents, promoteStudents } from "@/lib/archive.functions";
+import { restoreStudents, promoteStudents, bulkArchiveByCodes } from "@/lib/archive.functions";
 import { formatArabicDate, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/archive")({
@@ -36,10 +38,16 @@ function ArchivePage() {
   const [yearFilter, setYearFilter] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importOpen, setImportOpen] = useState(false);
+  const [importYear, setImportYear] = useState<string>(String(new Date().getFullYear()));
+  const [importCodes, setImportCodes] = useState<string[]>([]);
+  const [importFileName, setImportFileName] = useState<string>("");
   const debounced = useDebounce(search, 350);
 
   const restoreFn = useServerFn(restoreStudents);
   const promoteFn = useServerFn(promoteStudents);
+  const bulkArchiveFn = useServerFn(bulkArchiveByCodes);
+
 
   const { data: classes } = useQuery({
     queryKey: ["classes-list"],
@@ -116,6 +124,48 @@ function ArchivePage() {
     XLSX.writeFile(wb, `archive-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const importMut = useMutation({
+    mutationFn: async ({ codes, year }: { codes: string[]; year: string }) =>
+      bulkArchiveFn({ data: { codes, year } }),
+    onSuccess: (r: any) => {
+      toast.success(`تم أرشفة ${r.archived} طالب${r.notFound?.length ? ` — ${r.notFound.length} كود غير موجود` : ""}`);
+      if (r.notFound?.length) {
+        toast.warning(`أكواد غير موجودة: ${r.notFound.slice(0, 10).join("، ")}${r.notFound.length > 10 ? "..." : ""}`);
+      }
+      qc.invalidateQueries({ queryKey: ["archived-students"] });
+      qc.invalidateQueries({ queryKey: ["students"] });
+      setImportOpen(false);
+      setImportCodes([]);
+      setImportFileName("");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل الاستيراد"),
+  });
+
+  const handleImportFile = async (file: File | null) => {
+    if (!file) return;
+    setImportFileName(file.name);
+    try {
+      const XLSX = await import("xlsx");
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rowsJson = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+      const codes: string[] = [];
+      for (const row of rowsJson) {
+        const val = row["الكود"] ?? row["code"] ?? row["Code"] ?? row["CODE"];
+        if (val != null && String(val).trim()) codes.push(String(val).trim());
+      }
+      if (codes.length === 0) {
+        toast.error("لم يتم العثور على عمود «الكود» أو «code» في الملف");
+        return;
+      }
+      setImportCodes(Array.from(new Set(codes)));
+      toast.info(`تم قراءة ${codes.length} كود من الملف`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "فشل قراءة الملف");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -127,10 +177,16 @@ function ArchivePage() {
             {rows.length} طالب مؤرشف · تحتفظ المنصة بكل البيانات (النتائج، الرسائل، النقاط، الجوائز) ويمكن استرجاعهم في أي وقت.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={exportExcel}>
-          <Download className="h-4 w-4 ml-1" />تصدير Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 ml-1" />استيراد
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportExcel}>
+            <Download className="h-4 w-4 ml-1" />تصدير Excel
+          </Button>
+        </div>
       </div>
+
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">بحث وفلترة</CardTitle></CardHeader>
@@ -226,6 +282,45 @@ function ArchivePage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) { setImportCodes([]); setImportFileName(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>استيراد إلى الأرشيف</DialogTitle>
+            <DialogDescription>
+              ارفع ملف Excel/CSV يحتوي على عمود «الكود» (أو code). سيتم أرشفة الطلاب الموجودين بهذه الأكواد ونقلهم للأرشيف مع الاحتفاظ بكل بياناتهم.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">العام الدراسي</Label>
+              <Input value={importYear} onChange={(e) => setImportYear(e.target.value)} placeholder="2024-2025" />
+            </div>
+            <div>
+              <Label className="text-xs">ملف الأكواد (.xlsx / .csv)</Label>
+              <Input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => handleImportFile(e.target.files?.[0] ?? null)}
+              />
+              {importFileName && (
+                <p className="text-xs text-muted-foreground mt-1">{importFileName} — {importCodes.length} كود</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={() => importMut.mutate({ codes: importCodes, year: importYear.trim() || String(new Date().getFullYear()) })}
+              disabled={importMut.isPending || importCodes.length === 0}
+            >
+              <Upload className="h-4 w-4 ml-1" />
+              أرشفة {importCodes.length > 0 ? `(${importCodes.length})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
