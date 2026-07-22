@@ -235,19 +235,36 @@ function AIExamPage() {
                     <span className="text-xs text-muted-foreground mr-auto">{q.points} درجة</span>
                   </div>
                   <p className="font-medium">{q.text}</p>
-                  {q.image_url && <img src={q.image_url} alt="خريطة السؤال" className="max-h-72 rounded-lg border" />}
-                  {q.options?.length > 0 && (
-                    <ul className="space-y-1 text-sm">
-                      {q.options.map((o: any, oi: number) => (
-                        <li key={oi} className={`flex items-center gap-2 ${o.is_correct ? "text-success font-medium" : "text-muted-foreground"}`}>
-                          {o.is_correct ? "✓" : "○"} {o.text}
-                        </li>
-                      ))}
-                    </ul>
+
+                  {q.type === "map" ? (
+                    <MapPreview
+                      question={q}
+                      onChangeImage={(url) => setPreview((p) => p ? { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, image_url: url } : qq) } : p)}
+                      onPick={(x, y) => setPreview((p) => {
+                        if (!p) return p;
+                        const pts = getMapPointsPreview(q.correct_answer);
+                        const next = pts.length ? [{ ...pts[0], x, y }, ...pts.slice(1)] : [{ label: "الموقع الصحيح", x, y, tolerance: 8 }];
+                        return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
+                      })}
+                    />
+                  ) : (
+                    <>
+                      {q.image_url && <img src={q.image_url} alt="صورة السؤال" className="max-h-72 rounded-lg border" />}
+                      {q.options?.length > 0 && (
+                        <ul className="space-y-1 text-sm">
+                          {q.options.map((o: any, oi: number) => (
+                            <li key={oi} className={`flex items-center gap-2 ${o.is_correct ? "text-success font-medium" : "text-muted-foreground"}`}>
+                              {o.is_correct ? "✓" : "○"} {o.text}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {q.correct_answer != null && !q.options?.length && (
+                        <p className="text-sm text-success">الإجابة: {typeof q.correct_answer === "object" ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}</p>
+                      )}
+                    </>
                   )}
-                  {q.correct_answer != null && !q.options?.length && (
-                    <p className="text-sm text-success">الإجابة: {typeof q.correct_answer === "object" ? JSON.stringify(q.correct_answer) : String(q.correct_answer)}</p>
-                  )}
+
                   {q.explanation && <p className="text-xs text-muted-foreground border-t pt-2">{q.explanation}</p>}
                 </div>
               ))}
