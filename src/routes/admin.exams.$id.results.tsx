@@ -30,6 +30,7 @@ import {
 } from "@/lib/exams.functions";
 import { computeGrade, formatDuration } from "@/lib/exam-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
+import { MapAnswerReview } from "@/components/exams/MapAnswerReview";
 
 export const Route = createFileRoute("/admin/exams/$id/results")({
   validateSearch: (s: Record<string, unknown>) => ({
