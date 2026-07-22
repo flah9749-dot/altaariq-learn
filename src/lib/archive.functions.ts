@@ -64,3 +64,35 @@ export const promoteStudents = createServerFn({ method: "POST" })
     await log(supabaseAdmin, context.userId, "promote", { ids: data.ids });
     return { ok: true, count: data.ids.length };
   });
+
+export const bulkArchiveByCodes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      codes: z.array(z.string().min(1)).min(1).max(5000),
+      year: z.string().min(2).max(20),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const codes = Array.from(new Set(data.codes.map((c) => c.trim()).filter(Boolean)));
+    const { data: found, error: qErr } = await supabaseAdmin
+      .from("students")
+      .select("id, code")
+      .in("code", codes);
+    if (qErr) throw new Error(qErr.message);
+    const ids = (found ?? []).map((r: any) => r.id as string);
+    const foundCodes = new Set((found ?? []).map((r: any) => r.code));
+    const notFound = codes.filter((c) => !foundCodes.has(c));
+    if (ids.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("students")
+        .update({ archived_at: new Date().toISOString(), archived_year: data.year, status: "suspended" })
+        .in("id", ids);
+      if (error) throw new Error(error.message);
+      await log(supabaseAdmin, context.userId, "archive_bulk_codes", { count: ids.length, year: data.year });
+    }
+    return { ok: true, archived: ids.length, notFound };
+  });
+
