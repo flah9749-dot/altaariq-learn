@@ -120,14 +120,30 @@ function NewMapExamPage() {
         gridRows = g.info.rows;
       } catch { /* fall back to non-grid analysis */ }
 
-      const r: any = await buildFn({ data: {
-        image_data_url: pg.original_url,
-        max_points: maxPoints,
-        focus: focus || "",
-        grid_image_data_url: gridImage,
-        grid_cols: gridCols,
-        grid_rows: gridRows,
-      } });
+      // Try grid-based analysis first; if it fails (payload too big, transient
+      // gateway error, model glitch), automatically retry without the grid.
+      let r: any;
+      try {
+        r = await buildFn({ data: {
+          image_data_url: pg.original_url,
+          max_points: maxPoints,
+          focus: focus || "",
+          grid_image_data_url: gridImage,
+          grid_cols: gridCols,
+          grid_rows: gridRows,
+        } });
+      } catch (err) {
+        if (gridImage) {
+          console.warn("[map-exam] grid path failed, retrying without grid:", err);
+          r = await buildFn({ data: {
+            image_data_url: pg.original_url,
+            max_points: maxPoints,
+            focus: focus || "",
+          } });
+        } else {
+          throw err;
+        }
+      }
       setPages((arr) => arr.map((p, i) => i === idx ? {
         ...p,
         title: p.title === "خريطة" || !p.title ? r.title : p.title,
@@ -137,6 +153,7 @@ function NewMapExamPage() {
       } : p));
       toast.success(`تم توليد ${r.points.length} نقطة`);
     } catch (e: any) {
+      console.error("[map-exam] buildPage failed:", e);
       toast.error(e?.message ?? "فشل التوليد");
       setPages((arr) => arr.map((p, i) => i === idx ? { ...p, building: false } : p));
     }

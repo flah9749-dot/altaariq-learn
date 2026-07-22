@@ -118,13 +118,17 @@ ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية
     );
 
     let parsed: any;
-    try { parsed = parseJsonLoose(content); } catch {
+    try { parsed = parseJsonLoose(content); } catch (err) {
+      console.error("[autoBuildMapPage] JSON parse failed. Raw content:", content?.slice(0, 500));
       throw new Error("تعذّر تحليل رد الذكاء الاصطناعي. حاول مرة أخرى.");
     }
     const raw = Array.isArray(parsed?.points) ? parsed.points : [];
-    if (!raw.length) throw new Error("لم يتم اكتشاف مواقع صالحة على الخريطة.");
+    if (!raw.length) {
+      console.error("[autoBuildMapPage] No points returned. Parsed:", JSON.stringify(parsed)?.slice(0, 500));
+      throw new Error("لم يتم اكتشاف مواقع صالحة على الخريطة.");
+    }
 
-    const { cellToPercent } = await import("./map-grid");
+    const { cellToPercent } = await import("./map-cell");
     const normalized = raw.map((p: any) => {
       let x = Number(p?.x ?? 50);
       let y = Number(p?.y ?? 50);
