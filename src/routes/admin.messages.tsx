@@ -122,20 +122,39 @@ function AdminMessagesPage() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو الكود..." className="pr-8 h-9"/>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Select value={classId} onValueChange={(v) => { setClassId(v); setGroupId("all"); }}>
+            <Select value={classId} onValueChange={(v) => {
+              setClassId(v);
+              // احتفظ بالمجموعة إذا كانت تنتمي للصف الجديد، وإلا أعد التعيين
+              if (v !== "all" && groupId !== "all") {
+                const g = groups.find((x: any) => x.id === groupId);
+                if (!g || g.class_id !== v) setGroupId("all");
+              }
+            }}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="الصف"/></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل الصفوف</SelectItem>
                 {classes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={groupId} onValueChange={setGroupId}>
+            <Select value={groupId} onValueChange={(v) => {
+              setGroupId(v);
+              // عند اختيار مجموعة، اضبط الصف تلقائياً على صف تلك المجموعة
+              if (v !== "all") {
+                const g = groups.find((x: any) => x.id === v);
+                if (g?.class_id && g.class_id !== classId) setClassId(g.class_id);
+              }
+            }}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="المجموعة"/></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل المجموعات</SelectItem>
-                {filteredGroups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                {filteredGroups.map((g: any) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}{classId === "all" && g.classes?.name ? ` — ${g.classes.name}` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+
           </div>
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList className="grid grid-cols-3 h-8 w-full">
