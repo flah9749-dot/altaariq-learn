@@ -117,9 +117,15 @@ function ExamEditor() {
   const upsertFn = useServerFn(upsertExam);
   const saveQFn = useServerFn(saveQuestions);
   const pubFn = useServerFn(publishExam);
+  const aiMapFn = useServerFn(generateInteractiveMap);
+  const listTplFn = useServerFn(listMapTemplates);
+  const saveTplFn = useServerFn(upsertMapTemplate);
 
   const [meta, setMeta] = useState<any | null>(null);
   const [questions, setQuestions] = useState<Q[]>([]);
+  const [aiMapDlg, setAiMapDlg] = useState<{ open: boolean; qi: number; topic: string; num: number; busy: boolean }>({ open: false, qi: -1, topic: "", num: 6, busy: false });
+  const [libDlg, setLibDlg] = useState<{ open: boolean; qi: number }>({ open: false, qi: -1 });
+  const [libItems, setLibItems] = useState<any[] | null>(null);
   const loadedAiDraft = useRef(false);
 
   const { data: exam, isLoading } = useQuery({
