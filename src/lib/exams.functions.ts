@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { computeGrade, evalMapSubQuestion } from "./exam-utils";
+import { computeGrade, evalMapSubQuestion, textAnswerMatches } from "./exam-utils";
 
 const AntiCheat = z.object({
   block_copy: z.boolean().optional(),
@@ -330,15 +330,6 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
     case "map": {
-      const normalizeText = (s: any) =>
-        String(s ?? "")
-          .trim()
-          .toLowerCase()
-          .replace(/[\u064B-\u0652\u0670]/g, "")
-          .replace(/[أإآ]/g, "ا")
-          .replace(/ى/g, "ي")
-          .replace(/ة/g, "ه")
-          .replace(/\s+/g, " ");
       const expectedPoints: any[] = Array.isArray(q.correct_answer?.points)
         ? q.correct_answer.points
         : Array.isArray(q.correct_answer)
@@ -364,15 +355,14 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
             const a = givenItems[String(pi)]?.[sq.id];
             if (a != null && a !== "") anyAnswered = true;
             const ev = evalMapSubQuestion(sq, a);
-            awarded += ev.points;
+            const acceptsPointLabel = (sq.type === "short" || sq.type === "complete") && textAnswerMatches(p?.label, a);
+            awarded += acceptsPointLabel ? w : ev.points;
             if (ev.needsReview) needsReview = true;
           });
         } else {
           totalWeight += 1;
-          const g = normalizeText(givenLabels[pi]);
-          const label = normalizeText(p?.label);
-          if (g) anyAnswered = true;
-          if (label && g && (label === g || label.includes(g) || g.includes(label))) awarded += 1;
+          if (String(givenLabels[pi] ?? "").trim()) anyAnswered = true;
+          if (textAnswerMatches(p?.label, givenLabels[pi])) awarded += 1;
         }
       });
       if (!anyAnswered) return { correct: null, points: 0, needsReview };

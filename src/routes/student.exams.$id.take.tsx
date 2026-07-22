@@ -148,11 +148,15 @@ function TakeExamPage() {
     if (!attemptId || submitting) return;
     setSubmitting(true);
     try {
+      const timeSpent = Math.floor((Date.now() - questionStartAt.current) / 1000);
+      await Promise.all(Object.entries(answers).map(([questionId, answer]) =>
+        saveFn({ data: { attempt_id: attemptId, question_id: questionId, answer, time_spent_sec: timeSpent } }),
+      ));
       const r: any = await submitFn({ data: { attempt_id: attemptId } });
       toast.success(`تم التسليم — ${r.percentage}%`);
       nav({ to: "/student/exams/$id/result", params: { id } });
     } catch (e: any) { toast.error(e?.message ?? "فشل التسليم"); setSubmitting(false); }
-  }, [attemptId, submitFn, nav, id, submitting]);
+  }, [attemptId, answers, saveFn, submitFn, nav, id, submitting]);
 
   if (!exam || !questions || !attemptId) return <Skeleton className="h-96" />;
 

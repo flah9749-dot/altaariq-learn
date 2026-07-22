@@ -226,9 +226,23 @@ export const createMapExam = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const normalizedPages = data.pages.map((pg) => ({
+      ...pg,
+      points: pg.points.map((pt) => ({
+        ...pt,
+        questions: Array.isArray(pt.questions)
+          ? pt.questions.map((q) => (
+              (q.type === "short" || q.type === "complete") && !String(q.answer ?? "").trim()
+                ? { ...q, answer: pt.label }
+                : q
+            ))
+          : [],
+      })),
+    }));
+
     // Compute total score from every sub-question across every page.
     let total = 0;
-    for (const pg of data.pages) for (const pt of pg.points) {
+    for (const pg of normalizedPages) for (const pt of pg.points) {
       const per = pt.questions.reduce((s, q) => s + (Number(q.points) || 0), 0);
       total += per > 0 ? per : 1; // fallback: single-label grading (1 pt)
     }
@@ -254,7 +268,7 @@ export const createMapExam = createServerFn({ method: "POST" })
     if (eErr || !exam) throw new Error(eErr?.message ?? "فشل إنشاء الامتحان");
 
     // Insert one question row per page (type='map')
-    const rows = data.pages.map((pg, i) => {
+    const rows = normalizedPages.map((pg, i) => {
       const perPage = pg.points.reduce((s, pt) => {
         const per = pt.questions.reduce((a, q) => a + (Number(q.points) || 0), 0);
         return s + (per > 0 ? per : 1);
