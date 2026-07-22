@@ -19,6 +19,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { upsertExam, saveQuestions, publishExam } from "@/lib/exams.functions";
+import { generateInteractiveMap } from "@/lib/ai-map.functions";
+import { listMapTemplates, upsertMapTemplate } from "@/lib/map-templates.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { QUESTION_TYPES, type QuestionType } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/admin/exams/$id")({
