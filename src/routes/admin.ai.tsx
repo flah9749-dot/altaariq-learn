@@ -159,7 +159,9 @@ function AIManagementPage() {
           ? Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-64"/>)
           : PROVIDERS.map((meta) => {
               const row = providers?.find(p => p.slug === meta.slug) as any;
-              const hasKey = keyStatus?.[meta.slug] ?? false;
+              const ks = keyStatus?.[meta.slug];
+              const hasKey = ks?.ok ?? false;
+              const isFromDb = ks?.db ?? false;
               const stat = row && stats?.[row.id];
               const testing = testMut.isPending && testMut.variables === meta.slug;
               const statusColor = row?.test_status === "ok" ? "text-green-600" : row?.test_status === "fail" ? "text-red-600" : "text-muted-foreground";
