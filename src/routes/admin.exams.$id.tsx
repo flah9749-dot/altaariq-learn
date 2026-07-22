@@ -499,7 +499,7 @@ function Field({ label, children, className }: { label: string; children: React.
   return <div className={`space-y-1.5 ${className ?? ""}`}><Label>{label}</Label>{children}</div>;
 }
 
-function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: Array<{ label: string; x: number; y: number; tolerance: number }>; onPick: (x: number, y: number) => void }) {
+function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; points: MapPoint[]; onPick: (x: number, y: number) => void }) {
   return (
     <button
       type="button"
@@ -515,10 +515,11 @@ function MapTargetEditor({ imageUrl, points, onPick }: { imageUrl: string; point
       {points.map((p, index) => (
         <span
           key={index}
-          className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+          className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-destructive text-xs font-bold text-destructive-foreground shadow-lg"
           style={{ left: `${p.x}%`, top: `${p.y}%` }}
+          title={p.label}
         >
-          <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+          {index + 1}
         </span>
       ))}
     </button>
