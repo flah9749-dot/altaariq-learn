@@ -129,12 +129,17 @@ export const broadcastMessage = createServerFn({ method: "POST" })
 // -------- Mark thread as read --------
 export const markThreadRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ peer_id: z.string().uuid() }).parse(data))
+  .inputValidator((data: unknown) => z.object({
+    peer_id: z.string().uuid().optional(),
+    peer_ids: z.array(z.string().uuid()).optional(),
+  }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const ids = data.peer_ids && data.peer_ids.length ? data.peer_ids : (data.peer_id ? [data.peer_id] : []);
+    if (!ids.length) return { ok: true };
     await supabase.from("messages")
       .update({ read: true, read_at: new Date().toISOString() })
-      .eq("sender_id", data.peer_id).eq("recipient_id", userId).eq("read", false);
+      .in("sender_id", ids).eq("recipient_id", userId).eq("read", false);
     return { ok: true };
   });
 
