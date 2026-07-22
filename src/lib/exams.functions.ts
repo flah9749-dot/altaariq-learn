@@ -444,13 +444,18 @@ export const submitAttempt = createServerFn({ method: "POST" })
     const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
 
     // Auto-award points + auto-approve when fully auto-graded (no essay review needed).
+    // Compute points OUTSIDE any try/catch so failures surface instead of silently
+    // dropping approval — that's what caused map-exam attempts to stay approved=false
+    // and points_awarded=0 for high-scoring students.
+    const autoApproved = !needsReview;
     let autoPointsAwarded = 0;
-    let autoApproved = false;
-    if (!needsReview) {
+    if (autoApproved) {
       try {
         autoPointsAwarded = await awardAttemptPoints(supabaseAdmin, { percentage: pct });
-        autoApproved = true;
-      } catch { /* non-blocking */ }
+      } catch (e) {
+        console.error("[submitAttempt] awardAttemptPoints failed:", e);
+        autoPointsAwarded = 0; // still auto-approve; admin can adjust manually
+      }
     }
 
     const { error: upErr } = await supabaseAdmin.from("exam_attempts").update({
@@ -466,19 +471,16 @@ export const submitAttempt = createServerFn({ method: "POST" })
     }).eq("id", att.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Credit student points immediately for auto-graded attempts.
+    // Credit student points immediately for auto-graded attempts (map + objective).
     if (autoApproved && autoPointsAwarded > 0) {
       try {
-        const { data: ex } = await supabaseAdmin.from("exams").select("title").eq("id", att.exam_id).maybeSingle();
-        await supabaseAdmin.from("points_log").insert({
-          student_id: att.student_id, points: autoPointsAwarded,
-          reason: `امتحان: ${ex?.title ?? ""}`,
+        await creditStudentPoints(supabaseAdmin, {
+          student_id: att.student_id, exam_id: att.exam_id, points: autoPointsAwarded,
+          reason_prefix: "امتحان",
         });
-        const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
-        const totalPts = (Number(stu?.points) || 0) + autoPointsAwarded;
-        const level = Math.max(1, Math.floor(totalPts / 100) + 1);
-        await supabaseAdmin.from("students").update({ points: totalPts, level }).eq("id", att.student_id);
-      } catch { /* non-blocking */ }
+      } catch (e) {
+        console.error("[submitAttempt] creditStudentPoints failed:", e);
+      }
     }
 
     // Save to results table (for legacy compatibility)
@@ -582,6 +584,27 @@ async function awardAttemptPoints(supabaseAdmin: any, attempt: any): Promise<num
   return pts;
 }
 
+// Single source of truth for crediting a student's points balance + level +
+// audit log. Used by auto-approved submissions AND admin approvals so both
+// paths stay in sync (map exams historically silently skipped this).
+//
+// IMPORTANT: the `trg_apply_points` DB trigger fires AFTER INSERT on
+// points_log and already bumps students.points, recomputes the level, and
+// inserts the student notification. We must NOT also update students.points
+// here or every approval double-counts.
+async function creditStudentPoints(
+  supabaseAdmin: any,
+  opts: { student_id: string; exam_id: string; points: number; reason_prefix: string },
+): Promise<void> {
+  if (!opts.points || opts.points <= 0) return;
+  const { data: ex } = await supabaseAdmin.from("exams").select("title").eq("id", opts.exam_id).maybeSingle();
+  const { error } = await supabaseAdmin.from("points_log").insert({
+    student_id: opts.student_id, points: opts.points,
+    reason: `${opts.reason_prefix}: ${ex?.title ?? ""}`,
+  });
+  if (error) throw new Error(`points_log insert failed: ${error.message}`);
+}
+
 export const approveAttempt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({
@@ -603,14 +626,10 @@ export const approveAttempt = createServerFn({ method: "POST" })
     }).eq("id", data.attempt_id);
 
     if (pts > 0) {
-      await supabaseAdmin.from("points_log").insert({
-        student_id: att.student_id, points: pts,
-        reason: `اعتماد نتيجة امتحان: ${att.exams?.title ?? ""}`,
+      await creditStudentPoints(supabaseAdmin, {
+        student_id: att.student_id, exam_id: att.exam_id, points: pts,
+        reason_prefix: "اعتماد نتيجة امتحان",
       });
-      const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
-      const total = (Number(stu?.points) || 0) + pts;
-      const level = Math.max(1, Math.floor(total / 100) + 1);
-      await supabaseAdmin.from("students").update({ points: total, level }).eq("id", att.student_id);
     }
 
     await logActivity(supabaseAdmin, context.userId, "approve_attempt", "exam_attempt", att.id, { points_awarded: pts });
