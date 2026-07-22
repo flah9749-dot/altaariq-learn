@@ -350,20 +350,22 @@ function ExamResultsPage() {
             <DialogTitle>مراجعة إجابات: {reviewing?.attempt?.students?.full_name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            {(reviewing?.answers ?? []).map((a: any) => (
+            {(reviewing?.answers ?? []).map((a: any) => {
+              const questionPoints = getQuestionDisplayPoints(a.questions);
+              return (
               <div key={a.id} className="border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <Badge variant="outline">{a.questions?.type}</Badge>
-                  <span className="text-xs text-muted-foreground">{a.questions?.points} درجة</span>
+                  <span className="text-xs text-muted-foreground">{questionPoints} درجة</span>
                   {a.is_correct === true && <Badge className="bg-success text-success-foreground">صحيح</Badge>}
                   {a.is_correct === false && <Badge variant="destructive">خطأ</Badge>}
-                  {a.awarded_points != null && <span className="mr-auto text-sm font-medium">{a.awarded_points}/{a.questions?.points}</span>}
+                  {a.awarded_points != null && <span className="mr-auto text-sm font-medium">{a.awarded_points}/{questionPoints}</span>}
                 </div>
                 <p className="font-medium text-sm mb-1">{a.questions?.text}</p>
                 {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mb-2 max-h-64 rounded-lg border" />}
                 <div className="text-sm bg-muted/50 p-2 rounded">
                   <span className="text-xs text-muted-foreground">إجابة الطالب: </span>
-                  <span>{formatAnswer(a.answer, a.questions?.type)}</span>
+                  <span>{formatAnswer(a.answer, a.questions)}</span>
                 </div>
                 {a.ai_feedback && (
                   <div className="mt-2 p-2 rounded bg-primary/5 border border-primary/20 text-xs">
@@ -374,11 +376,11 @@ function ExamResultsPage() {
                 )}
                 <div className="flex gap-2 mt-2 flex-wrap items-center">
                   <span className="text-xs text-muted-foreground">تعديل الدرجة:</span>
-                  <Input type="number" step="0.5" min={0} max={Number(a.questions?.points) || undefined} placeholder="الدرجة"
+                  <Input type="number" step="0.5" min={0} max={questionPoints || undefined} placeholder="الدرجة"
                     value={essayPts[a.question_id] ?? (a.awarded_points ?? "")}
                     onChange={(e) => setEssayPts((p) => ({ ...p, [a.question_id]: e.target.value }))}
                     className="w-24 h-8" />
-                  <span className="text-xs text-muted-foreground">/ {a.questions?.points ?? 0}</span>
+                  <span className="text-xs text-muted-foreground">/ {questionPoints}</span>
                   <Button size="sm" onClick={() => submitEssay.mutate({ attemptId: reviewing.attempt.id, questionId: a.question_id, points: Number(essayPts[a.question_id] ?? a.awarded_points ?? 0) })} disabled={submitEssay.isPending}>
                     حفظ
                   </Button>
@@ -389,7 +391,8 @@ function ExamResultsPage() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setReviewing(null)}>إغلاق</Button></DialogFooter>
         </DialogContent>
@@ -461,9 +464,40 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
   );
 }
 
-function formatAnswer(answer: any, type?: string) {
+function getQuestionDisplayPoints(question: any) {
+  if (question?.type === "map") {
+    const points = Array.isArray(question?.correct_answer?.points) ? question.correct_answer.points : [];
+    const total = points.reduce((sum: number, point: any) => {
+      const subs = Array.isArray(point?.questions) ? point.questions : [];
+      const subTotal = subs.reduce((s: number, sq: any) => s + Math.max(0, Number(sq.points) || 0), 0);
+      return sum + (subTotal > 0 ? subTotal : 1);
+    }, 0);
+    if (total > 0) return total;
+  }
+  return Number(question?.points) || 0;
+}
+
+function formatMapSubAnswer(value: any, sq: any) {
+  if (value == null || value === "") return "—";
+  if (sq?.type === "mcq") return sq.options?.[Number(value)]?.text ?? String(value);
+  if (sq?.type === "true_false") return String(value) === "true" ? "صح" : "خطأ";
+  return String(value);
+}
+
+function formatAnswer(answer: any, question?: any) {
   if (answer == null || answer === "") return "لا إجابة";
+  const type = typeof question === "string" ? question : question?.type;
   if (type === "map") {
+    const points = Array.isArray(question?.correct_answer?.points) ? question.correct_answer.points : [];
+    const items = answer?.items && typeof answer.items === "object" ? answer.items : null;
+    if (items && points.length) {
+      return points.map((point: any, pi: number) => {
+        const subs = Array.isArray(point?.questions) ? point.questions : [];
+        if (!subs.length) return `${pi + 1}. ${String(answer?.labels?.[pi] ?? "").trim() || "—"}`;
+        const parts = subs.map((sq: any, si: number) => `س${si + 1}: ${formatMapSubAnswer(items[String(pi)]?.[sq.id], sq)}`);
+        return `${pi + 1}. ${parts.join("، ")}`;
+      }).join(" | ");
+    }
     const labels = Array.isArray(answer?.labels) ? answer.labels : Array.isArray(answer) ? answer : null;
     if (labels) {
       const list = labels.map((l: any, i: number) => `${i + 1}. ${String(l ?? "").trim() || "—"}`).join(" | ");
