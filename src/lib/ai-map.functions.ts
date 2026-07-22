@@ -84,12 +84,27 @@ ${SCHEMA_HINT}`;
     const rawPoints = Array.isArray(parsed?.points) ? parsed.points : [];
     if (!rawPoints.length) throw new Error("لم يتم توليد أي نقاط على الخريطة.");
 
-    const points = rawPoints.map((p: any) => ({
-      label: String(p?.label ?? "الإجابة الصحيحة"),
-      prompt: typeof p?.prompt === "string" ? p.prompt : "",
-      x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
-      y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+    // Normalize, clamp, and deduplicate: models often repeat the same location
+    // or place multiple markers within a few pixels of each other. Enforce a
+    // minimum distance (~8% of the image) and unique prompt/label keys.
+    const normalized = rawPoints.map((p: any) => ({
+      label: String(p?.label ?? "").trim() || "الإجابة الصحيحة",
+      prompt: typeof p?.prompt === "string" ? p.prompt.trim() : "",
+      x: Math.max(4, Math.min(96, Math.round(Number(p?.x ?? 50)))),
+      y: Math.max(4, Math.min(96, Math.round(Number(p?.y ?? 50)))),
     }));
+    const points: typeof normalized = [];
+    const seenKeys = new Set<string>();
+    for (const p of normalized) {
+      const key = `${p.prompt}|${p.label}`.toLowerCase();
+      if (seenKeys.has(key)) continue;
+      const tooClose = points.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 8);
+      if (tooClose) continue;
+      seenKeys.add(key);
+      points.push(p);
+      if (points.length >= data.num_points) break;
+    }
+    if (!points.length) throw new Error("تعذّر إنشاء نقاط صالحة على الخريطة.");
 
     let imageUrl = data.map_image_data_url ?? null;
     if (!imageUrl) {
