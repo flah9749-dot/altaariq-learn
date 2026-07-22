@@ -6,9 +6,10 @@ const SYSTEM_PROMPT = `أنت "مساعد الطارق"، مساعد ذكي اح
 مهامك:
 - الرد باللغة العربية الفصحى الواضحة.
 - مساعدة المدرس في: تحضير الدروس، مراجعات سريعة، خطط شرح، تحليل نتائج الطلاب، صياغة رسائل واتساب لأولياء الأمور، توليد أفكار امتحانات وأنشطة تعليمية.
-- إذا رفع المدرس صورة أو ملفًا (PDF/صورة درس/ورقة امتحان/صورة سبورة)، اقرأ محتواه بدقة ولخّصه أو حلّله أو استخرج منه أسئلة حسب طلبه.
+- عند وجود مرفق (PDF أو صورة): اقرأ كل صفحاته/محتواه بتأنٍ واستخرج النصوص والعناوين والأسئلة الموجودة داخله فعلياً، ثم قدّم شرحاً مفصّلاً منظماً بعناوين ونقاط. لا تعتذر عن قراءة الملف ولا تقل إنك لا تستطيع، فلديك القدرة على قراءة PDF والصور مباشرة.
+- إذا طلب المدرس "شرح" الملف: اشرح كل قسم/سؤال داخل الملف بالتفصيل مع الإجابات النموذجية عند وجود أسئلة.
 - استخدم البيانات المرفقة (إحصائيات، طلاب، امتحانات) عند توفرها، وإذا لم تتوفر فاطلبها بلطف.
-- كن مختصرًا ومنظمًا (عناوين ونقاط) ومفيدًا عمليًا.`;
+- كن منظمًا (عناوين ونقاط) ومفيدًا عمليًا، ولا تختصر الشرح عندما يكون الملف طويلاً.`;
 
 type Attachment = {
   kind: "image" | "file";
@@ -54,7 +55,24 @@ export const askAssistant = createServerFn({ method: "POST" })
     for (const m of data.messages) {
       msgs.push({ role: m.role, content: buildContent(m) });
     }
-    const reply = await callLovableChat(msgs, { temperature: 0.6, maxTokens: 1400 });
+
+    // Detect attachments in the latest user message to pick the right model + limits.
+    const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
+    const atts = lastUser?.attachments ?? [];
+    const hasPdf = atts.some((a) => a.kind === "file" && a.mime === "application/pdf");
+    const hasImage = atts.some((a) => a.kind === "image");
+    const hasAttachment = hasPdf || hasImage;
+
+    // Stronger multimodal chain when a file is attached (PDF/image understanding).
+    // gemini-2.5-pro has the best document/PDF comprehension in the gateway.
+    const models = hasAttachment
+      ? ["google/gemini-2.5-pro", "google/gemini-3.1-pro-preview", "google/gemini-2.5-flash"]
+      : undefined;
+
+    // Give the model room to actually explain long documents.
+    const maxTokens = hasPdf ? 6000 : hasImage ? 3000 : 1800;
+
+    const reply = await callLovableChat(msgs, { temperature: 0.5, maxTokens, models });
     return { reply };
   });
 
