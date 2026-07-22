@@ -82,15 +82,75 @@ export function makeMapSubQuestion(type: MapSubQuestionType = "short"): MapSubQu
   return base;
 }
 
-function normArabic(s: any): string {
+export function normalizeAnswerText(s: any): string {
   return String(s ?? "")
     .trim()
     .toLowerCase()
+    .replace(/[ـ]/g, "")
     .replace(/[\u064B-\u0652\u0670]/g, "")
-    .replace(/[أإآ]/g, "ا")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ");
+}
+
+function simplifyAnswerText(s: string): string {
+  const ignored = new Set(["في", "على", "من", "الي", "الى", "عن", "ما", "اسم", "هذا", "هذه", "هو", "هي"]);
+  return s
+    .split(" ")
+    .map((word) => (word.startsWith("ال") && word.length > 3 ? word.slice(2) : word))
+    .filter((word) => word && !ignored.has(word))
+    .join(" ");
+}
+
+function editDistance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  const curr = Array.from({ length: b.length + 1 }, () => 0);
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+  return prev[b.length];
+}
+
+function splitExpectedAnswers(expected: any): string[] {
+  return String(expected ?? "")
+    .split(/\s*(?:[،,؛;|/]|\bاو\b|\bأو\b)\s*/)
+    .map(normalizeAnswerText)
+    .filter(Boolean);
+}
+
+export function textAnswerMatches(expected: any, given: any): boolean {
+  const normalizedGiven = normalizeAnswerText(given);
+  if (!normalizedGiven) return false;
+  const simplifiedGiven = simplifyAnswerText(normalizedGiven);
+  const compactGiven = simplifiedGiven.replace(/\s+/g, "");
+
+  return splitExpectedAnswers(expected).some((normalizedExpected) => {
+    if (!normalizedExpected) return false;
+    const simplifiedExpected = simplifyAnswerText(normalizedExpected);
+    const compactExpected = simplifiedExpected.replace(/\s+/g, "");
+    if (normalizedExpected === normalizedGiven || simplifiedExpected === simplifiedGiven) return true;
+    if (normalizedGiven.length >= 3 && normalizedExpected.includes(normalizedGiven)) return true;
+    if (normalizedExpected.length >= 3 && normalizedGiven.includes(normalizedExpected)) return true;
+    if (simplifiedGiven.length >= 3 && simplifiedExpected.includes(simplifiedGiven)) return true;
+    if (simplifiedExpected.length >= 3 && simplifiedGiven.includes(simplifiedExpected)) return true;
+    if (compactExpected.length >= 4 && compactGiven.length >= 4) {
+      const maxDistance = Math.max(compactExpected.length, compactGiven.length) >= 8 ? 2 : 1;
+      return editDistance(compactExpected, compactGiven) <= maxDistance;
+    }
+    return false;
+  });
 }
 
 export function evalMapSubQuestion(
@@ -112,9 +172,7 @@ export function evalMapSubQuestion(
     }
     case "short":
     case "complete": {
-      const expected = normArabic(sq.answer);
-      const given = normArabic(ans);
-      const ok = !!expected && (expected === given || expected.includes(given) || given.includes(expected));
+      const ok = textAnswerMatches(sq.answer, ans);
       return { correct: ok, points: ok ? pts : 0 };
     }
   }

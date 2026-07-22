@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { computeGrade, evalMapSubQuestion } from "./exam-utils";
+import { computeGrade, evalMapSubQuestion, textAnswerMatches } from "./exam-utils";
 
 const AntiCheat = z.object({
   block_copy: z.boolean().optional(),
@@ -311,9 +311,8 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: ok, points: ok ? pts : 0 };
     }
     case "complete": {
-      const norm = (s: any) => String(s ?? "").trim().toLowerCase();
-      const expected = Array.isArray(q.correct_answer) ? q.correct_answer.map(norm) : [norm(q.correct_answer)];
-      const ok = expected.includes(norm(ans));
+      const expected = Array.isArray(q.correct_answer) ? q.correct_answer : [q.correct_answer];
+      const ok = expected.some((item: any) => textAnswerMatches(item, ans));
       return { correct: ok, points: ok ? pts : 0 };
     }
     case "order": {
@@ -330,15 +329,6 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
     case "map": {
-      const normalizeText = (s: any) =>
-        String(s ?? "")
-          .trim()
-          .toLowerCase()
-          .replace(/[\u064B-\u0652\u0670]/g, "")
-          .replace(/[أإآ]/g, "ا")
-          .replace(/ى/g, "ي")
-          .replace(/ة/g, "ه")
-          .replace(/\s+/g, " ");
       const expectedPoints: any[] = Array.isArray(q.correct_answer?.points)
         ? q.correct_answer.points
         : Array.isArray(q.correct_answer)
@@ -364,15 +354,14 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
             const a = givenItems[String(pi)]?.[sq.id];
             if (a != null && a !== "") anyAnswered = true;
             const ev = evalMapSubQuestion(sq, a);
-            awarded += ev.points;
+            const acceptsPointLabel = (sq.type === "short" || sq.type === "complete") && textAnswerMatches(p?.label, a);
+            awarded += acceptsPointLabel ? w : ev.points;
             if (ev.needsReview) needsReview = true;
           });
         } else {
           totalWeight += 1;
-          const g = normalizeText(givenLabels[pi]);
-          const label = normalizeText(p?.label);
-          if (g) anyAnswered = true;
-          if (label && g && (label === g || label.includes(g) || g.includes(label))) awarded += 1;
+          if (String(givenLabels[pi] ?? "").trim()) anyAnswered = true;
+          if (textAnswerMatches(p?.label, givenLabels[pi])) awarded += 1;
         }
       });
       if (!anyAnswered) return { correct: null, points: 0, needsReview };
@@ -611,6 +600,66 @@ export const updateAttemptScore = createServerFn({ method: "POST" })
     }).eq("id", data.attempt_id);
     await logActivity(supabaseAdmin, context.userId, "edit_score", "exam_attempt", data.attempt_id, { new_score: data.score });
     return { ok: true };
+  });
+
+export const regradeAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: att, error: aErr } = await supabaseAdmin.from("exam_attempts")
+      .select("id,exam_id,student_id,started_at,status,approved,submitted_at")
+      .eq("id", data.attempt_id)
+      .maybeSingle();
+    if (aErr || !att) throw new Error("المحاولة غير موجودة");
+    if (att.status === "in_progress") throw new Error("لا يمكن تصحيح محاولة لم يتم تسليمها بعد");
+    if (att.approved) throw new Error("لا يمكن إعادة تصحيح نتيجة معتمدة، افتحها للتعديل أولًا");
+
+    const { data: questions } = await supabaseAdmin.from("questions")
+      .select("id,type,points,correct_answer,question_options(id,is_correct)")
+      .eq("exam_id", att.exam_id);
+    const { data: answers } = await supabaseAdmin.from("attempt_answers")
+      .select("question_id,answer")
+      .eq("attempt_id", att.id);
+    const ansMap = new Map((answers ?? []).map((a: any) => [a.question_id, a.answer]));
+
+    let score = 0, total = 0, needsReview = false;
+    for (const q of questions ?? []) {
+      total += Number(q.points) || 0;
+      const ans = ansMap.get(q.id);
+      if (q.type === "essay") {
+        needsReview = true;
+        await supabaseAdmin.from("attempt_answers").upsert({
+          attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+          is_correct: null, awarded_points: null,
+        }, { onConflict: "attempt_id,question_id" });
+        continue;
+      }
+      const ev = evaluateObjective(q, ans);
+      score += ev.points;
+      if (ev.needsReview) needsReview = true;
+      await supabaseAdmin.from("attempt_answers").upsert({
+        attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+        is_correct: ev.needsReview ? null : ev.correct,
+        awarded_points: ev.points,
+      }, { onConflict: "attempt_id,question_id" });
+    }
+
+    const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
+    await supabaseAdmin.from("exam_attempts").update({
+      status: needsReview ? "submitted" : "graded",
+      submitted_at: att.submitted_at ?? new Date().toISOString(),
+      score, total, percentage: pct, grade: computeGrade(pct),
+      needs_review: needsReview,
+    }).eq("id", att.id);
+
+    await supabaseAdmin.from("results")
+      .update({ score, total })
+      .eq("exam_id", att.exam_id)
+      .eq("student_id", att.student_id);
+    await logActivity(supabaseAdmin, context.userId, "regrade_attempt", "exam_attempt", att.id, { score, total, percentage: pct });
+    return { ok: true, score, total, percentage: pct, needs_review: needsReview };
   });
 
 export const reopenAttempt = createServerFn({ method: "POST" })
