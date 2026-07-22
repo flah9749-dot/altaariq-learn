@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { computeGrade } from "./exam-utils";
+import { computeGrade, evalMapSubQuestion } from "./exam-utils";
 
 const AntiCheat = z.object({
   block_copy: z.boolean().optional(),
