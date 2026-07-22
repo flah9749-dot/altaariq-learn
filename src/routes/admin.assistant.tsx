@@ -209,6 +209,9 @@ function AssistantPage() {
             }}
           />
         )}
+      </div>
+
+
 
 
       <Card className="h-[calc(100vh-16rem)] flex flex-col">
