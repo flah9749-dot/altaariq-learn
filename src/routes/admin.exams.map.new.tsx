@@ -131,7 +131,7 @@ function NewMapExamPage() {
       let gridRows: number | undefined;
       try {
         const { buildGridOverlay } = await import("@/lib/map-grid");
-        const g = await buildGridOverlay(pg.original_url, 24, 24);
+        const g = await buildGridOverlay(pg.original_url, 30, 30);
         gridImage = g.dataUrl;
         gridCols = g.info.cols;
         gridRows = g.info.rows;
