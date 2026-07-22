@@ -14,7 +14,14 @@ import { formatDuration, computeGrade, evalMapSubQuestion, textAnswerMatches } f
 
 
 export const Route = createFileRoute("/student/exams/$id/result")({
-  head: () => ({ meta: [{ title: "نتيجة الامتحان" }] }),
+  head: () => ({ meta: [
+    { title: "نتيجة الامتحان — الطارق التعليمية" },
+    { name: "description", content: "عرض نتيجة الامتحان ومراجعة الإجابات والدرجات داخل منصة الطارق التعليمية." },
+    { property: "og:title", content: "نتيجة الامتحان — الطارق التعليمية" },
+    { property: "og:description", content: "عرض نتيجة الامتحان ومراجعة الإجابات والدرجات داخل منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ResultPage,
 });
 
