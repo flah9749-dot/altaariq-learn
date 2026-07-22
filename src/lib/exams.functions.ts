@@ -444,13 +444,18 @@ export const submitAttempt = createServerFn({ method: "POST" })
     const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
 
     // Auto-award points + auto-approve when fully auto-graded (no essay review needed).
+    // Compute points OUTSIDE any try/catch so failures surface instead of silently
+    // dropping approval — that's what caused map-exam attempts to stay approved=false
+    // and points_awarded=0 for high-scoring students.
+    const autoApproved = !needsReview;
     let autoPointsAwarded = 0;
-    let autoApproved = false;
-    if (!needsReview) {
+    if (autoApproved) {
       try {
         autoPointsAwarded = await awardAttemptPoints(supabaseAdmin, { percentage: pct });
-        autoApproved = true;
-      } catch { /* non-blocking */ }
+      } catch (e) {
+        console.error("[submitAttempt] awardAttemptPoints failed:", e);
+        autoPointsAwarded = 0; // still auto-approve; admin can adjust manually
+      }
     }
 
     const { error: upErr } = await supabaseAdmin.from("exam_attempts").update({
@@ -466,19 +471,16 @@ export const submitAttempt = createServerFn({ method: "POST" })
     }).eq("id", att.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Credit student points immediately for auto-graded attempts.
+    // Credit student points immediately for auto-graded attempts (map + objective).
     if (autoApproved && autoPointsAwarded > 0) {
       try {
-        const { data: ex } = await supabaseAdmin.from("exams").select("title").eq("id", att.exam_id).maybeSingle();
-        await supabaseAdmin.from("points_log").insert({
-          student_id: att.student_id, points: autoPointsAwarded,
-          reason: `امتحان: ${ex?.title ?? ""}`,
+        await creditStudentPoints(supabaseAdmin, {
+          student_id: att.student_id, exam_id: att.exam_id, points: autoPointsAwarded,
+          reason_prefix: "امتحان",
         });
-        const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
-        const totalPts = (Number(stu?.points) || 0) + autoPointsAwarded;
-        const level = Math.max(1, Math.floor(totalPts / 100) + 1);
-        await supabaseAdmin.from("students").update({ points: totalPts, level }).eq("id", att.student_id);
-      } catch { /* non-blocking */ }
+      } catch (e) {
+        console.error("[submitAttempt] creditStudentPoints failed:", e);
+      }
     }
 
     // Save to results table (for legacy compatibility)
