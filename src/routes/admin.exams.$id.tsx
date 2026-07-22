@@ -516,9 +516,9 @@ function MapTargetEditor({
   onMove?: (index: number, x: number, y: number) => void;
   onRemove?: (index: number) => void;
 }) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = React.useState<number | null>(null);
-  const draggedRef = React.useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const draggedRef = useRef(false);
 
   const coordsFromEvent = (clientX: number, clientY: number) => {
     const el = containerRef.current;
@@ -529,7 +529,7 @@ function MapTargetEditor({
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (dragging === null) return;
     const move = (e: PointerEvent) => {
       const c = coordsFromEvent(e.clientX, e.clientY);
