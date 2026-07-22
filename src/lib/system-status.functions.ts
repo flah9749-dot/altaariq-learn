@@ -46,6 +46,20 @@ export const systemHealthCheck = createServerFn({ method: "POST" })
     const aiCheck = await timed(async () => {
       const key = process.env.LOVABLE_API_KEY;
       if (!key) throw new Error("LOVABLE_API_KEY غير مضبوط");
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}`, "Lovable-API-Key": key },
+          body: JSON.stringify({ model: "google/gemini-3.5-flash", messages: [{ role: "user", content: "ping" }] }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(`HTTP ${res.status}: ${t.slice(0, 120)}`);
+        }
+      } finally { clearTimeout(timer); }
     });
     checks.push({ name: "بوابة الذكاء الاصطناعي", ok: aiCheck.ok, latencyMs: aiCheck.ms, detail: aiCheck.detail });
 

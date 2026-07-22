@@ -182,22 +182,77 @@ function interpretError(msg: string): string {
   return msg.slice(0, 200);
 }
 
+// ---------- Usage logging ----------
+const providerIdCache = new Map<ProviderSlug, string>();
+async function resolveProviderId(slug: ProviderSlug): Promise<string | null> {
+  if (providerIdCache.has(slug)) return providerIdCache.get(slug)!;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin.from("ai_providers").select("id").eq("slug", slug).maybeSingle();
+    if (data?.id) { providerIdCache.set(slug, data.id); return data.id; }
+  } catch {}
+  return null;
+}
+
+export async function logAIUsage(opts: {
+  slug?: ProviderSlug;
+  function_name: string;
+  function_key?: string;
+  success: boolean;
+  latency_ms?: number;
+  error?: string | null;
+  tokens_used?: number;
+}): Promise<void> {
+  try {
+    const provider_id = opts.slug ? await resolveProviderId(opts.slug) : null;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("ai_usage_logs").insert({
+      provider_id,
+      function_name: opts.function_name,
+      function_key: opts.function_key ?? null,
+      success: opts.success,
+      latency_ms: opts.latency_ms ?? null,
+      error: opts.error ?? null,
+      tokens_used: opts.tokens_used ?? 0,
+    });
+    if (provider_id) {
+      // Increment aggregate counters on ai_providers
+      const patch: any = { last_used_at: new Date().toISOString() };
+      const { data: cur } = await supabaseAdmin.from("ai_providers")
+        .select("requests_count, errors_count, avg_latency_ms").eq("id", provider_id).maybeSingle();
+      const reqs = (cur?.requests_count ?? 0) + 1;
+      const errs = (cur?.errors_count ?? 0) + (opts.success ? 0 : 1);
+      patch.requests_count = reqs;
+      patch.errors_count = errs;
+      if (opts.latency_ms && opts.success) {
+        const prev = cur?.avg_latency_ms ?? 0;
+        patch.avg_latency_ms = Math.round(((prev * (reqs - 1)) + opts.latency_ms) / reqs);
+      }
+      await supabaseAdmin.from("ai_providers").update(patch).eq("id", provider_id);
+    }
+  } catch {}
+}
+
 // ---------- Dispatch with fallback ----------
 export async function dispatchWithFallback(
   preferred: ProviderSlug,
   messages: ChatMsg[],
-  opts: { responseJson?: boolean } = {},
+  opts: { responseJson?: boolean; function_name?: string } = {},
 ): Promise<ProviderResult> {
   const chain = [preferred, ...FALLBACK_ORDER.filter(p => p !== preferred)];
   let lastErr: any = null;
+  const fnName = opts.function_name ?? "dispatch";
   for (const p of chain) {
     if (!hasKey(p)) continue;
     const start = Date.now();
     try {
       const content = await callProvider(p, messages, opts);
-      return { provider: p, content, latencyMs: Date.now() - start };
+      const latency = Date.now() - start;
+      await logAIUsage({ slug: p, function_name: fnName, success: true, latency_ms: latency });
+      return { provider: p, content, latencyMs: latency };
     } catch (e: any) {
       lastErr = e;
+      await logAIUsage({ slug: p, function_name: fnName, success: false, latency_ms: Date.now() - start, error: e?.message?.slice(0, 200) });
     }
   }
   throw new Error(lastErr?.message ?? "لا يوجد مزود ذكاء اصطناعي متاح");
