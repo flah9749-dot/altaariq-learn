@@ -109,6 +109,9 @@ function ExamsPage() {
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/exams/ai"><Sparkles className="h-4 w-4 ml-1" />إنشاء بالذكاء الاصطناعي</Link>
           </Button>
+          <Button asChild variant="outline" size="sm" className="border-primary/40 text-primary hover:bg-primary/10">
+            <Link to="/admin/exams/map/new">🗺️ امتحان خرائط ذكي</Link>
+          </Button>
           <Button size="sm" onClick={createBlank}><Plus className="h-4 w-4 ml-1" />امتحان جديد</Button>
         </div>
       </div>
