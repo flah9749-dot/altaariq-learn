@@ -425,7 +425,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
       await supabaseAdmin.from("attempt_answers").upsert({
         attempt_id: att.id, question_id: q.id, answer: ans ?? null,
         is_correct: ev.needsReview ? null : ev.correct,
-        awarded_points: ev.needsReview ? null : ev.points,
+        awarded_points: ev.points,
       }, { onConflict: "attempt_id,question_id" });
     }
 
