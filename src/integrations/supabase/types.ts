@@ -727,6 +727,7 @@ export type Database = {
           description: string | null
           duration_minutes: number
           ends_at: string | null
+          exam_kind: string
           group_ids: string[]
           id: string
           num_variants: number
@@ -750,6 +751,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           ends_at?: string | null
+          exam_kind?: string
           group_ids?: string[]
           id?: string
           num_variants?: number
@@ -773,6 +775,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           ends_at?: string | null
+          exam_kind?: string
           group_ids?: string[]
           id?: string
           num_variants?: number
@@ -927,6 +930,97 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      map_exam_markers: {
+        Row: {
+          created_at: string
+          hint: string | null
+          id: string
+          label: string | null
+          number: number
+          page_id: string
+          updated_at: string
+          x: number
+          y: number
+        }
+        Insert: {
+          created_at?: string
+          hint?: string | null
+          id?: string
+          label?: string | null
+          number?: number
+          page_id: string
+          updated_at?: string
+          x?: number
+          y?: number
+        }
+        Update: {
+          created_at?: string
+          hint?: string | null
+          id?: string
+          label?: string | null
+          number?: number
+          page_id?: string
+          updated_at?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_exam_markers_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "map_exam_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      map_exam_pages: {
+        Row: {
+          ai_summary: string | null
+          clean_image_url: string | null
+          created_at: string
+          exam_id: string
+          id: string
+          map_type: string | null
+          order_index: number
+          original_image_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          clean_image_url?: string | null
+          created_at?: string
+          exam_id: string
+          id?: string
+          map_type?: string | null
+          order_index?: number
+          original_image_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          clean_image_url?: string | null
+          created_at?: string
+          exam_id?: string
+          id?: string
+          map_type?: string | null
+          order_index?: number
+          original_image_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_exam_pages_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       map_templates: {
         Row: {
@@ -1253,6 +1347,8 @@ export type Database = {
           file_url: string | null
           id: string
           image_url: string | null
+          map_marker_id: string | null
+          map_page_id: string | null
           order_index: number
           points: number
           suggested_time_sec: number | null
@@ -1269,6 +1365,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          map_marker_id?: string | null
+          map_page_id?: string | null
           order_index?: number
           points?: number
           suggested_time_sec?: number | null
@@ -1285,6 +1383,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          map_marker_id?: string | null
+          map_page_id?: string | null
           order_index?: number
           points?: number
           suggested_time_sec?: number | null
@@ -1298,6 +1398,20 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_map_marker_id_fkey"
+            columns: ["map_marker_id"]
+            isOneToOne: false
+            referencedRelation: "map_exam_markers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_map_page_id_fkey"
+            columns: ["map_page_id"]
+            isOneToOne: false
+            referencedRelation: "map_exam_pages"
             referencedColumns: ["id"]
           },
         ]
