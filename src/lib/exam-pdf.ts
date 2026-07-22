@@ -111,15 +111,45 @@ function renderMap(q: PaperQuestion, showAnswers: boolean) {
         ).join("")}
       </div>`
     : `<div style="padding:16px;border:1px dashed #94a3b8;border-radius:8px;color:#64748b;">(لم تُرفق صورة الخريطة)</div>`;
+
+  const renderSub = (sq: any, si: number): string => {
+    const t = escapeHtml(sq.text || "");
+    const header = `<div style="font-size:12px;color:#334155;margin-bottom:2px;"><b>س${si + 1}${sq.points ? ` (${sq.points} د)` : ""}:</b> ${t}</div>`;
+    if (showAnswers) {
+      let ans = "";
+      if (sq.type === "mcq") {
+        const c = (sq.options ?? []).find((o: any) => o.is_correct);
+        ans = c ? `<b style="color:#16a34a;">${escapeHtml(c.text)}</b>` : "";
+      } else if (sq.type === "true_false") ans = `<b style="color:#16a34a;">${sq.answer === "false" ? "خطأ" : "صح"}</b>`;
+      else if (sq.type === "essay") ans = `<span style="color:#64748b;">(يُصحح يدويًا)</span>`;
+      else ans = `<b style="color:#16a34a;">${escapeHtml(sq.answer ?? "")}</b>`;
+      return `<div style="margin:4px 0;padding:4px 6px;border-right:2px solid #cbd5e1;">${header}<div>${ans}</div></div>`;
+    }
+    let body = "";
+    if (sq.type === "mcq") body = (sq.options ?? []).map((o: any) => `<div>☐ ${escapeHtml(o.text)}</div>`).join("");
+    else if (sq.type === "true_false") body = `☐ صح &nbsp;&nbsp; ☐ خطأ`;
+    else if (sq.type === "essay") body = Array.from({ length: 3 }).map(() => `<div style="border-bottom:1px solid #cbd5e1;height:22px;"></div>`).join("");
+    else body = `<div style="border-bottom:1px dashed #94a3b8;min-height:22px;"></div>`;
+    return `<div style="margin:4px 0;padding:4px 6px;border-right:2px solid #cbd5e1;">${header}<div>${body}</div></div>`;
+  };
+
   const list = points.length
     ? `<ol style="margin-top:8px;padding-inline-start:20px;">
         ${points.map((p: any, i: number) => {
-          const prompt = typeof p?.prompt === "string" && p.prompt.trim() ? escapeHtml(p.prompt) : "";
-          const promptHtml = prompt ? `<span style="color:#0f172a;">${prompt}</span> — ` : "";
-          const answerHtml = showAnswers
-            ? `<b style="color:#16a34a;">${escapeHtml(p.label)}</b>`
-            : `<span style="display:inline-block;border-bottom:1px dashed #94a3b8;min-width:180px;">&nbsp;</span>`;
-          return `<li style="margin-bottom:4px;">${promptHtml}${answerHtml}</li>`;
+          const subs = Array.isArray(p?.questions) ? p.questions : [];
+          if (subs.length === 0) {
+            const prompt = typeof p?.prompt === "string" && p.prompt.trim() ? escapeHtml(p.prompt) : "";
+            const promptHtml = prompt ? `<span style="color:#0f172a;">${prompt}</span> — ` : "";
+            const answerHtml = showAnswers
+              ? `<b style="color:#16a34a;">${escapeHtml(p.label)}</b>`
+              : `<span style="display:inline-block;border-bottom:1px dashed #94a3b8;min-width:180px;">&nbsp;</span>`;
+            return `<li style="margin-bottom:6px;">${promptHtml}${answerHtml}</li>`;
+          }
+          const head = escapeHtml(p.prompt || p.label || `الموقع ${i + 1}`);
+          return `<li style="margin-bottom:10px;">
+            <div style="font-weight:600;">${head}</div>
+            ${subs.map((sq: any, si: number) => renderSub(sq, si)).join("")}
+          </li>`;
         }).join("")}
       </ol>`
     : "";
