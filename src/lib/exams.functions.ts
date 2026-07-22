@@ -329,6 +329,30 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       const partial = pts * (matched / total);
       return { correct: matched === total, points: Math.round(partial * 100) / 100 };
     }
+    case "map": {
+      const normalizePoints = (value: any) => {
+        if (!value) return [] as Array<{ x: number; y: number; tolerance?: number }>;
+        if (Array.isArray(value?.points)) return value.points;
+        if (Array.isArray(value)) return value;
+        if (typeof value.x === "number" && typeof value.y === "number") return [value];
+        return [];
+      };
+      const expected = normalizePoints(q.correct_answer);
+      const given = normalizePoints(ans);
+      if (!expected.length || !given.length) return { correct: null, points: 0 };
+      let matched = 0;
+      expected.forEach((target: any, idx: number) => {
+        const answer = given[idx];
+        if (!answer) return;
+        const dx = Number(answer.x) - Number(target.x);
+        const dy = Number(answer.y) - Number(target.y);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const tolerance = Number(target.tolerance ?? 8);
+        if (Number.isFinite(distance) && distance <= tolerance) matched += 1;
+      });
+      const partial = pts * (matched / expected.length);
+      return { correct: matched === expected.length, points: Math.round(partial * 100) / 100 };
+    }
     default:
       return { correct: null, points: 0 };
   }

@@ -2,6 +2,7 @@ export const QUESTION_TYPES = [
   { value: "mcq", label: "اختيار من متعدد" },
   { value: "true_false", label: "صح أو خطأ" },
   { value: "complete", label: "أكمل" },
+  { value: "map", label: "سؤال خريطة" },
   { value: "order", label: "ترتيب العناصر" },
   { value: "match", label: "توصيل" },
   { value: "essay", label: "مقالي" },
@@ -9,7 +10,7 @@ export const QUESTION_TYPES = [
 
 export type QuestionType = typeof QUESTION_TYPES[number]["value"];
 
-export const isObjective = (t: string) => ["mcq", "true_false", "complete", "order", "match"].includes(t);
+export const isObjective = (t: string) => ["mcq", "true_false", "complete", "order", "match", "map"].includes(t);
 
 export function computeGrade(pct: number): string {
   if (pct >= 95) return "ممتاز مرتفع";

@@ -17,10 +17,11 @@ const Input = z.object({
 const SYSTEM_PROMPT = `أنت "مساعد الطارق للطلاب"، معلّم ذكي ودود لمادة الدراسات الاجتماعية (تاريخ/جغرافيا/مواطنة) في منصة الطارق التعليمية.
 مهامك:
 - شرح الدروس والمفاهيم بلغة عربية بسيطة ومناسبة لعمر الطالب.
-- إذا رفع الطالب ملفًا (PDF/صورة): استخرج محتواه ولخّصه في نقاط مرتّبة، ثم اشرح المفاهيم الصعبة، واقترح أسئلة مراجعة.
+- إذا رفع الطالب ملفًا (PDF/صورة): اقرأ محتواه مباشرة، استخرج النصوص والعناوين والخرائط/الصور، لخّصه في نقاط مرتّبة، ثم اشرح المفاهيم الصعبة، واقترح أسئلة مراجعة.
+- لا تعتذر عن قراءة الملفات أو الصور ولا تقل إنك لا تستطيع؛ إذا كان الملف طويلًا ابدأ بأهم الأجزاء ثم أكمل بتنظيم واضح.
 - استخدم عناوين ونقاط وأمثلة قريبة من بيئة الطالب.
 - شجّع الطالب وحفّزه، ولا تعطه إجابات امتحان مباشرة إن كان يحاول الغش.
-- كن مختصرًا ومنظمًا ومفيدًا.`;
+- كن منظمًا ومفيدًا، ووسّع الشرح عندما يطلب الطالب شرح ملف أو صورة.`;
 
 export const askStudentAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -44,7 +45,15 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
     for (const m of history) msgs.push({ role: m.role, content: m.content });
     msgs.push({ role: "user", content: parts });
 
-    const reply = await callLovableChat(msgs, { temperature: 0.6, maxTokens: 1600 });
+    const hasPdf = data.attachments.some((att) => att.kind === "pdf");
+    const hasImage = data.attachments.some((att) => att.kind === "image");
+    const hasAttachment = hasPdf || hasImage;
+    const models = hasAttachment
+      ? ["google/gemini-2.5-pro", "google/gemini-3.1-pro-preview", "google/gemini-2.5-flash"]
+      : undefined;
+    const maxTokens = hasPdf ? 6000 : hasImage ? 3500 : 1800;
+
+    const reply = await callLovableChat(msgs, { temperature: 0.55, maxTokens, models });
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
