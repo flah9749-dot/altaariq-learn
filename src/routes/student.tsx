@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentHeader } from "@/components/student/StudentHeader";
+import { PushEnablePrompt } from "@/components/student/PushEnablePrompt";
 
 export const Route = createFileRoute("/student")({
   ssr: false,
@@ -23,8 +24,10 @@ function StudentLayout() {
     <div className="min-h-dvh bg-muted/30 md:pr-64 lg:pr-72" dir="rtl">
       <StudentHeader />
       <main className="mx-auto w-full max-w-6xl px-3 pb-8 pt-4 sm:px-4 md:p-6">
+        <PushEnablePrompt />
         <Outlet />
       </main>
     </div>
   );
 }
+
