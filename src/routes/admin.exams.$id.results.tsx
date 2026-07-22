@@ -433,3 +433,14 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     </CardContent></Card>
   );
 }
+
+function formatAnswer(answer: any, type?: string) {
+  if (answer == null || answer === "") return "لا إجابة";
+  if (type === "map") {
+    const point = Array.isArray(answer?.points) ? answer.points[0] : answer;
+    if (point && typeof point === "object") {
+      return `${point.label ?? "موضع محدد"} — x:${Number(point.x ?? 0).toFixed(1)} / y:${Number(point.y ?? 0).toFixed(1)}`;
+    }
+  }
+  return typeof answer === "object" ? JSON.stringify(answer) : String(answer);
+}
