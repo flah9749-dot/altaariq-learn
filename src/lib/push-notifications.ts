@@ -59,10 +59,11 @@ async function registerSW(): Promise<ServiceWorkerRegistration> {
 }
 
 async function saveToken(userId: string, token: string) {
-  await supabase.from("push_tokens").upsert(
+  const { error } = await supabase.from("push_tokens").upsert(
     { user_id: userId, token, platform: "web", user_agent: navigator.userAgent, last_seen: new Date().toISOString() },
     { onConflict: "user_id,token" },
   );
+  if (error) throw new Error(`تعذّر حفظ جهاز الإشعارات: ${error.message}`);
 }
 
 /** Request permission and register the current device for push. Returns the FCM token or null. */
@@ -104,7 +105,9 @@ export async function bootPushIfEnabled(userId: string) {
       const b = payload.notification?.body ?? "";
       toast(t, { description: b });
     });
-  } catch { /* ignore */ }
+  } catch (e: any) {
+    console.warn("Push token refresh failed", e?.message ?? e);
+  }
 }
 
 /** Disable push on this device: delete FCM token locally and remove it from the DB. */
