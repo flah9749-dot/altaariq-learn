@@ -105,12 +105,19 @@ export async function sendFcm(payloads: FcmPayload[]): Promise<FcmSendResult[]> 
     try {
       const message: any = {
         token: p.token,
-        notification: { title: p.title, body: p.body },
         webpush: {
           fcm_options: p.link ? { link: p.link } : undefined,
-          notification: { icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", dir: "rtl", lang: "ar" },
+          notification: {
+            title: p.title,
+            body: p.body,
+            icon: "/icon-192.png",
+            badge: "/icon-192.png",
+            dir: "rtl",
+            lang: "ar",
+            data: { link: p.link ?? "/" },
+          },
         },
-        data: p.data,
+        data: { ...(p.data ?? {}), title: p.title, body: p.body, link: p.link ?? "/" },
       };
       const res = await fetch(url, {
         method: "POST",
