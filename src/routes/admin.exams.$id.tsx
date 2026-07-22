@@ -99,6 +99,14 @@ async function prepareQuestionImage(file: File): Promise<File | Blob> {
   return compressImage(file, 1800, 0.84);
 }
 
+const readImage = (file: File | Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 function ExamEditor() {
   const { id } = Route.useParams();
   const nav = useNavigate();
