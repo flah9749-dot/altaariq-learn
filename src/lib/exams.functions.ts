@@ -421,9 +421,11 @@ export const submitAttempt = createServerFn({ method: "POST" })
       }
       const ev = evaluateObjective(q, ans);
       score += ev.points;
+      if (ev.needsReview) needsReview = true;
       await supabaseAdmin.from("attempt_answers").upsert({
         attempt_id: att.id, question_id: q.id, answer: ans ?? null,
-        is_correct: ev.correct, awarded_points: ev.points,
+        is_correct: ev.needsReview ? null : ev.correct,
+        awarded_points: ev.needsReview ? null : ev.points,
       }, { onConflict: "attempt_id,question_id" });
     }
 
