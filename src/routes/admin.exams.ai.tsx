@@ -366,7 +366,11 @@ function MapPreview({ question, onChangeImage, onPick }: {
       {points.length > 0 && (
         <ol className="text-xs text-muted-foreground list-decimal pr-5 space-y-0.5">
           {points.map((p, idx) => (
-            <li key={idx}><span className="font-medium text-foreground">{p.label}</span> — (x: {p.x}, y: {p.y})</li>
+            <li key={idx}>
+              {p.prompt?.trim() ? <span className="text-foreground">{p.prompt} → </span> : null}
+              <span className="font-medium text-foreground">{p.label}</span>
+              <span className="opacity-60"> (x: {p.x}, y: {p.y})</span>
+            </li>
           ))}
         </ol>
       )}
