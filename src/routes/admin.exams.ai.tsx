@@ -348,23 +348,26 @@ function MapPreview({ question, onChangeImage, onPick }: {
           {points.map((p, index) => (
             <span
               key={index}
-              className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground shadow"
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-destructive text-xs font-bold text-destructive-foreground shadow-lg"
               style={{ left: `${p.x}%`, top: `${p.y}%` }}
+              title={p.label}
             >
-              <MapPin className="inline h-3 w-3 ml-1" />{p.label}
+              {index + 1}
             </span>
           ))}
         </button>
       ) : (
         <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          لم يتم إرفاق صورة خريطة. ارفع صورة ليتمكن الطالب من تحديد الموقع عليها.
+          لم يتم إرفاق صورة خريطة. ارفع صورة ليتمكن الطالب من كتابة أسماء المواقع عليها.
         </div>
       )}
 
       {points.length > 0 && (
-        <div className="text-xs text-muted-foreground">
-          الموقع الصحيح: <span className="font-medium text-foreground">{points[0].label}</span> — (x: {points[0].x}, y: {points[0].y}, نطاق: {points[0].tolerance})
-        </div>
+        <ol className="text-xs text-muted-foreground list-decimal pr-5 space-y-0.5">
+          {points.map((p, idx) => (
+            <li key={idx}><span className="font-medium text-foreground">{p.label}</span> — (x: {p.x}, y: {p.y})</li>
+          ))}
+        </ol>
       )}
     </div>
   );
