@@ -252,7 +252,7 @@ function AIExamPage() {
                         if (!p) return p;
                         const pts = getMapPointsPreview(q.correct_answer);
                         const idxNext = pts.length + 1;
-                        const next = [...pts, { label: `الموقع ${idxNext}`, x, y }];
+                        const next = [...pts, { label: `الإجابة ${idxNext}`, prompt: "", x, y }];
                         return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
                       })}
                     />
