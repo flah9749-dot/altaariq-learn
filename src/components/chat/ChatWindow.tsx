@@ -70,14 +70,17 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
   // Realtime: incoming messages + read receipts
   useEffect(() => {
-    if (!user || !peerId) return;
-    const ch = supabase.channel(`chat-${user.id}-${peerId}`)
+    if (!user || allPeerIds.length === 0) return;
+    const peerSet = new Set(allPeerIds);
+    const ch = supabase.channel(`chat-${user.id}-${peerKey}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         const m = payload.new as any;
-        if ((m.sender_id === user.id && m.recipient_id === peerId) ||
-            (m.sender_id === peerId && m.recipient_id === user.id)) {
+        const involvesUs =
+          (m.sender_id === user.id && peerSet.has(m.recipient_id)) ||
+          (peerSet.has(m.sender_id) && m.recipient_id === user.id);
+        if (involvesUs) {
           qc.setQueryData<any[]>(key, (prev) => prev ? [...prev, m] : [m]);
-          if (m.sender_id === peerId) readFn({ data: { peer_id: peerId } }).catch(() => {});
+          if (peerSet.has(m.sender_id)) readFn({ data: { peer_ids: allPeerIds } }).catch(() => {});
         }
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
@@ -86,7 +89,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
       })
       .subscribe();
 
-    // Presence for typing
+    // Presence for typing (still scoped to primary peer)
     const presence = supabase.channel(`typing-${[user.id, peerId].sort().join("-")}`, {
       config: { presence: { key: user.id } },
     })
@@ -100,12 +103,12 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
     return () => { supabase.removeChannel(ch); supabase.removeChannel(presence); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, peerId]);
+  }, [user?.id, peerKey]);
 
   // Mark read when opening
   useEffect(() => {
-    if (user && peerId) readFn({ data: { peer_id: peerId } }).catch(() => {});
-  }, [user, peerId, readFn]);
+    if (user && allPeerIds.length > 0) readFn({ data: { peer_ids: allPeerIds } }).catch(() => {});
+  }, [user, peerKey, readFn]);
 
   // Scroll to bottom
   useEffect(() => {
