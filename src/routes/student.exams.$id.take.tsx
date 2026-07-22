@@ -327,7 +327,7 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
 }
 
 function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: (v: any) => void }) {
-  const points: Array<{ x: number; y: number }> = Array.isArray(q?.correct_answer?.points)
+  const points: Array<{ x: number; y: number; prompt?: string }> = Array.isArray(q?.correct_answer?.points)
     ? q.correct_answer.points
     : [];
   const labels: string[] = Array.isArray(value?.labels)
@@ -365,14 +365,19 @@ function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: 
       </div>
       <p className="text-xs text-muted-foreground">
         <MapPin className="inline h-3 w-3 ml-1" />
-        اكتب اسم المكان المُشار إليه بكل رقم على الخريطة.
+        أجب على كل رقم موجود على الخريطة.
       </p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {points.map((_, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <Badge variant="outline" className="w-8 justify-center">{i + 1}</Badge>
+      <div className="space-y-2">
+        {points.map((p, i) => (
+          <div key={i} className="rounded-lg border p-2 space-y-1.5 bg-background">
+            <div className="flex items-start gap-2">
+              <Badge variant="outline" className="w-8 justify-center shrink-0 mt-0.5">{i + 1}</Badge>
+              <p className="text-sm font-medium flex-1">
+                {p.prompt?.trim() || `اكتب اسم الموضع رقم ${i + 1}`}
+              </p>
+            </div>
             <Input
-              placeholder={`اسم الموضع رقم ${i + 1}`}
+              placeholder="إجابتك..."
               value={labels[i] ?? ""}
               onChange={(e) => setLabel(i, e.target.value)}
             />
