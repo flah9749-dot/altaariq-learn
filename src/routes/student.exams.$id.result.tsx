@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { pickResultTemplate } from "@/lib/whatsapp-templates";
-import { formatDuration, computeGrade } from "@/lib/exam-utils";
+import { formatDuration, computeGrade, evalMapSubQuestion, textAnswerMatches } from "@/lib/exam-utils";
 
 
 export const Route = createFileRoute("/student/exams/$id/result")({
@@ -152,6 +152,8 @@ function ResultPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />مراجعة الإجابات</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {(answers ?? []).map((a: any, i: number) => {
+              const isMap = a.questions?.type === "map";
+              const displayPoints = isMap ? getMapTotalPoints(a.questions) : a.questions?.points;
               const correctOpts = a.questions?.question_options?.filter((o: any) => o.is_correct).map((o: any) => o.text).join(" / ");
               return (
                 <div key={a.id} className={`border rounded-lg p-3 ${a.is_correct === true ? "border-success/30 bg-success/5" : a.is_correct === false ? "border-destructive/30 bg-destructive/5" : "border-warning/30 bg-warning/5"}`}>
@@ -159,16 +161,14 @@ function ResultPage() {
                     <Badge variant="outline">{i + 1}</Badge>
                     {a.is_correct === true && <CheckCircle2 className="h-4 w-4 text-success" />}
                     {a.is_correct === false && <XCircle className="h-4 w-4 text-destructive" />}
-                    <span className="mr-auto text-sm font-medium">{a.awarded_points ?? 0} / {a.questions?.points}</span>
+                    <span className="mr-auto text-sm font-medium">{a.awarded_points ?? 0} / {displayPoints}</span>
                   </div>
                   <p className="font-medium text-sm">{a.questions?.text}</p>
                   {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mt-2 max-h-64 rounded-lg border" />}
-                  {correctOpts && a.is_correct === false && (
+                  {isMap ? (
+                    <MapAnswerReview question={a.questions} answer={a.answer} />
+                  ) : correctOpts && a.is_correct === false && (
                     <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {correctOpts}</p>
-                  )}
-                  {a.questions?.type === "map" && a.is_correct !== true && Array.isArray(a.questions?.correct_answer?.points) && a.questions.correct_answer.points.length > 0 && (
-                    <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {a.questions.correct_answer.points.map((p: any, idx: number) => `${idx + 1}. ${p.prompt?.trim() ? `${p.prompt} → ` : ""}${p.label}`).join(" — ")}</p>
-
                   )}
                   {a.questions?.explanation && <p className="text-xs text-muted-foreground mt-2 border-t pt-2">💡 {a.questions.explanation}</p>}
                   {a.ai_feedback && <p className="text-xs text-primary mt-2 border-t pt-2">🤖 تعليق: {a.ai_feedback}</p>}
@@ -178,6 +178,79 @@ function ResultPage() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function getMapTotalPoints(question: any) {
+  const points = Array.isArray(question?.correct_answer?.points) ? question.correct_answer.points : [];
+  return points.reduce((sum: number, point: any) => {
+    const subs = Array.isArray(point?.questions) ? point.questions : [];
+    const subTotal = subs.reduce((s: number, sq: any) => s + Math.max(0, Number(sq.points) || 0), 0);
+    return sum + (subTotal > 0 ? subTotal : 1);
+  }, 0) || question?.points || 0;
+}
+
+function formatStudentMapAnswer(answer: any, pi: number, sq?: any) {
+  if (sq) {
+    const value = answer?.items?.[String(pi)]?.[sq.id];
+    if (value == null || value === "") return "لم تُجب";
+    if (sq.type === "mcq") return sq.options?.[Number(value)]?.text ?? String(value);
+    if (sq.type === "true_false") return String(value) === "true" ? "صح" : "خطأ";
+    return String(value);
+  }
+  const labels = Array.isArray(answer?.labels) ? answer.labels : Array.isArray(answer) ? answer : [];
+  return String(labels[pi] ?? "").trim() || "لم تُجب";
+}
+
+function formatExpectedMapAnswer(point: any, sq?: any) {
+  if (!sq) return point?.label ?? "—";
+  if (sq.type === "mcq") return sq.options?.find((o: any) => o.is_correct)?.text ?? "—";
+  if (sq.type === "true_false") return String(sq.answer ?? "true") === "true" ? "صح" : "خطأ";
+  return String(sq.answer ?? point?.label ?? "—");
+}
+
+function MapAnswerReview({ question, answer }: { question: any; answer: any }) {
+  const points = Array.isArray(question?.correct_answer?.points) ? question.correct_answer.points : [];
+  if (!points.length) return null;
+
+  return (
+    <div className="mt-3 space-y-2 border-t pt-3">
+      {points.map((point: any, pi: number) => {
+        const subs = Array.isArray(point?.questions) ? point.questions : [];
+        const rows = subs.length > 0 ? subs : [null];
+        return (
+          <div key={pi} className="rounded-lg border bg-background p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <Badge variant="outline" className="w-8 justify-center shrink-0">{pi + 1}</Badge>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">{point?.prompt?.trim() || `الموضع رقم ${pi + 1}`}</p>
+                {point?.hint && <p className="text-xs text-muted-foreground mt-0.5">تلميح: {point.hint}</p>}
+              </div>
+            </div>
+            <div className="space-y-2 pr-10">
+              {rows.map((sq: any, si: number) => {
+                const given = sq ? answer?.items?.[String(pi)]?.[sq.id] : formatStudentMapAnswer(answer, pi);
+                const ev = sq ? evalMapSubQuestion(sq, given) : { correct: textAnswerMatches(point?.label, given), points: textAnswerMatches(point?.label, given) ? 1 : 0 };
+                const acceptsPointLabel = sq && (sq.type === "short" || sq.type === "complete") && textAnswerMatches(point?.label, given);
+                const ok = acceptsPointLabel || ev.correct === true;
+                const awarded = acceptsPointLabel ? Math.max(0, Number(sq.points) || 0) : ev.points;
+                const max = sq ? Math.max(0, Number(sq.points) || 0) : 1;
+                return (
+                  <div key={sq?.id ?? `label-${pi}`} className={`rounded-md p-2 text-xs border ${ok ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"}`}>
+                    {sq?.text && <p className="font-medium text-sm mb-1">س{si + 1}: {sq.text}</p>}
+                    <div className="grid gap-1 sm:grid-cols-3">
+                      <p><span className="text-muted-foreground">إجابتك: </span>{formatStudentMapAnswer(answer, pi, sq)}</p>
+                      <p className="text-success"><span className="text-muted-foreground">الصحيح: </span>{formatExpectedMapAnswer(point, sq)}</p>
+                      <p className="font-semibold">{awarded} / {max} درجة</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
