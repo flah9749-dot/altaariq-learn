@@ -235,10 +235,12 @@ function AdminMessagesPage() {
             peerName={selected.name}
             peerSubtitle={`${selected.code}${selected.className ? " • " + selected.className : ""}${selected.groupName ? " • " + selected.groupName : ""}`}
             templateVars={{ student_name: selected.name, code: selected.code }}
+            selfPeerIds={otherAdminIds}
             headerRight={selected.parentPhone ? (
               <WhatsAppButton phone={selected.parentPhone} template="wa.tpl.parent_intro" vars={{ name: selected.name }} label="واتساب ولي الأمر" size="sm" />
             ) : null}
           />
+
         ) : (
           <div className="flex-1 flex items-center justify-center flex-col gap-3 text-muted-foreground p-8 text-center">
             <MessageSquare className="h-16 w-16 opacity-30" />
