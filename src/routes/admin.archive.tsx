@@ -282,6 +282,45 @@ function ArchivePage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={importOpen} onOpenChange={(v) => { setImportOpen(v); if (!v) { setImportCodes([]); setImportFileName(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>استيراد إلى الأرشيف</DialogTitle>
+            <DialogDescription>
+              ارفع ملف Excel/CSV يحتوي على عمود «الكود» (أو code). سيتم أرشفة الطلاب الموجودين بهذه الأكواد ونقلهم للأرشيف مع الاحتفاظ بكل بياناتهم.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">العام الدراسي</Label>
+              <Input value={importYear} onChange={(e) => setImportYear(e.target.value)} placeholder="2024-2025" />
+            </div>
+            <div>
+              <Label className="text-xs">ملف الأكواد (.xlsx / .csv)</Label>
+              <Input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => handleImportFile(e.target.files?.[0] ?? null)}
+              />
+              {importFileName && (
+                <p className="text-xs text-muted-foreground mt-1">{importFileName} — {importCodes.length} كود</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={() => importMut.mutate({ codes: importCodes, year: importYear.trim() || String(new Date().getFullYear()) })}
+              disabled={importMut.isPending || importCodes.length === 0}
+            >
+              <Upload className="h-4 w-4 ml-1" />
+              أرشفة {importCodes.length > 0 ? `(${importCodes.length})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
