@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3, Users, FileText, TrendingUp, Award, Download, FileSpreadsheet,
-  Trophy, MessageSquare, Gift, Activity as ActivityIcon,
+  Trophy, MessageSquare, Gift, Activity as ActivityIcon, Search, Sparkles,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -19,6 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 import { SectionTabs } from "@/components/admin/SectionTabs";
+import { Input } from "@/components/ui/input";
+import { PointsAdjustDialog } from "@/components/admin/PointsAdjustDialog";
 
 export const Route = createFileRoute("/admin/reports")({
   head: () => ({ meta: [{ title: "التقارير — لوحة المدرس" }] }),
@@ -231,6 +233,7 @@ function ExamsReport({ period, classFilter }: { period: Period; classFilter: str
 
 /* ============ Students Report ============ */
 function StudentsReport({ classFilter }: { classFilter: string }) {
+  const [search, setSearch] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["reports-students", classFilter],
     queryFn: async () => {
@@ -241,7 +244,9 @@ function StudentsReport({ classFilter }: { classFilter: string }) {
     },
   });
 
-  const list = data ?? [];
+  const all = data ?? [];
+  const q = search.trim().toLowerCase();
+  const list = q ? all.filter((s: any) => (s.full_name ?? "").toLowerCase().includes(q) || (s.code ?? "").toLowerCase().includes(q)) : all;
   const active = list.filter((s: any) => s.status === "active").length;
   const suspended = list.filter((s: any) => s.status !== "active").length;
   const totalPts = list.reduce((a: number, s: any) => a + (s.points || 0), 0);
@@ -274,7 +279,11 @@ function StudentsReport({ classFilter }: { classFilter: string }) {
         <Stat icon={Users} label="موقوف" value={suspended} color="text-destructive" />
         <Stat icon={Award} label="إجمالي النقاط" value={totalPts} color="text-primary" />
       </div>
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 items-center flex-wrap">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث باسم الطالب أو الكود..." className="pr-9" />
+        </div>
         <Button variant="outline" size="sm" onClick={doExcel}><FileSpreadsheet className="h-4 w-4 ml-1"/>Excel</Button>
         <Button variant="outline" size="sm" onClick={doPdf}><Download className="h-4 w-4 ml-1"/>PDF</Button>
       </div>
@@ -285,6 +294,7 @@ function StudentsReport({ classFilter }: { classFilter: string }) {
               <TableHead>#</TableHead><TableHead>الاسم</TableHead><TableHead>الكود</TableHead>
               <TableHead>الصف</TableHead><TableHead>الحالة</TableHead>
               <TableHead>النقاط</TableHead><TableHead>المستوى</TableHead>
+              <TableHead className="text-center">إجراء</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {list.slice(0, 50).map((s: any, i: number) => (
@@ -296,11 +306,19 @@ function StudentsReport({ classFilter }: { classFilter: string }) {
                   <TableCell><Badge variant={s.status === "active" ? "default" : "secondary"}>{s.status === "active" ? "نشط" : "موقوف"}</Badge></TableCell>
                   <TableCell className="font-bold text-primary">{s.points ?? 0}</TableCell>
                   <TableCell>{s.level ?? 1}</TableCell>
+                  <TableCell className="text-center">
+                    <PointsAdjustDialog
+                      studentId={s.id}
+                      studentName={s.full_name}
+                      currentPoints={s.points ?? 0}
+                      trigger={<Button size="sm" variant="ghost" title="تعديل النقاط"><Sparkles className="h-4 w-4"/></Button>}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          {list.length > 50 && <p className="p-3 text-center text-xs text-muted-foreground">يعرض أول 50 — استخدم التصدير للحصول على القائمة الكاملة</p>}
+          {list.length > 50 && <p className="p-3 text-center text-xs text-muted-foreground">يعرض أول 50 — استخدم البحث أو التصدير للوصول للباقي</p>}
         </CardContent>
       </Card>
     </div>

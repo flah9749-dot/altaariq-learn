@@ -9,8 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { exportToExcel } from "@/lib/reports-lazy";
 import { SectionTabs } from "@/components/admin/SectionTabs";
+import { PointsAdjustDialog } from "@/components/admin/PointsAdjustDialog";
+import { Search, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/admin/leaderboard")({
   head: () => ({ meta: [{ title: "ترتيب الطلاب — الطارق التعليمية" }] }),
@@ -24,6 +27,7 @@ function LeaderboardPage() {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [period, setPeriod] = useState<"all" | "30" | "7">("all");
+  const [search, setSearch] = useState("");
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
   const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () => (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
@@ -56,14 +60,17 @@ function LeaderboardPage() {
       const arr = byStudent.get(a.student_id) ?? [];
       arr.push(a); byStudent.set(a.student_id, arr);
     });
-    return (students ?? []).map((s: any) => {
-      const list = byStudent.get(s.id) ?? [];
-      const total = list.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
-      const avg = list.length ? Math.round(list.reduce((sum, a) => sum + Number(a.percentage), 0) / list.length) : 0;
-      const pass = list.length ? Math.round((list.filter((a: any) => Number(a.percentage) >= 50).length / list.length) * 100) : 0;
-      return { ...s, total_score: total, avg_score: avg, pass_rate: pass, exam_count: list.length };
-    }).sort((a: any, b: any) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0));
-  }, [students, attempts, sortBy]);
+    const q = search.trim().toLowerCase();
+    return (students ?? [])
+      .filter((s: any) => !q || (s.full_name ?? "").toLowerCase().includes(q) || (s.code ?? "").toLowerCase().includes(q))
+      .map((s: any) => {
+        const list = byStudent.get(s.id) ?? [];
+        const total = list.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
+        const avg = list.length ? Math.round(list.reduce((sum, a) => sum + Number(a.percentage), 0) / list.length) : 0;
+        const pass = list.length ? Math.round((list.filter((a: any) => Number(a.percentage) >= 50).length / list.length) * 100) : 0;
+        return { ...s, total_score: total, avg_score: avg, pass_rate: pass, exam_count: list.length };
+      }).sort((a: any, b: any) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0));
+  }, [students, attempts, sortBy, search]);
 
   const doExport = () => {
     exportToExcel(rows.map((r: any, i: number) => ({
@@ -122,6 +129,10 @@ function LeaderboardPage() {
               <SelectItem value="7">آخر 7 أيام</SelectItem>
             </SelectContent>
           </Select>
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث باسم الطالب أو الكود..." className="pr-9" />
+          </div>
         </CardContent>
       </Card>
 
@@ -155,10 +166,11 @@ function LeaderboardPage() {
               <TableHead>المتوسط</TableHead>
               <TableHead>نسبة النجاح</TableHead>
               <TableHead>عدد الامتحانات</TableHead>
+              <TableHead className="text-center">إجراء</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {isLoading ? Array.from({length:5}).map((_,i)=> <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-8"/></TableCell></TableRow>) :
-               rows.length === 0 ? <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">لا يوجد طلاب</TableCell></TableRow> :
+              {isLoading ? Array.from({length:5}).map((_,i)=> <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-8"/></TableCell></TableRow>) :
+               rows.length === 0 ? <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">لا يوجد طلاب</TableCell></TableRow> :
                rows.map((r: any, i: number) => (
                 <TableRow key={r.id}>
                   <TableCell><Badge variant={i < 3 ? "default" : "outline"} className={i < 3 ? rankColor(i) : ""}>{i + 1}</Badge></TableCell>
@@ -170,6 +182,14 @@ function LeaderboardPage() {
                   <TableCell>{r.avg_score}%</TableCell>
                   <TableCell>{r.pass_rate}%</TableCell>
                   <TableCell>{r.exam_count}</TableCell>
+                  <TableCell className="text-center">
+                    <PointsAdjustDialog
+                      studentId={r.id}
+                      studentName={r.full_name}
+                      currentPoints={r.points ?? 0}
+                      trigger={<Button size="sm" variant="ghost" title="تعديل النقاط"><Sparkles className="h-4 w-4"/></Button>}
+                    />
+                  </TableCell>
                 </TableRow>
                ))}
             </TableBody>
