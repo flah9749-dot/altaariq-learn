@@ -10,6 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
+import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
+import { upsertSession } from "@/lib/assistant-archive";
+import { useAuth } from "@/lib/auth-context";
+
 
 export const Route = createFileRoute("/student/assistant")({
   component: StudentAssistantPage,
@@ -43,7 +47,11 @@ async function prepareAttachmentFile(file: File): Promise<File | Blob> {
 }
 
 function StudentAssistantPage() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [archiveTick, setArchiveTick] = useState(0);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attach[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -61,10 +69,22 @@ function StudentAssistantPage() {
           attachments: atts.map((a) => ({ kind: a.kind, name: a.name, data_url: a.data_url })),
         },
       });
-      setMessages((m) => [...m, { role: "assistant", content: r.reply }]);
+      const finalMsgs: Msg[] = [...next, { role: "assistant", content: r.reply }];
+      setMessages(finalMsgs);
+      const saved = upsertSession(
+        "student",
+        userId,
+        sessionId,
+        finalMsgs.map((m) => ({ role: m.role, content: m.content, files: m.files })),
+      );
+      if (saved) {
+        setSessionId(saved.id);
+        setArchiveTick((t) => t + 1);
+      }
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الاتصال بالمساعد"),
   });
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -108,11 +128,33 @@ function StudentAssistantPage() {
             <p className="text-sm text-muted-foreground">ارفع ملخص أو ملف PDF واطلب شرحًا أو تلخيصًا</p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setMessages([])}>
-            <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <ArchiveDrawer
+            scope="student"
+            userId={userId}
+            activeId={sessionId}
+            refreshKey={archiveTick}
+            onOpenSession={(s) => {
+              setMessages(
+                s.messages.map((m) => ({ role: m.role, content: m.content, files: m.files })),
+              );
+              setSessionId(s.id);
+            }}
+          />
+          {messages.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setMessages([]);
+                setSessionId(null);
+              }}
+            >
+              <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
+            </Button>
+          )}
+        </div>
+
       </div>
 
       <Card className="h-[calc(100vh-14rem)] flex flex-col">

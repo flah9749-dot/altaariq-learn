@@ -11,6 +11,10 @@ import ReactMarkdown from "react-markdown";
 import { askAssistant } from "@/lib/ai-assistant.functions";
 import { toast } from "sonner";
 import { SectionTabs } from "@/components/admin/SectionTabs";
+import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
+import { upsertSession } from "@/lib/assistant-archive";
+import { useAuth } from "@/lib/auth-context";
+
 
 export const Route = createFileRoute("/admin/assistant")({
   component: AssistantPage,
@@ -45,7 +49,11 @@ function readAsDataUrl(file: File): Promise<string> {
 }
 
 function AssistantPage() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [archiveTick, setArchiveTick] = useState(0);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<Attachment[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,10 +71,26 @@ function AssistantPage() {
         attachments: m.attachments?.map((a) => ({ kind: a.kind, mime: a.mime, name: a.name, dataUrl: a.dataUrl })),
       }));
       const r = await askFn({ data: { messages: payload } });
-      setMessages((m) => [...m, { role: "assistant", content: r.reply }]);
+      const finalMsgs: Msg[] = [...next, { role: "assistant", content: r.reply }];
+      setMessages(finalMsgs);
+      const saved = upsertSession(
+        "admin",
+        userId,
+        sessionId,
+        finalMsgs.map((m) => ({
+          role: m.role,
+          content: m.content,
+          attachmentNames: m.attachments?.map((a) => a.name),
+        })),
+      );
+      if (saved) {
+        setSessionId(saved.id);
+        setArchiveTick((t) => t + 1);
+      }
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الاتصال بالمساعد"),
   });
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -126,11 +150,69 @@ function AssistantPage() {
           </div>
         </div>
         {messages.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setMessages([])}>
-            <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
-          </Button>
+          <div className="flex gap-2">
+            <ArchiveDrawer
+              scope="admin"
+              userId={userId}
+              activeId={sessionId}
+              refreshKey={archiveTick}
+              onOpenSession={(s) => {
+                setMessages(
+                  s.messages.map((m) => ({
+                    role: m.role,
+                    content: m.content,
+                    attachments: m.attachmentNames?.map((n) => ({
+                      kind: "file" as const,
+                      mime: "",
+                      name: n,
+                      dataUrl: "",
+                      size: 0,
+                    })),
+                  })),
+                );
+                setSessionId(s.id);
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setMessages([]);
+                setSessionId(null);
+              }}
+            >
+              <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
+            </Button>
+          </div>
+        )}
+        {messages.length === 0 && (
+          <ArchiveDrawer
+            scope="admin"
+            userId={userId}
+            activeId={sessionId}
+            refreshKey={archiveTick}
+            onOpenSession={(s) => {
+              setMessages(
+                s.messages.map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                  attachments: m.attachmentNames?.map((n) => ({
+                    kind: "file" as const,
+                    mime: "",
+                    name: n,
+                    dataUrl: "",
+                    size: 0,
+                  })),
+                })),
+              );
+              setSessionId(s.id);
+            }}
+          />
         )}
       </div>
+
+
+
 
       <Card className="h-[calc(100vh-16rem)] flex flex-col">
         <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
