@@ -99,25 +99,62 @@ function NewMapExamPage() {
     });
   }
 
+  async function pdfToImages(file: File): Promise<{ dataUrl: string; title: string }[]> {
+    const pdfjs: any = await import("pdfjs-dist");
+    // Use bundled worker via Vite ?url import
+    const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjs.getDocument({ data: buf }).promise;
+    const out: { dataUrl: string; title: string }[] = [];
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d")!;
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      out.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.9), title: `${baseName} - صفحة ${i}` });
+    }
+    return out;
+  }
+
   async function handleUploadPages(files: FileList | null) {
     if (!files || files.length === 0) return;
     const toAdd: MapPage[] = [];
     for (const f of Array.from(files)) {
-      if (!f.type.startsWith("image/")) { toast.error(`${f.name}: ليست صورة`); continue; }
-      if (f.size > 20 * 1024 * 1024) { toast.error(`${f.name}: أكبر من 20MB`); continue; }
-      const url = await fileToDataUrl(f);
-      toAdd.push({
-        id: newPageId(),
-        title: f.name.replace(/\.[^.]+$/, "") || "خريطة",
-        original_url: url,
-        image_url: url,
-        points: [],
-        building: false,
-      });
+      const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+      const isImg = f.type.startsWith("image/");
+      if (!isPdf && !isImg) { toast.error(`${f.name}: ليست صورة أو PDF`); continue; }
+      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name}: أكبر من 50MB`); continue; }
+      try {
+        if (isPdf) {
+          const pages = await pdfToImages(f);
+          for (const p of pages) {
+            toAdd.push({ id: newPageId(), title: p.title, original_url: p.dataUrl, image_url: p.dataUrl, points: [], building: false });
+          }
+        } else {
+          const url = await fileToDataUrl(f);
+          toAdd.push({
+            id: newPageId(),
+            title: f.name.replace(/\.[^.]+$/, "") || "خريطة",
+            original_url: url,
+            image_url: url,
+            points: [],
+            building: false,
+          });
+        }
+      } catch (e: any) {
+        console.error("[map-exam] upload failed:", e);
+        toast.error(`${f.name}: فشل المعالجة`);
+      }
     }
     setPages((p) => [...p, ...toAdd]);
-    if (toAdd.length) toast.success(`تمت إضافة ${toAdd.length} صفحة/خريطة`);
+    if (toAdd.length) toast.success(`تمت إضافة ${toAdd.length} خريطة`);
   }
+
 
   async function buildPage(idx: number) {
     const pg = pages[idx];
