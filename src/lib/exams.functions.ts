@@ -498,7 +498,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
         const title = needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك";
         const body = needsReview
           ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
-          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%).`;
+          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%)${autoPointsAwarded > 0 ? ` · حصلت على ⭐ ${autoPointsAwarded} نقطة` : ""}.`;
         const link = `/student/exams/${att.exam_id}/result`;
         await supabaseAdmin.from("notifications").insert({
           user_id: stu.user_id, title, body, type: "exam_finished", link,
