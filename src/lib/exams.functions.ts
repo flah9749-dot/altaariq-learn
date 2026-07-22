@@ -442,13 +442,44 @@ export const submitAttempt = createServerFn({ method: "POST" })
 
     const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
     const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
+
+    // Auto-award points + auto-approve when fully auto-graded (no essay review needed).
+    let autoPointsAwarded = 0;
+    let autoApproved = false;
+    if (!needsReview) {
+      try {
+        autoPointsAwarded = await awardAttemptPoints(supabaseAdmin, { percentage: pct });
+        autoApproved = true;
+      } catch { /* non-blocking */ }
+    }
+
     const { error: upErr } = await supabaseAdmin.from("exam_attempts").update({
       status: needsReview ? "submitted" : "graded",
       submitted_at: new Date().toISOString(),
       score, total, percentage: pct, grade: computeGrade(pct),
       needs_review: needsReview, time_spent_sec: timeSpent,
+      ...(autoApproved ? {
+        approved: true,
+        approved_at: new Date().toISOString(),
+        points_awarded: autoPointsAwarded,
+      } : {}),
     }).eq("id", att.id);
     if (upErr) throw new Error(upErr.message);
+
+    // Credit student points immediately for auto-graded attempts.
+    if (autoApproved && autoPointsAwarded > 0) {
+      try {
+        const { data: ex } = await supabaseAdmin.from("exams").select("title").eq("id", att.exam_id).maybeSingle();
+        await supabaseAdmin.from("points_log").insert({
+          student_id: att.student_id, points: autoPointsAwarded,
+          reason: `امتحان: ${ex?.title ?? ""}`,
+        });
+        const { data: stu } = await supabaseAdmin.from("students").select("points").eq("id", att.student_id).maybeSingle();
+        const totalPts = (Number(stu?.points) || 0) + autoPointsAwarded;
+        const level = Math.max(1, Math.floor(totalPts / 100) + 1);
+        await supabaseAdmin.from("students").update({ points: totalPts, level }).eq("id", att.student_id);
+      } catch { /* non-blocking */ }
+    }
 
     // Save to results table (for legacy compatibility)
     await supabaseAdmin.from("results").insert({
@@ -467,7 +498,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
         const title = needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك";
         const body = needsReview
           ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
-          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%).`;
+          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%)${autoPointsAwarded > 0 ? ` · حصلت على ⭐ ${autoPointsAwarded} نقطة` : ""}.`;
         const link = `/student/exams/${att.exam_id}/result`;
         await supabaseAdmin.from("notifications").insert({
           user_id: stu.user_id, title, body, type: "exam_finished", link,
