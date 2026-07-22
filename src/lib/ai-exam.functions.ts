@@ -45,7 +45,19 @@ export const generateExamWithAI = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!isAdmin) throw new Error("مسموح للأدمن فقط");
 
-    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN, generateImageViaGateway } = await import("./ai-gateway.server");
+    const { callLovableChat, parseJsonLoose, DEFAULT_MODEL_CHAIN, generateImageViaGateway, editImageViaGateway } = await import("./ai-gateway.server");
+
+    const CLEAN_MAP_INSTRUCTION = `Edit this map image: REMOVE every text label, place name, country name, city name, ocean name, river name, mountain name, legend text, numbered list, compass rose text, scale bar text, and any written words or numbers that appear on the map — in every language (Arabic, English, or otherwise). Keep the geography, coastlines, borders, colors, terrain shading, rivers, and visual features exactly the same. Do NOT add new labels. Do NOT crop, rotate, or reframe the image — keep identical dimensions and composition so coordinates remain valid. Output only the cleaned map image.`;
+    const cleanMapModels = ["google/gemini-2.5-flash-image-preview", "google/gemini-3.1-flash-image", "google/gemini-3-pro-image"];
+    async function cleanMapLabels(url: string): Promise<string> {
+      for (const m of cleanMapModels) {
+        try {
+          const out = await editImageViaGateway(CLEAN_MAP_INSTRUCTION, url, { model: m });
+          if (out) return out;
+        } catch {}
+      }
+      return url;
+    }
 
     const pointsInstruction = data.total_score && data.total_score > 0
       ? `الدرجة الكلية للامتحان: ${data.total_score}. وزّع الدرجات على الأسئلة بحيث يكون مجموعها = ${data.total_score} بالضبط، مع مراعاة صعوبة كل سؤال (السهل درجة أقل، الصعب درجة أعلى). استخدم أرقامًا بنصف درجة عند الحاجة.`
