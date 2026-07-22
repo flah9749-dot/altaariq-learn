@@ -215,11 +215,12 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" dir="rtl">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle>كارت الطالب 🎓</DialogTitle>
           <DialogDescription>اطبع الكارت، حمّله كصورة، أو أرسل بيانات الدخول لولي الأمر عبر واتساب.</DialogDescription>
         </DialogHeader>
+
 
         <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-sm">
           <div className="flex justify-between items-center">
