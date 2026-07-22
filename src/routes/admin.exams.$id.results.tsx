@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -32,6 +32,9 @@ import { computeGrade, formatDuration } from "@/lib/exam-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/exams/$id/results")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    attempt: typeof s.attempt === "string" ? s.attempt : undefined,
+  }),
   head: () => ({ meta: [
     { title: "تقارير الامتحان — الطارق التعليمية" },
     { name: "description", content: "مراجعة وتصحيح واعتماد نتائج امتحانات منصة الطارق التعليمية." },
@@ -121,6 +124,19 @@ function ExamResultsPage() {
     const { data } = await supabase.rpc("get_attempt_review", { _attempt_id: att.id });
     setReviewing({ attempt: att, answers: (data as any) ?? [] });
   };
+
+  const search = Route.useSearch();
+  const autoOpenedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const target = search.attempt;
+    if (!target || autoOpenedRef.current === target) return;
+    const att = (attempts ?? []).find((a: any) => a.id === target);
+    if (att) {
+      autoOpenedRef.current = target;
+      openReview(att);
+    }
+  }, [search.attempt, attempts]);
+
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["exam-attempts", id] });
