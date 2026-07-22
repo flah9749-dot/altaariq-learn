@@ -362,7 +362,7 @@ function ExamResultsPage() {
 
       {/* Review dialog */}
       <Dialog open={!!reviewing} onOpenChange={(o) => !o && setReviewing(null)}>
-        <DialogContent dir="rtl" className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent dir="rtl" className="max-w-4xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>مراجعة إجابات: {reviewing?.attempt?.students?.full_name}</DialogTitle>
           </DialogHeader>
