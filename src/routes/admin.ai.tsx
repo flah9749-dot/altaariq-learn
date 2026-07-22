@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Bot, KeyRound, CheckCircle2, XCircle, Loader2, Power, Zap, Settings2, ExternalLink, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Bot, KeyRound, CheckCircle2, XCircle, Loader2, Power, Zap, Settings2, ExternalLink, AlertCircle, Save, Trash2, Eye, EyeOff, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { testAIProvider, toggleAIProvider, setProviderPriority, checkAIKeysStatus } from "@/lib/ai-management.functions";
+import { testAIProvider, toggleAIProvider, setProviderPriority, checkAIKeysStatus, saveProviderKey, deleteProviderKey } from "@/lib/ai-management.functions";
 
 export const Route = createFileRoute("/admin/ai")({
   head: () => ({ meta: [{ title: "إدارة الذكاء الاصطناعي" }] }),
