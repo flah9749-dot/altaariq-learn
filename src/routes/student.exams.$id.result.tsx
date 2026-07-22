@@ -162,8 +162,12 @@ function ResultPage() {
                     <span className="mr-auto text-sm font-medium">{a.awarded_points ?? 0} / {a.questions?.points}</span>
                   </div>
                   <p className="font-medium text-sm">{a.questions?.text}</p>
+                  {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mt-2 max-h-64 rounded-lg border" />}
                   {correctOpts && a.is_correct === false && (
                     <p className="text-xs text-success mt-2">✓ الإجابة الصحيحة: {correctOpts}</p>
+                  )}
+                  {a.questions?.type === "map" && a.is_correct === false && a.questions?.correct_answer?.points?.[0] && (
+                    <p className="text-xs text-success mt-2">✓ الموقع الصحيح: {a.questions.correct_answer.points[0].label}</p>
                   )}
                   {a.questions?.explanation && <p className="text-xs text-muted-foreground mt-2 border-t pt-2">💡 {a.questions.explanation}</p>}
                   {a.ai_feedback && <p className="text-xs text-primary mt-2 border-t pt-2">🤖 تعليق: {a.ai_feedback}</p>}
