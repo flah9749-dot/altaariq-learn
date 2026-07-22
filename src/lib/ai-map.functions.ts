@@ -39,11 +39,14 @@ export const generateInteractiveMap = createServerFn({ method: "POST" })
 
     const systemPrompt = `أنت مساعد ذكاء اصطناعي متخصص في إعداد أسئلة خرائط تفاعلية لمادة الدراسات الاجتماعية (تاريخ، جغرافيا، مواطنة) لمنصة "الطارق التعليمية".
 لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
-عدد النقاط المطلوب: ${data.num_points} نقطة موزّعة بذكاء على الخريطة.
-- إن كانت هناك صورة خريطة مرفقة أو محدّدة، ضع النقاط على مواقعها الفعلية على الصورة.
+عدد النقاط المطلوب بالضبط: ${data.num_points} نقطة (لا أكثر ولا أقل) موزّعة على مواقع مختلفة تمامًا.
+قواعد صارمة:
+- ممنوع تمامًا تكرار نفس الموقع أو نفس الإجابة.
+- المسافة بين أي نقطتين يجب ألا تقل عن 10 وحدات (على مقياس 0-100) في x أو y.
+- إن كانت هناك صورة خريطة مرفقة، ضع النقاط على مواقعها الفعلية على الصورة بدقة عالية.
 - إن لم توجد صورة، اقترح map_image_prompt بالإنجليزية لتوليد خريطة تعليمية واضحة.
-- كل نقطة يجب أن تحتوي سؤالاً واضحًا (prompt) وإجابة صحيحة قصيرة (label).
-- نوّع الأسئلة: محيطات، جبال، أنهار، دول، مدن، حدود، عواصم...
+- كل نقطة سؤال واضح مختلف (prompt) وإجابة صحيحة قصيرة مميّزة (label).
+- نوّع الأسئلة والمواقع: محيطات، جبال، أنهار، دول، مدن، حدود، عواصم...
 ${SCHEMA_HINT}`;
 
     const parts: Array<Record<string, unknown>> = [];
@@ -84,12 +87,27 @@ ${SCHEMA_HINT}`;
     const rawPoints = Array.isArray(parsed?.points) ? parsed.points : [];
     if (!rawPoints.length) throw new Error("لم يتم توليد أي نقاط على الخريطة.");
 
-    const points = rawPoints.map((p: any) => ({
-      label: String(p?.label ?? "الإجابة الصحيحة"),
-      prompt: typeof p?.prompt === "string" ? p.prompt : "",
-      x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
-      y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+    // Normalize, clamp, and deduplicate: models often repeat the same location
+    // or place multiple markers within a few pixels of each other. Enforce a
+    // minimum distance (~8% of the image) and unique prompt/label keys.
+    const normalized = rawPoints.map((p: any) => ({
+      label: String(p?.label ?? "").trim() || "الإجابة الصحيحة",
+      prompt: typeof p?.prompt === "string" ? p.prompt.trim() : "",
+      x: Math.max(4, Math.min(96, Math.round(Number(p?.x ?? 50)))),
+      y: Math.max(4, Math.min(96, Math.round(Number(p?.y ?? 50)))),
     }));
+    const points: typeof normalized = [];
+    const seenKeys = new Set<string>();
+    for (const p of normalized) {
+      const key = `${p.prompt}|${p.label}`.toLowerCase();
+      if (seenKeys.has(key)) continue;
+      const tooClose = points.some((q: { x: number; y: number }) => Math.hypot(q.x - p.x, q.y - p.y) < 8);
+      if (tooClose) continue;
+      seenKeys.add(key);
+      points.push(p);
+      if (points.length >= data.num_points) break;
+    }
+    if (!points.length) throw new Error("تعذّر إنشاء نقاط صالحة على الخريطة.");
 
     let imageUrl = data.map_image_data_url ?? null;
     if (!imageUrl) {

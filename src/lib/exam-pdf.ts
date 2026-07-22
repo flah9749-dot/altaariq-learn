@@ -170,40 +170,71 @@ function renderQuestionBody(q: PaperQuestion, showAnswers: boolean) {
   }
 }
 
+/** Rasterize a single HTML fragment (offscreen) into a canvas. */
+async function rasterizeFragment(html: string, widthPx: number): Promise<HTMLCanvasElement> {
+  const { default: html2canvas } = await import("html2canvas-pro");
+  const el = document.createElement("div");
+  el.setAttribute("dir", "rtl");
+  el.setAttribute("lang", "ar");
+  el.style.cssText = [
+    "position:fixed",
+    "top:-10000px",
+    "right:0",
+    `width:${widthPx}px`,
+    "padding:0",
+    "background:#ffffff",
+    "color:#0f172a",
+    'font-family:"Cairo","Tajawal","Segoe UI",Arial,sans-serif',
+    "font-size:14px",
+    "line-height:1.9",
+    "box-sizing:border-box",
+  ].join(";");
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  try {
+    if ((document as any).fonts?.ready) { try { await (document as any).fonts.ready; } catch {} }
+    const imgs = Array.from(el.querySelectorAll("img"));
+    await Promise.all(imgs.map((img) => new Promise<void>((res) => {
+      if ((img as HTMLImageElement).complete) return res();
+      img.addEventListener("load", () => res(), { once: true });
+      img.addEventListener("error", () => res(), { once: true });
+      setTimeout(() => res(), 4000);
+    })));
+    await new Promise((r) => setTimeout(r, 40));
+    return await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+  } finally {
+    el.remove();
+  }
+}
+
 export async function exportExamToPdf(opts: ExamPdfOptions) {
-  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-    import("jspdf"),
-    import("html2canvas-pro"),
-  ]);
+  const { default: jsPDF } = await import("jspdf");
   const showAnswers = !!opts.showAnswers;
   const showPoints = opts.showPoints !== false;
   const total = opts.questions.reduce((a, q) => a + (Number(q.points) || 0), 0);
 
-  const container = document.createElement("div");
-  container.setAttribute("dir", "rtl");
-  container.style.cssText = [
-    "position:fixed",
-    "top:-10000px",
-    "right:0",
-    "width:794px",           // A4 @ 96dpi (portrait) ~ 794x1123 px
-    "padding:36px 40px",
-    "background:#ffffff",
-    "color:#0f172a",
-    'font-family:"Cairo","Tajawal","Segoe UI",sans-serif',
-    "font-size:14px",
-    "line-height:1.75",
-    "box-sizing:border-box",
-  ].join(";");
+  // Preload Arabic fonts to avoid ligature/shaping breakage in html2canvas
+  // (e.g. "منصة الطارق" appearing mangled when the fallback font lacks glyphs).
+  if (!document.getElementById("__exam_pdf_fonts")) {
+    const link = document.createElement("link");
+    link.id = "__exam_pdf_fonts";
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;700&display=swap";
+    document.head.appendChild(link);
+    // Give the browser a beat to fetch the font files
+    await new Promise((r) => setTimeout(r, 400));
+    if ((document as any).fonts?.ready) { try { await (document as any).fonts.ready; } catch {} }
+  }
 
-  const header = `
-    <div style="margin-bottom:20px;">
+  const headerHtml = `
+    <div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-radius:12px;color:#fff;">
         <div style="display:flex;align-items:center;gap:14px;">
           <div style="width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #b58900;flex-shrink:0;">
             <img src="/icon-192.png" alt="شعار المنصة" crossorigin="anonymous" style="width:100%;height:100%;object-fit:contain;" />
           </div>
           <div>
-            <div style="font-size:20px;font-weight:800;color:#f5deb3;letter-spacing:0.5px;">منصة الطارق التعليمية</div>
+            <div style="font-size:20px;font-weight:800;color:#f5deb3;">منصة الطارق التعليمية</div>
             <div style="font-size:12px;color:#cbd5e1;margin-top:2px;">الدراسات الاجتماعية — تاريخ · جغرافيا · مواطنة</div>
           </div>
         </div>
@@ -236,8 +267,8 @@ export async function exportExamToPdf(opts: ExamPdfOptions) {
     </div>
   `;
 
-  const body = opts.questions.map((q, i) => `
-    <div style="margin-bottom:18px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fbfaf6;page-break-inside:avoid;">
+  const questionHtml = (q: PaperQuestion, i: number) => `
+    <div style="padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fbfaf6;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
         <div style="display:flex;gap:8px;align-items:center;">
           <span style="display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:8px;background:#0f172a;color:#fff;font-weight:800;">${i + 1}</span>
@@ -250,65 +281,109 @@ export async function exportExamToPdf(opts: ExamPdfOptions) {
       ${renderQuestionBody(q, showAnswers)}
       ${showAnswers && q.explanation ? `<div style="margin-top:8px;padding:8px;background:#eff6ff;border-right:3px solid #2563eb;border-radius:6px;font-size:12px;color:#1e3a8a;"><b>شرح:</b> ${escapeHtml(q.explanation)}</div>` : ""}
     </div>
-  `).join("");
+  `;
 
-  const footer = `<div style="margin-top:20px;text-align:center;color:#94a3b8;font-size:11px;border-top:1px solid #e2e8f0;padding-top:8px;">
-    منصة الطارق التعليمية — ${new Date().toLocaleDateString("ar-EG")}
-  </div>`;
+  // A4 portrait @ 96dpi ≈ 794 x 1123 px
+  const pageWpx = 794;
+  const contentPaddingPx = 36; // matches PDF pt margins (approx 27pt)
+  const innerWidthPx = pageWpx - contentPaddingPx * 2;
 
-  container.innerHTML = header + body + footer;
-  document.body.appendChild(container);
+  // Rasterize header and each question independently so we can pack them
+  // into A4 pages without splitting a question across pages.
+  const headerCanvas = await rasterizeFragment(headerHtml, innerWidthPx);
+  const questionCanvases: HTMLCanvasElement[] = [];
+  for (let i = 0; i < opts.questions.length; i++) {
+    questionCanvases.push(await rasterizeFragment(questionHtml(opts.questions[i], i), innerWidthPx));
+  }
 
-  try {
-    if ((document as any).fonts?.ready) {
-      try { await (document as any).fonts.ready; } catch { /* ignore */ }
+  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const marginPt = 28;
+  const bottomReservePt = 22; // room for footer / page number
+  const contentWpt = pageW - marginPt * 2;
+  const contentHpt = pageH - marginPt * 2 - bottomReservePt;
+
+  const canvasToPt = (c: HTMLCanvasElement) => ({
+    w: contentWpt,
+    h: (c.height * contentWpt) / c.width,
+  });
+
+  const drawFooter = (pageNum: number, pageTotal: number) => {
+    const text = `منصة الطارق التعليمية  —  صفحة ${pageNum} / ${pageTotal}`;
+    pdf.setFontSize(9);
+    pdf.setTextColor(140, 140, 140);
+    pdf.text(text, pageW / 2, pageH - 12, { align: "center" });
+  };
+
+  // First pass: compute layout so we know total page count for footer.
+  type Placement = { canvas: HTMLCanvasElement; x: number; y: number; w: number; h: number };
+  const pages: Placement[][] = [[]];
+  let cursorY = marginPt;
+
+  const place = (canvas: HTMLCanvasElement, allowSplit = false) => {
+    const size = canvasToPt(canvas);
+    // If it fits on current page, place it.
+    if (cursorY + size.h <= marginPt + contentHpt) {
+      pages[pages.length - 1].push({ canvas, x: marginPt, y: cursorY, w: size.w, h: size.h });
+      cursorY += size.h + 10;
+      return;
     }
-    // Wait for images to load (best-effort)
-    const imgs = Array.from(container.querySelectorAll("img"));
-    await Promise.all(imgs.map((img) => new Promise<void>((res) => {
-      if ((img as HTMLImageElement).complete) return res();
-      img.addEventListener("load", () => res(), { once: true });
-      img.addEventListener("error", () => res(), { once: true });
-      setTimeout(() => res(), 4000);
-    })));
-    await new Promise((r) => setTimeout(r, 80));
-
-    const canvas = await html2canvas(container, {
-      scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false,
-    });
-
-    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    const imgW = pageW - margin * 2;
-    const imgH = (canvas.height * imgW) / canvas.width;
-
-    if (imgH <= pageH - margin * 2) {
-      const data = canvas.toDataURL("image/jpeg", 0.92);
-      pdf.addImage(data, "JPEG", margin, margin, imgW, imgH);
-    } else {
-      const pageContentH = pageH - margin * 2;
-      const sliceHeightPx = (pageContentH * canvas.width) / imgW;
-      let y = 0; let first = true;
-      while (y < canvas.height) {
-        const h = Math.min(sliceHeightPx, canvas.height - y);
-        const slice = document.createElement("canvas");
-        slice.width = canvas.width; slice.height = h;
-        const ctx = slice.getContext("2d")!;
-        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, slice.width, slice.height);
-        ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
-        const data = slice.toDataURL("image/jpeg", 0.92);
-        const sliceHmm = (h * imgW) / canvas.width;
-        if (!first) pdf.addPage();
-        pdf.addImage(data, "JPEG", margin, margin, imgW, sliceHmm);
-        first = false; y += h;
+    // Doesn't fit — start new page (unless page is empty already).
+    if (pages[pages.length - 1].length > 0) {
+      pages.push([]);
+      cursorY = marginPt;
+    }
+    if (size.h <= contentHpt || !allowSplit) {
+      // Either it fits on a fresh page, or we don't split — just place it and
+      // let jsPDF scale it down if it's oversized on a fresh page.
+      const finalH = Math.min(size.h, contentHpt);
+      const finalW = (canvas.width * finalH) / canvas.height * (contentWpt / size.w) * (size.w / contentWpt);
+      pages[pages.length - 1].push({
+        canvas,
+        x: marginPt + (contentWpt - Math.min(size.w, finalW)) / 2,
+        y: cursorY,
+        w: size.h > contentHpt ? (canvas.width * contentHpt) / canvas.height : size.w,
+        h: Math.min(size.h, contentHpt),
+      });
+      cursorY += Math.min(size.h, contentHpt) + 10;
+      return;
+    }
+    // Split a very tall canvas across multiple pages (used for header/questions
+    // that legitimately exceed one page, e.g. long map questions).
+    const sliceHeightPx = (contentHpt * canvas.width) / contentWpt;
+    let y = 0;
+    while (y < canvas.height) {
+      const h = Math.min(sliceHeightPx, canvas.height - y);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width; slice.height = h;
+      const ctx = slice.getContext("2d")!;
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+      const sliceHpt = (h * contentWpt) / canvas.width;
+      pages[pages.length - 1].push({ canvas: slice, x: marginPt, y: cursorY, w: contentWpt, h: sliceHpt });
+      cursorY += sliceHpt + 10;
+      y += h;
+      if (y < canvas.height) {
+        pages.push([]);
+        cursorY = marginPt;
       }
     }
+  };
 
-    const fname = (opts.filename || opts.title || "exam").replace(/[\\/:*?"<>|]+/g, "_");
-    pdf.save(fname.endsWith(".pdf") ? fname : `${fname}${showAnswers ? "-نموذج-إجابة" : ""}.pdf`);
-  } finally {
-    container.remove();
-  }
+  place(headerCanvas, true);
+  for (const c of questionCanvases) place(c, true);
+
+  const totalPages = pages.length;
+  pages.forEach((placements, pi) => {
+    if (pi > 0) pdf.addPage();
+    for (const p of placements) {
+      const data = p.canvas.toDataURL("image/jpeg", 0.92);
+      pdf.addImage(data, "JPEG", p.x, p.y, p.w, p.h);
+    }
+    drawFooter(pi + 1, totalPages);
+  });
+
+  const fname = (opts.filename || opts.title || "exam").replace(/[\\/:*?"<>|]+/g, "_");
+  pdf.save(fname.endsWith(".pdf") ? fname : `${fname}${showAnswers ? "-نموذج-إجابة" : ""}.pdf`);
 }
