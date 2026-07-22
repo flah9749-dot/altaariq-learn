@@ -70,7 +70,7 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   return base;
 }
 
-type MapPoint = { label: string; prompt?: string; x: number; y: number };
+type MapPoint = { label: string; prompt?: string; x: number; y: number; questions?: MapSubQuestion[] };
 
 const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
@@ -79,6 +79,7 @@ const getMapPoints = (answer: any): MapPoint[] => {
     prompt: typeof p?.prompt === "string" ? p.prompt : "",
     x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
     y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+    questions: Array.isArray(p?.questions) ? p.questions : undefined,
   })) : [];
 };
 
