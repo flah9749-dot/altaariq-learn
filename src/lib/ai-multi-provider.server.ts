@@ -172,8 +172,9 @@ export async function callProvider(
   messages: ChatMsg[],
   opts: { model?: string; responseJson?: boolean } = {},
 ): Promise<string> {
-  const key = getKey(slug);
+  const key = await getKey(slug);
   if (!key) throw new Error(`مفتاح ${slug} غير مضبوط`);
+
   const model = opts.model ?? DEFAULT_MODEL[slug];
   switch (slug) {
     case "lovable":
