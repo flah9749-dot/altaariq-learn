@@ -128,11 +128,33 @@ function StudentAssistantPage() {
             <p className="text-sm text-muted-foreground">ارفع ملخص أو ملف PDF واطلب شرحًا أو تلخيصًا</p>
           </div>
         </div>
-        {messages.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setMessages([])}>
-            <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <ArchiveDrawer
+            scope="student"
+            userId={userId}
+            activeId={sessionId}
+            refreshKey={archiveTick}
+            onOpenSession={(s) => {
+              setMessages(
+                s.messages.map((m) => ({ role: m.role, content: m.content, files: m.files })),
+              );
+              setSessionId(s.id);
+            }}
+          />
+          {messages.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setMessages([]);
+                setSessionId(null);
+              }}
+            >
+              <Trash2 className="h-4 w-4 ml-1" />محادثة جديدة
+            </Button>
+          )}
+        </div>
+
       </div>
 
       <Card className="h-[calc(100vh-14rem)] flex flex-col">
