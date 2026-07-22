@@ -280,7 +280,7 @@ export async function dispatchWithFallback(
   let lastErr: any = null;
   const fnName = opts.function_name ?? "dispatch";
   for (const p of chain) {
-    if (!hasKey(p)) continue;
+    if (!(await hasKey(p))) continue;
     const start = Date.now();
     try {
       const content = await callProvider(p, messages, opts);
