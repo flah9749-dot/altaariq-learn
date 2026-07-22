@@ -25,7 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { QUESTION_TYPES, type QuestionType, type MapSubQuestion } from "@/lib/exam-utils";
 import { MapPointQuestions } from "@/components/exams/MapPointQuestions";
 
-export const Route = createFileRoute("/admin/exams/$id")({
+export const Route = createFileRoute("/admin/exams/$id/")({
   head: () => ({ meta: [
     { title: "تعديل الامتحان — الطارق التعليمية" },
     { name: "description", content: "تحرير إعدادات وأسئلة امتحانات منصة الطارق التعليمية." },
