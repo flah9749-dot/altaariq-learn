@@ -62,19 +62,20 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   if (type === "complete") base.correct_answer = "";
   if (type === "order") base.options = [{ text: "", is_correct: false, order_index: 0 }];
   if (type === "match") base.options = [{ text: "", is_correct: false, order_index: 0, match_key: "أ" }];
-  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
+  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", prompt: "", x: 50, y: 50 }] };
   return base;
 }
 
-type MapPoint = { label: string; x: number; y: number };
+type MapPoint = { label: string; prompt?: string; x: number; y: number };
 
 const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
   return raw.length ? raw.map((p: any) => ({
-    label: String(p?.label ?? "الموقع الصحيح"),
-    x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
-    y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
-  })) : [{ label: "الموقع الصحيح", x: 50, y: 50 }];
+    label: String(p?.label ?? ""),
+    prompt: typeof p?.prompt === "string" ? p.prompt : "",
+    x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
+    y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+  })) : [];
 };
 
 const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
@@ -85,21 +86,12 @@ const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
 const addMapPoint = (answer: any, x = 50, y = 50) => {
   const points = getMapPoints(answer);
   const idx = points.length + 1;
-  return { points: [...points, { label: `الموقع ${idx}`, x, y }] };
+  return { points: [...points, { label: `الموقع ${idx}`, prompt: "", x, y }] };
 };
 
 const removeMapPoint = (answer: any, index: number) => {
   const points = getMapPoints(answer).filter((_, i) => i !== index);
-  return { points: points.length ? points : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
-};
-
-function readImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+  return { points: points.length ? points : [{ label: "الموقع الصحيح", prompt: "", x: 50, y: 50 }] };
 }
 
 async function prepareQuestionImage(file: File): Promise<File | Blob> {
