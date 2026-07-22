@@ -125,10 +125,9 @@ ${SCHEMA_HINT}`;
           label: String(p?.label ?? "الموقع الصحيح"),
           x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
           y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
-          tolerance: Math.max(3, Math.min(20, Number(p?.tolerance ?? 8))),
         }))
         .filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
-      return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
+      return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
     };
 
     const normalized = await Promise.all(questions.map(async (q: any, i: number) => {
