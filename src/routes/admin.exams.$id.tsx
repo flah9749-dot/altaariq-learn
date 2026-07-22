@@ -437,9 +437,13 @@ function ExamEditor() {
                           <Button variant="ghost" size="icon" onClick={() => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                         <Input placeholder={`سؤال الرقم ${pi + 1} (مثال: ما اسم هذا المحيط؟) — اختياري`} value={p.prompt ?? ""} onChange={(e) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { prompt: e.target.value }) })} />
+                        <MapPointQuestions
+                          value={p.questions ?? []}
+                          onChange={(qs) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { questions: qs }) })}
+                        />
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة رقم جديد. لكل رقم: اكتب سؤالاً (اختياري) + الإجابة الصحيحة. سيرى الطالب الأرقام على الخريطة ويجيب على كل رقم.</p>
+                    <p className="text-xs text-muted-foreground">اضغط على الخريطة لإضافة رقم جديد. لكل رقم يمكنك كتابة الإجابة المختصرة (الحقل العلوي) و/أو إضافة أسئلة فرعية متعددة الأنواع (MCQ، صح/خطأ، إكمال، مقالي).</p>
 
                   </div>
                 )}
