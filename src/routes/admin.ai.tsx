@@ -35,6 +35,10 @@ function AIManagementPage() {
   const toggleFn = useServerFn(toggleAIProvider);
   const priorityFn = useServerFn(setProviderPriority);
   const keyStatusFn = useServerFn(checkAIKeysStatus);
+  const saveKeyFn = useServerFn(saveProviderKey);
+  const deleteKeyFn = useServerFn(deleteProviderKey);
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [showKey, setShowKey] = useState<Record<string, boolean>>({});
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ["ai-providers"],
