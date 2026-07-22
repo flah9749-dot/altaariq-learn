@@ -106,3 +106,36 @@ export async function bootPushIfEnabled(userId: string) {
     });
   } catch { /* ignore */ }
 }
+
+/** Disable push on this device: delete FCM token locally and remove it from the DB. */
+export async function disablePush(userId: string): Promise<boolean> {
+  try {
+    let currentToken: string | null = null;
+    if (await isPushSupported()) {
+      try {
+        const reg = await registerSW();
+        const messaging = getMessaging(await app());
+        try {
+          currentToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        } catch { /* ignore */ }
+        try { await deleteToken(messaging); } catch { /* ignore */ }
+        try {
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) await sub.unsubscribe();
+        } catch { /* ignore */ }
+      } catch { /* ignore */ }
+    }
+    if (currentToken) {
+      await supabase.from("push_tokens").delete().eq("user_id", userId).eq("token", currentToken);
+    } else {
+      // Fallback: remove all tokens saved from this browser (best effort).
+      await supabase.from("push_tokens").delete().eq("user_id", userId).eq("user_agent", navigator.userAgent);
+    }
+    toast.success("تم إيقاف الإشعارات على هذا الجهاز");
+    return true;
+  } catch (e: any) {
+    toast.error(e?.message ?? "تعذّر إيقاف الإشعارات");
+    return false;
+  }
+}
+
