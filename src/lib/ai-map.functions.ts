@@ -2,6 +2,129 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// ============================================================================
+// analyzeMapImage — vision-based analysis of an admin-uploaded map image.
+// Detects geographic locations already visible on the map, places numbered
+// markers at their actual pixel positions (as 0-100% coordinates), and
+// generates a question + answer for each. Everything returned is fully
+// editable in the interactive editor before saving.
+// ============================================================================
+
+const AnalyzeInput = z.object({
+  image_data_url: z.string().min(20),
+  language: z.enum(["ar", "en"]).default("ar"),
+  max_points: z.number().int().min(2).max(25).default(8),
+  focus: z.string().optional().default(""), // e.g. "الجبال والأنهار فقط"
+  model: z.string().optional(),
+});
+
+const ANALYZE_SCHEMA = `أعد ردًا بصيغة JSON فقط وفق المخطط:
+{
+  "title": "عنوان مقترح للخريطة",
+  "summary": "وصف مختصر لما تعرضه الخريطة (سطر واحد)",
+  "points": [
+    {
+      "label": "اسم المكان (الإجابة الصحيحة القصيرة)",
+      "prompt": "السؤال المقترح للطالب حول هذا الرقم",
+      "hint": "تلميح اختياري قصير",
+      "x": 50, "y": 50
+    }
+  ]
+}
+- x و y بالنسبة المئوية 0-100 (يسار→يمين، أعلى→أسفل) وتشير لمركز الرمز على الصورة.
+- ضع كل نقطة فوق الموقع الجغرافي الحقيقي على الصورة بدقة.
+- ممنوع تكرار نفس الموقع أو نفس الإجابة.
+- المسافة بين أي نقطتين ≥ 10 وحدات.`;
+
+export const analyzeMapImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => AnalyzeInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("مسموح للأدمن فقط");
+
+    const { callLovableChat, parseJsonLoose } = await import("./ai-gateway.server");
+
+    const systemPrompt = `أنت خبير جغرافيا ومحلل خرائط ذكي لمنصة "الطارق التعليمية" (مادة الدراسات الاجتماعية).
+مهمتك: فحص صورة خريطة مرفوعة والتعرف بصريًا على المعالم (دول، عواصم، مدن، محيطات، بحار، أنهار، جبال، صحارى، حدود...)، ثم اقتراح ${data.max_points} نقاط بحد أقصى موزعة على المعالم البارزة.
+لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
+${data.focus ? `ركّز على: ${data.focus}.` : ""}
+لكل معلم: ضع النقطة على موقعه الحقيقي في الصورة، واكتب سؤالًا واضحًا وإجابة قصيرة صحيحة.
+${ANALYZE_SCHEMA}`;
+
+    const content = await callLovableChat(
+      [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "حلّل هذه الخريطة وأنشئ النقاط والأسئلة." },
+            { type: "image_url", image_url: { url: data.image_data_url } },
+          ],
+        },
+      ],
+      {
+        // Pro model does far better vision-grounded coordinate work
+        models: data.model
+          ? [data.model, "google/gemini-3.1-pro-preview", "google/gemini-2.5-pro"]
+          : ["google/gemini-3.1-pro-preview", "google/gemini-2.5-pro", "google/gemini-3.5-flash"],
+        responseJson: true,
+        temperature: 0.3,
+      },
+    );
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("ai_usage_logs").insert({ function_name: "analyze_map_image", success: true });
+    } catch {}
+
+    let parsed: any;
+    try {
+      parsed = parseJsonLoose(content);
+    } catch {
+      throw new Error("تعذّر تحليل رد الذكاء الاصطناعي. حاول مرة أخرى.");
+    }
+
+    const rawPoints = Array.isArray(parsed?.points) ? parsed.points : [];
+    if (!rawPoints.length) throw new Error("لم يستطع الذكاء الاصطناعي تحديد أي مواقع على هذه الصورة.");
+
+    const normalized = rawPoints.map((p: any) => ({
+      label: String(p?.label ?? "").trim() || "موقع",
+      prompt: typeof p?.prompt === "string" ? p.prompt.trim() : "",
+      hint: typeof p?.hint === "string" ? p.hint.trim() : "",
+      x: Math.max(3, Math.min(97, Math.round(Number(p?.x ?? 50) * 10) / 10)),
+      y: Math.max(3, Math.min(97, Math.round(Number(p?.y ?? 50) * 10) / 10)),
+    }));
+
+    // Deduplicate: same label OR too close (< 8% of the image)
+    const points: typeof normalized = [];
+    const seen = new Set<string>();
+    for (const p of normalized) {
+      const key = p.label.toLowerCase();
+      if (seen.has(key)) continue;
+      if (points.some((q: { x: number; y: number }) => Math.hypot(q.x - p.x, q.y - p.y) < 8)) continue;
+      seen.add(key);
+      points.push(p);
+      if (points.length >= data.max_points) break;
+    }
+    if (!points.length) throw new Error("لم يتم إنشاء نقاط صالحة على الخريطة.");
+
+    return {
+      title: String(parsed?.title ?? "خريطة").trim() || "خريطة",
+      summary: String(parsed?.summary ?? "").trim(),
+      points,
+    };
+  });
+
+// ============================================================================
+// generateInteractiveMap — original: generate points (and optionally an image)
+// from a topic/attachments. Kept as-is for the exam-editor "AI generate" flow.
+// ============================================================================
+
+
 const GenInput = z.object({
   topic: z.string().default(""),
   language: z.enum(["ar", "en"]).default("ar"),
