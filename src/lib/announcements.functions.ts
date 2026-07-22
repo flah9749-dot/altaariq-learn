@@ -155,6 +155,8 @@ export const broadcastNotification = createServerFn({ method: "POST" })
         user_id: uid, title: data.title, body: data.body, type: data.type, link: data.link ?? null,
       })),
     );
+    const { pushToUsers } = await import("./notify-helpers.server");
+    await pushToUsers(recipients, { title: data.title, body: data.body, link: data.link ?? null });
     return { count: recipients.length };
   });
 
