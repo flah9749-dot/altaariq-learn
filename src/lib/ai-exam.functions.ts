@@ -122,12 +122,13 @@ ${SCHEMA_HINT}`;
       const points = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
       const clean = points
         .map((p: any) => ({
-          label: String(p?.label ?? "الموقع الصحيح"),
+          label: String(p?.label ?? "الإجابة الصحيحة"),
+          prompt: typeof p?.prompt === "string" ? p.prompt : (typeof p?.question === "string" ? p.question : ""),
           x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
           y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
         }))
         .filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
-      return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
+      return { points: clean.length ? clean : [{ label: "الإجابة الصحيحة", prompt: "", x: 50, y: 50 }] };
     };
 
     const normalized = await Promise.all(questions.map(async (q: any, i: number) => {
