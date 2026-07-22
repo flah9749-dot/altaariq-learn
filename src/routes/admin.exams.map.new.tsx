@@ -339,6 +339,12 @@ function NewMapExamPage() {
                 <Loader2 className="h-4 w-4 animate-spin" /> جاري تنظيف الخريطة وتحليلها وتوليد الأسئلة...
               </div>}
 
+              {pg.points.length > 0 && !pg.building && (
+                <div className="rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs p-2 border border-amber-500/30">
+                  💡 قد تكون أماكن النقاط المُولّدة تقريبية. اضغط على أي رقم واسحبه فوق الخريطة لضبط موضعه بدقة، أو استخدم حقلَي X و Y لضبط دقيق. يمكنك أيضًا إضافة/حذف نقاط بالنقر على الخريطة.
+                </div>
+              )}
+
               <InteractiveMapEditor
                 imageUrl={pg.image_url}
                 points={pg.points.map(({ questions, ...rest }) => rest)}
