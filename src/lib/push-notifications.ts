@@ -89,6 +89,7 @@ export async function enablePush(userId: string): Promise<string | null> {
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (!token) { toast.error("تعذّر الحصول على توكن الإشعارات"); return null; }
     await saveToken(userId, token);
+    setLocallyDisabled(false);
     // Foreground handler — show toast instead of native notification
     onMessage(messaging, (payload) => {
       const t = payload.notification?.title ?? "إشعار جديد";
@@ -107,6 +108,7 @@ export async function enablePush(userId: string): Promise<string | null> {
 export async function bootPushIfEnabled(userId: string) {
   if (!(await isPushSupported())) return;
   if (Notification.permission !== "granted") return;
+  if (isLocallyDisabled()) return;
   try {
     const reg = await registerSW();
     const messaging = getMessaging(await app());
