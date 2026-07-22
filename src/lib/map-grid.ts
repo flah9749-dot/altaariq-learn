@@ -26,8 +26,8 @@ function colLetters(n: number): string[] {
 
 export async function buildGridOverlay(
   dataUrl: string,
-  cols = 20,
-  rows = 20,
+  cols = 30,
+  rows = 30,
 ): Promise<{ dataUrl: string; info: GridInfo }> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new Image();
@@ -36,9 +36,8 @@ export async function buildGridOverlay(
     el.src = dataUrl;
   });
 
-  // Keep the image at a reasonable size (vision models don't need > ~1280px,
-  // and smaller keeps the createServerFn payload well within limits).
-  const maxSide = 1280;
+  // Keep the image large enough that a 30×30 grid stays legible for the AI.
+  const maxSide = 1600;
   const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
   const W = Math.round(img.naturalWidth * scale);
   const H = Math.round(img.naturalHeight * scale);
