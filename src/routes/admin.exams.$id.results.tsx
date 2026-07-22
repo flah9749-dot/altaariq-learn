@@ -500,9 +500,26 @@ function getQuestionDisplayPoints(question: any) {
   return Number(question?.points) || 0;
 }
 
+function lookupOptionText(value: any, options: any[]): string | null {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  // by id (uuid)
+  const byId = options.find((o) => o?.id === value);
+  if (byId) return String(byId.text ?? "");
+  // by numeric index
+  const asNum = Number(value);
+  if (Number.isFinite(asNum) && options[asNum]) return String(options[asNum].text ?? "");
+  return null;
+}
+
 function formatMapSubAnswer(value: any, sq: any) {
   if (value == null || value === "") return "—";
-  if (sq?.type === "mcq") return sq.options?.[Number(value)]?.text ?? String(value);
+  if (sq?.type === "mcq") {
+    const opts = sq.options ?? sq.question_options ?? [];
+    if (Array.isArray(value)) {
+      return value.map((v) => lookupOptionText(v, opts) ?? String(v)).join("، ");
+    }
+    return lookupOptionText(value, opts) ?? String(value);
+  }
   if (sq?.type === "true_false") return String(value) === "true" ? "صح" : "خطأ";
   return String(value);
 }
@@ -510,6 +527,14 @@ function formatMapSubAnswer(value: any, sq: any) {
 function formatAnswer(answer: any, question?: any) {
   if (answer == null || answer === "") return "لا إجابة";
   const type = typeof question === "string" ? question : question?.type;
+  if (type === "mcq") {
+    const opts = question?.question_options ?? question?.options ?? [];
+    if (Array.isArray(answer)) {
+      return answer.map((v) => lookupOptionText(v, opts) ?? String(v)).join("، ");
+    }
+    return lookupOptionText(answer, opts) ?? String(answer);
+  }
+  if (type === "true_false") return String(answer) === "true" ? "صح" : "خطأ";
   if (type === "map") {
     const points = Array.isArray(question?.correct_answer?.points) ? question.correct_answer.points : [];
     const items = answer?.items && typeof answer.items === "object" ? answer.items : null;
