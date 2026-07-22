@@ -19,6 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 import { SectionTabs } from "@/components/admin/SectionTabs";
+import { Input } from "@/components/ui/input";
+import { PointsAdjustDialog } from "@/components/admin/PointsAdjustDialog";
 
 export const Route = createFileRoute("/admin/reports")({
   head: () => ({ meta: [{ title: "التقارير — لوحة المدرس" }] }),
