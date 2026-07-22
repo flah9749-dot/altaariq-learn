@@ -54,7 +54,24 @@ export const askAssistant = createServerFn({ method: "POST" })
     for (const m of data.messages) {
       msgs.push({ role: m.role, content: buildContent(m) });
     }
-    const reply = await callLovableChat(msgs, { temperature: 0.6, maxTokens: 1400 });
+
+    // Detect attachments in the latest user message to pick the right model + limits.
+    const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
+    const atts = lastUser?.attachments ?? [];
+    const hasPdf = atts.some((a) => a.kind === "file" && a.mime === "application/pdf");
+    const hasImage = atts.some((a) => a.kind === "image");
+    const hasAttachment = hasPdf || hasImage;
+
+    // Stronger multimodal chain when a file is attached (PDF/image understanding).
+    // gemini-2.5-pro has the best document/PDF comprehension in the gateway.
+    const models = hasAttachment
+      ? ["google/gemini-2.5-pro", "google/gemini-3.1-pro-preview", "google/gemini-2.5-flash"]
+      : undefined;
+
+    // Give the model room to actually explain long documents.
+    const maxTokens = hasPdf ? 6000 : hasImage ? 3000 : 1800;
+
+    const reply = await callLovableChat(msgs, { temperature: 0.5, maxTokens, models });
     return { reply };
   });
 
