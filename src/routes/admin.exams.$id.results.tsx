@@ -315,8 +315,8 @@ function ExamResultsPage() {
                             <ShieldCheck className="h-3 w-3" />
                           </Button>
                         )}
-                        {!a.approved && a.status === "graded" && (
-                          <Button size="sm" variant="ghost" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} title="تعديل الدرجة">
+                        {!a.approved && a.status !== "in_progress" && (
+                          <Button size="sm" variant="ghost" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} title="تعديل الدرجة الإجمالية">
                             <Save className="h-3 w-3" />
                           </Button>
                         )}
@@ -366,20 +366,22 @@ function ExamResultsPage() {
                     {a.ai_suggested_points != null && <span className="mr-2">— اقتراح: {a.ai_suggested_points}</span>}
                   </div>
                 )}
-                {a.questions?.type === "essay" && (
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    <Input type="number" step="0.5" placeholder="الدرجة"
-                      value={essayPts[a.question_id] ?? (a.awarded_points ?? "")}
-                      onChange={(e) => setEssayPts((p) => ({ ...p, [a.question_id]: e.target.value }))}
-                      className="w-24 h-8" />
-                    <Button size="sm" onClick={() => submitEssay.mutate({ attemptId: reviewing.attempt.id, questionId: a.question_id, points: Number(essayPts[a.question_id] ?? a.awarded_points ?? 0) })} disabled={submitEssay.isPending}>
-                      اعتماد
-                    </Button>
+                <div className="flex gap-2 mt-2 flex-wrap items-center">
+                  <span className="text-xs text-muted-foreground">تعديل الدرجة:</span>
+                  <Input type="number" step="0.5" min={0} max={Number(a.questions?.points) || undefined} placeholder="الدرجة"
+                    value={essayPts[a.question_id] ?? (a.awarded_points ?? "")}
+                    onChange={(e) => setEssayPts((p) => ({ ...p, [a.question_id]: e.target.value }))}
+                    className="w-24 h-8" />
+                  <span className="text-xs text-muted-foreground">/ {a.questions?.points ?? 0}</span>
+                  <Button size="sm" onClick={() => submitEssay.mutate({ attemptId: reviewing.attempt.id, questionId: a.question_id, points: Number(essayPts[a.question_id] ?? a.awarded_points ?? 0) })} disabled={submitEssay.isPending}>
+                    حفظ
+                  </Button>
+                  {a.questions?.type === "essay" && (
                     <Button size="sm" variant="outline" onClick={() => aiSuggest.mutate({ attemptId: reviewing.attempt.id, questionId: a.question_id })} disabled={aiSuggest.isPending}>
                       <Sparkles className="h-3 w-3 ml-1" />اقتراح AI
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>

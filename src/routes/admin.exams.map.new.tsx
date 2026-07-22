@@ -131,7 +131,7 @@ function NewMapExamPage() {
       let gridRows: number | undefined;
       try {
         const { buildGridOverlay } = await import("@/lib/map-grid");
-        const g = await buildGridOverlay(pg.original_url, 24, 24);
+        const g = await buildGridOverlay(pg.original_url, 30, 30);
         gridImage = g.dataUrl;
         gridCols = g.info.cols;
         gridRows = g.info.rows;
@@ -338,6 +338,12 @@ function NewMapExamPage() {
               {pg.building && <div className="rounded-md bg-primary/10 text-primary text-sm p-3 flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" /> جاري تنظيف الخريطة وتحليلها وتوليد الأسئلة...
               </div>}
+
+              {pg.points.length > 0 && !pg.building && (
+                <div className="rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs p-2 border border-amber-500/30">
+                  💡 قد تكون أماكن النقاط المُولّدة تقريبية. اضغط على أي رقم واسحبه فوق الخريطة لضبط موضعه بدقة، أو استخدم حقلَي X و Y لضبط دقيق. يمكنك أيضًا إضافة/حذف نقاط بالنقر على الخريطة.
+                </div>
+              )}
 
               <InteractiveMapEditor
                 imageUrl={pg.image_url}
