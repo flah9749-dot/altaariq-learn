@@ -107,10 +107,26 @@ function NewMapExamPage() {
     if (!pg?.original_url) { toast.error("لا توجد صورة"); return; }
     setPages((arr) => arr.map((p, i) => i === idx ? { ...p, building: true } : p));
     try {
+      // Build a labeled reference grid client-side so the AI can pick a cell
+      // (e.g. "H14") instead of guessing raw pixel coordinates.
+      let gridImage: string | undefined;
+      let gridCols: number | undefined;
+      let gridRows: number | undefined;
+      try {
+        const { buildGridOverlay } = await import("@/lib/map-grid");
+        const g = await buildGridOverlay(pg.original_url, 20, 20);
+        gridImage = g.dataUrl;
+        gridCols = g.info.cols;
+        gridRows = g.info.rows;
+      } catch { /* fall back to non-grid analysis */ }
+
       const r: any = await buildFn({ data: {
         image_data_url: pg.original_url,
         max_points: maxPoints,
         focus: focus || "",
+        grid_image_data_url: gridImage,
+        grid_cols: gridCols,
+        grid_rows: gridRows,
       } });
       setPages((arr) => arr.map((p, i) => i === idx ? {
         ...p,
