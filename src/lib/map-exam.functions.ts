@@ -64,44 +64,56 @@ export const autoBuildMapPage = createServerFn({ method: "POST" })
 
     // 2) Analyze the ORIGINAL map (has labels → better identification), then
     //    place numbered markers on those coordinates on the cleaned image.
+    const useGrid = !!(data.grid_image_data_url && data.grid_cols && data.grid_rows);
+    const cols = data.grid_cols ?? 0;
+    const rows = data.grid_rows ?? 0;
+
     const systemPrompt = `أنت خبير جغرافيا ومحلل خرائط لمنصة "الطارق التعليمية".
 افحص صورة الخريطة الأصلية (بها أسماء ظاهرة) واقترح حتى ${data.max_points} نقطة على معالم بارزة.
 ${data.focus ? `ركّز على: ${data.focus}.` : ""}
 لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
 
-قواعد الإحداثيات (حرجة):
-- x = (المسافة الأفقية من الحافة اليسرى ÷ العرض) × 100.
-- y = (المسافة الرأسية من الحافة العلوية ÷ الارتفاع) × 100.
-- ضع الإحداثية على مركز المعلم نفسه، لا على النص المكتوب بجانبه.
+${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية ${cols}×${rows}: الأعمدة A..${String.fromCharCode(64 + Math.min(cols, 26))} (يسار→يمين)، الصفوف 1..${rows} (أعلى→أسفل). كل خانة مكتوب فوقها اسمها (مثل "H14") بلون أحمر.
+- لكل نقطة أعِد الحقل "cell" باسم الخانة التي يقع مركز المعلم داخلها بالضبط.
+- **اقرأ اسم الخانة من الشبكة نفسها**، لا تحسبها ذهنيًا.
+- إذا كنت غير متأكد من الخانة الصحيحة احذف النقطة.
+` : `قواعد الإحداثيات (حرجة):
+- x = المسافة الأفقية من الحافة اليسرى ÷ العرض × 100.
+- y = المسافة الرأسية من الحافة العلوية ÷ الارتفاع × 100.
+- ضع الإحداثية على مركز المعلم، لا على النص المكتوب بجانبه.
 - إذا لم تكن متأكدًا احذف النقطة.
-- المسافة بين أي نقطتين ≥ 10 وحدات.
-
-الأسئلة يجب أن تكون قابلة للإجابة بدون قراءة أي نص على الخريطة (لأن الأسماء ستُخفى).
+`}
+- المسافة بين أي نقطتين ≥ 8 وحدات.
+- الأسئلة يجب أن تكون قابلة للإجابة بدون قراءة أي نص على الخريطة (لأن الأسماء ستُخفى).
 
 أعد JSON فقط:
 {
   "title": "عنوان مقترح",
   "summary": "وصف مختصر",
   "points": [
-    { "label": "الإجابة القصيرة", "prompt": "السؤال حول الرقم N؟", "hint": "تلميح اختياري", "x": 50, "y": 50 }
+    { "label": "الإجابة القصيرة", "prompt": "السؤال؟", "hint": "تلميح اختياري"${useGrid ? `, "cell": "H14"` : `, "x": 50, "y": 50`} }
   ]
 }`;
+
+    const userParts: Array<Record<string, unknown>> = [
+      { type: "text", text: useGrid
+          ? "الصورة الأولى: الخريطة الأصلية للتعرّف على المعالم. الصورة الثانية: نفس الخريطة عليها شبكة مرجعية — استخدمها لتحديد الخانة (cell) الصحيحة لكل معلم."
+          : "حلّل الخريطة وأنشئ نقاطًا وأسئلة عليها." },
+      { type: "image_url", image_url: { url: data.image_data_url } },
+    ];
+    if (useGrid) {
+      userParts.push({ type: "image_url", image_url: { url: data.grid_image_data_url } });
+    }
 
     const content = await callLovableChat(
       [
         { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "حلّل الخريطة وأنشئ نقاطًا وأسئلة عليها." },
-            { type: "image_url", image_url: { url: data.image_data_url } },
-          ],
-        },
+        { role: "user", content: userParts },
       ],
       {
         models: ["google/gemini-3.1-pro-preview", "google/gemini-2.5-pro", "google/gemini-3.5-flash"],
         responseJson: true,
-        temperature: 0.3,
+        temperature: 0.2,
       },
     );
 
@@ -112,13 +124,22 @@ ${data.focus ? `ركّز على: ${data.focus}.` : ""}
     const raw = Array.isArray(parsed?.points) ? parsed.points : [];
     if (!raw.length) throw new Error("لم يتم اكتشاف مواقع صالحة على الخريطة.");
 
-    const normalized = raw.map((p: any) => ({
-      label: String(p?.label ?? "").trim() || "موقع",
-      prompt: typeof p?.prompt === "string" ? p.prompt.trim() : "",
-      hint: typeof p?.hint === "string" ? p.hint.trim() : "",
-      x: Math.max(3, Math.min(97, Math.round(Number(p?.x ?? 50) * 10) / 10)),
-      y: Math.max(3, Math.min(97, Math.round(Number(p?.y ?? 50) * 10) / 10)),
-    }));
+    const { cellToPercent } = await import("./map-grid");
+    const normalized = raw.map((p: any) => {
+      let x = Number(p?.x ?? 50);
+      let y = Number(p?.y ?? 50);
+      if (useGrid && typeof p?.cell === "string") {
+        const conv = cellToPercent(p.cell, cols, rows);
+        if (conv) { x = conv.x; y = conv.y; }
+      }
+      return {
+        label: String(p?.label ?? "").trim() || "موقع",
+        prompt: typeof p?.prompt === "string" ? p.prompt.trim() : "",
+        hint: typeof p?.hint === "string" ? p.hint.trim() : "",
+        x: Math.max(3, Math.min(97, Math.round(x * 10) / 10)),
+        y: Math.max(3, Math.min(97, Math.round(y * 10) / 10)),
+      };
+    });
 
     const points: MapExamPoint[] = [];
     const seen = new Set<string>();
