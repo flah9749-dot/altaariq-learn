@@ -62,23 +62,35 @@ function makeBlank(type: QuestionType = "mcq"): Q {
   if (type === "complete") base.correct_answer = "";
   if (type === "order") base.options = [{ text: "", is_correct: false, order_index: 0 }];
   if (type === "match") base.options = [{ text: "", is_correct: false, order_index: 0, match_key: "أ" }];
-  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
+  if (type === "map") base.correct_answer = { points: [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
   return base;
 }
 
-const getMapPoints = (answer: any): Array<{ label: string; x: number; y: number; tolerance: number }> => {
+type MapPoint = { label: string; x: number; y: number };
+
+const getMapPoints = (answer: any): MapPoint[] => {
   const raw = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
   return raw.length ? raw.map((p: any) => ({
     label: String(p?.label ?? "الموقع الصحيح"),
     x: Number.isFinite(Number(p?.x)) ? Number(p.x) : 50,
     y: Number.isFinite(Number(p?.y)) ? Number(p.y) : 50,
-    tolerance: Number.isFinite(Number(p?.tolerance)) ? Number(p.tolerance) : 8,
-  })) : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }];
+  })) : [{ label: "الموقع الصحيح", x: 50, y: 50 }];
 };
 
-const setMapPoint = (answer: any, index: number, patch: Partial<{ label: string; x: number; y: number; tolerance: number }>) => {
+const setMapPoint = (answer: any, index: number, patch: Partial<MapPoint>) => {
   const points = getMapPoints(answer).map((p, i) => i === index ? { ...p, ...patch } : p);
   return { points };
+};
+
+const addMapPoint = (answer: any, x = 50, y = 50) => {
+  const points = getMapPoints(answer);
+  const idx = points.length + 1;
+  return { points: [...points, { label: `الموقع ${idx}`, x, y }] };
+};
+
+const removeMapPoint = (answer: any, index: number) => {
+  const points = getMapPoints(answer).filter((_, i) => i !== index);
+  return { points: points.length ? points : [{ label: "الموقع الصحيح", x: 50, y: 50 }] };
 };
 
 function readImage(file: File): Promise<string> {
