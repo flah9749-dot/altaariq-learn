@@ -124,7 +124,7 @@ function AIManagementPage() {
             className="gap-2"
             disabled={testMut.isPending || !keyStatus}
             onClick={async () => {
-              const targets = PROVIDERS.filter(p => keyStatus?.[p.slug]);
+              const targets = PROVIDERS.filter(p => keyStatus?.[p.slug]?.ok);
               if (!targets.length) { toast.error("لا يوجد مزود بمفتاح صالح"); return; }
               toast.info(`جاري اختبار ${targets.length} مزود...`);
               for (const t of targets) {
