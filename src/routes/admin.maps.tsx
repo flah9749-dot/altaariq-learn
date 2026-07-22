@@ -42,9 +42,12 @@ function MapsLibrary() {
   const listFn = useServerFn(listMapTemplates);
   const saveFn = useServerFn(upsertMapTemplate);
   const delFn = useServerFn(deleteMapTemplate);
+  const analyzeFn = useServerFn(analyzeMapImage);
   const [search, setSearch] = useState("");
   const [openEditor, setOpenEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [aiFocus, setAiFocus] = useState("");
+  const [aiMaxPoints, setAiMaxPoints] = useState(8);
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["map-templates"],
@@ -74,6 +77,41 @@ function MapsLibrary() {
     mutationFn: async (id: string) => delFn({ data: { id } }),
     onSuccess: () => { toast.success("تم الحذف"); qc.invalidateQueries({ queryKey: ["map-templates"] }); },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
+  });
+
+  const analyzeMut = useMutation({
+    mutationFn: async () => {
+      if (!editing?.image_url || editing.image_url === "...") throw new Error("ارفع صورة الخريطة أولاً");
+      // AI needs a data URL (or a publicly reachable URL). Data URLs work best here.
+      if (!/^data:image\//i.test(editing.image_url) && !/^https?:\/\//i.test(editing.image_url)) {
+        throw new Error("صيغة الصورة غير مدعومة");
+      }
+      return analyzeFn({
+        data: {
+          image_data_url: editing.image_url,
+          language: "ar" as const,
+          max_points: aiMaxPoints,
+          focus: aiFocus.trim(),
+        },
+      });
+    },
+    onSuccess: (res: any) => {
+      const detected: MapEditorPoint[] = (res.points ?? []).map((p: any) => ({
+        label: p.label ?? "",
+        prompt: p.prompt ?? "",
+        hint: p.hint ?? "",
+        x: p.x, y: p.y,
+      }));
+      // Merge with existing (replace all — AI mode is a fresh analysis)
+      setEditing((prev: any) => ({
+        ...prev,
+        title: prev.title?.trim() ? prev.title : (res.title ?? prev.title),
+        description: prev.description?.trim() ? prev.description : (res.summary ?? prev.description),
+        points: detected,
+      }));
+      toast.success(`تم تحليل الخريطة وتحديد ${detected.length} موقعًا. عدّل أيًا منها قبل الحفظ.`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل التحليل بالذكاء الاصطناعي"),
   });
 
   const openNew = () => { setEditing({ title: "", category: "", description: "", image_url: "", points: [] }); setOpenEditor(true); };
