@@ -179,14 +179,15 @@ export const saveQuestions = createServerFn({ method: "POST" })
 
     for (let i = 0; i < data.questions.length; i++) {
       const q = data.questions[i];
-      totalScore += q.points ?? 0;
+      const questionPoints = getQuestionMaxPoints(q);
+      totalScore += questionPoints;
       const payload = {
         exam_id: data.exam_id,
         type: q.type,
         text: q.text,
         image_url: q.image_url ?? null,
         file_url: q.file_url ?? null,
-        points: q.points,
+        points: questionPoints,
         suggested_time_sec: q.suggested_time_sec ?? null,
         explanation: q.explanation ?? null,
         order_index: i,
@@ -296,8 +297,29 @@ export const recordLeave = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+function getMapQuestionWeight(correctAnswer: any): number {
+  const expectedPoints: any[] = Array.isArray(correctAnswer?.points)
+    ? correctAnswer.points
+    : Array.isArray(correctAnswer)
+    ? correctAnswer
+    : [];
+  return expectedPoints.reduce((sum, p) => {
+    const subs: any[] = Array.isArray(p?.questions) ? p.questions : [];
+    const subWeight = subs.reduce((s, sq) => s + Math.max(0, Number(sq.points) || 0), 0);
+    return sum + (subWeight > 0 ? subWeight : 1);
+  }, 0);
+}
+
+function getQuestionMaxPoints(q: any): number {
+  if (q?.type === "map") {
+    const mapWeight = getMapQuestionWeight(q.correct_answer);
+    if (mapWeight > 0) return mapWeight;
+  }
+  return Math.max(0, Number(q?.points) || 0);
+}
+
 function evaluateObjective(q: any, ans: any): { correct: boolean | null; points: number; needsReview?: boolean } {
-  const pts = Number(q.points) || 0;
+  const pts = getQuestionMaxPoints(q);
   if (ans == null) return { correct: null, points: 0 };
   switch (q.type) {
     case "mcq": {
@@ -398,7 +420,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
 
     let score = 0, total = 0, needsReview = false;
     for (const q of questions ?? []) {
-      total += Number(q.points) || 0;
+      total += getQuestionMaxPoints(q);
       const ans = ansMap.get(q.id);
       if (q.type === "essay") {
         needsReview = true;
@@ -628,7 +650,7 @@ export const regradeAttempt = createServerFn({ method: "POST" })
 
     let score = 0, total = 0, needsReview = false;
     for (const q of questions ?? []) {
-      total += Number(q.points) || 0;
+      total += getQuestionMaxPoints(q);
       const ans = ansMap.get(q.id);
       if (q.type === "essay") {
         needsReview = true;
