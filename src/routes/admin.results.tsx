@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Search, FileSpreadsheet, Download, ShieldCheck, Filter } from "lucide-react";
+import { ClipboardCheck, Search, FileSpreadsheet, Download, ShieldCheck, Filter, FileEdit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,14 @@ import { formatArabicDate } from "@/lib/students-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/results")({
-  head: () => ({ meta: [{ title: "النتائج — لوحة المدرس" }] }),
+  head: () => ({ meta: [
+    { title: "نتائج الطلاب — الطارق التعليمية" },
+    { name: "description", content: "متابعة نتائج الطلاب ومراجعة الدرجات وإرسال تقارير ولي الأمر في منصة الطارق التعليمية." },
+    { property: "og:title", content: "نتائج الطلاب — الطارق التعليمية" },
+    { property: "og:description", content: "متابعة نتائج الطلاب ومراجعة الدرجات وإرسال تقارير ولي الأمر في منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ResultsPage,
 });
 
@@ -183,7 +190,7 @@ function ResultsPage() {
                 <TableHead>التقدير</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead>التاريخ</TableHead>
-                <TableHead>إجراء</TableHead>
+                <TableHead>إجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -234,13 +241,23 @@ function ResultsPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatArabicDate(a.submitted_at ?? a.created_at)}</TableCell>
                     <TableCell>
-                      <WhatsAppButton
-                        phone={a.students?.parent_whatsapp ?? a.students?.parent_phone}
-                        template={pickResultTemplate(pct)}
-                        vars={waVars}
-                        size="icon"
-                        variant="ghost"
-                      />
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {a.exams?.id && (
+                          <Button asChild size="sm" variant="default" className="gap-1">
+                            <Link to="/admin/exams/$id/results" params={{ id: a.exams.id }}>
+                              <FileEdit className="h-3.5 w-3.5" />
+                              مراجعة وتعديل
+                            </Link>
+                          </Button>
+                        )}
+                        <WhatsAppButton
+                          phone={a.students?.parent_whatsapp ?? a.students?.parent_phone}
+                          template={pickResultTemplate(pct)}
+                          vars={waVars}
+                          size="icon"
+                          variant="ghost"
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
