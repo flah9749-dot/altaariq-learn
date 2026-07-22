@@ -337,10 +337,11 @@ function NewMapExamPage() {
           </div>
           <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-muted/30 py-8 cursor-pointer hover:bg-muted/50 transition">
             <ImagePlus className="h-8 w-8 text-primary" />
-            <span className="text-sm font-medium">اضغط لرفع صور الخرائط (يمكن اختيار عدة صور)</span>
-            <span className="text-xs text-muted-foreground">JPG / PNG · حتى 20MB لكل ملف</span>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleUploadPages(e.target.files); e.target.value = ""; }} />
+            <span className="text-sm font-medium">اضغط لرفع صور الخرائط أو ملف PDF</span>
+            <span className="text-xs text-muted-foreground">JPG / PNG / PDF · حتى 50MB لكل ملف · صفحات PDF تُستخرج تلقائياً</span>
+            <input type="file" accept="image/*,application/pdf,.pdf" multiple className="hidden" onChange={(e) => { handleUploadPages(e.target.files); e.target.value = ""; }} />
           </label>
+
         </CardContent>
       </Card>
 
