@@ -251,7 +251,8 @@ function AIExamPage() {
                       onPick={(x, y) => setPreview((p) => {
                         if (!p) return p;
                         const pts = getMapPointsPreview(q.correct_answer);
-                        const next = pts.length ? [{ ...pts[0], x, y }, ...pts.slice(1)] : [{ label: "الموقع الصحيح", x, y, tolerance: 8 }];
+                        const idxNext = pts.length + 1;
+                        const next = [...pts, { label: `الموقع ${idxNext}`, x, y }];
                         return { ...p, questions: p.questions.map((qq, idx) => idx === i ? { ...qq, correct_answer: { points: next } } : qq) };
                       })}
                     />
