@@ -44,6 +44,7 @@ function MapsLibrary() {
   const saveFn = useServerFn(upsertMapTemplate);
   const delFn = useServerFn(deleteMapTemplate);
   const analyzeFn = useServerFn(analyzeMapImage);
+  const cleanFn = useServerFn(cleanMapImage);
   const [search, setSearch] = useState("");
   const [openEditor, setOpenEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
