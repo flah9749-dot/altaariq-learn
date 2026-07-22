@@ -6,13 +6,44 @@ const SYSTEM_PROMPT = `أنت "مساعد الطارق"، مساعد ذكي اح
 مهامك:
 - الرد باللغة العربية الفصحى الواضحة.
 - مساعدة المدرس في: تحضير الدروس، مراجعات سريعة، خطط شرح، تحليل نتائج الطلاب، صياغة رسائل واتساب لأولياء الأمور، توليد أفكار امتحانات وأنشطة تعليمية.
+- إذا رفع المدرس صورة أو ملفًا (PDF/صورة درس/ورقة امتحان/صورة سبورة)، اقرأ محتواه بدقة ولخّصه أو حلّله أو استخرج منه أسئلة حسب طلبه.
 - استخدم البيانات المرفقة (إحصائيات، طلاب، امتحانات) عند توفرها، وإذا لم تتوفر فاطلبها بلطف.
 - كن مختصرًا ومنظمًا (عناوين ونقاط) ومفيدًا عمليًا.`;
 
+type Attachment = {
+  kind: "image" | "file";
+  mime: string;
+  name?: string;
+  dataUrl: string; // data:<mime>;base64,....
+};
+
+type UiMsg = {
+  role: "user" | "assistant";
+  content: string;
+  attachments?: Attachment[];
+};
+
 type ChatInput = {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages: Array<UiMsg>;
   context?: string;
 };
+
+function buildContent(m: UiMsg): ChatMessage["content"] {
+  if (!m.attachments || m.attachments.length === 0) return m.content;
+  const parts: Array<Record<string, unknown>> = [];
+  if (m.content?.trim()) parts.push({ type: "text", text: m.content });
+  for (const a of m.attachments) {
+    if (a.kind === "image") {
+      parts.push({ type: "image_url", image_url: { url: a.dataUrl } });
+    } else {
+      parts.push({
+        type: "file",
+        file: { filename: a.name ?? "file", file_data: a.dataUrl },
+      });
+    }
+  }
+  return parts;
+}
 
 export const askAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -20,7 +51,9 @@ export const askAssistant = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const msgs: ChatMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
     if (data.context) msgs.push({ role: "system", content: `سياق إضافي:\n${data.context}` });
-    for (const m of data.messages) msgs.push({ role: m.role, content: m.content });
+    for (const m of data.messages) {
+      msgs.push({ role: m.role, content: buildContent(m) });
+    }
     const reply = await callLovableChat(msgs, { temperature: 0.6, maxTokens: 1400 });
     return { reply };
   });
