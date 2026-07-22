@@ -327,25 +327,25 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
 }
 
 function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: (v: any) => void }) {
-  const points: Array<{ x: number; y: number; prompt?: string }> = Array.isArray(q?.correct_answer?.points)
-    ? q.correct_answer.points
-    : [];
+  const points: Array<any> = Array.isArray(q?.correct_answer?.points) ? q.correct_answer.points : [];
   const labels: string[] = Array.isArray(value?.labels)
     ? value.labels
     : new Array(points.length).fill("");
+  const items: Record<string, Record<string, any>> =
+    value?.items && typeof value.items === "object" ? value.items : {};
 
-  if (!q?.image_url) {
-    return <p className="text-sm text-muted-foreground">لا توجد صورة خريطة لهذا السؤال.</p>;
-  }
-  if (!points.length) {
-    return <p className="text-sm text-muted-foreground">لم يتم تحديد أي مواقع على الخريطة.</p>;
-  }
+  if (!q?.image_url) return <p className="text-sm text-muted-foreground">لا توجد صورة خريطة لهذا السؤال.</p>;
+  if (!points.length) return <p className="text-sm text-muted-foreground">لم يتم تحديد أي مواقع على الخريطة.</p>;
 
   const setLabel = (i: number, val: string) => {
     const next = [...labels];
     while (next.length < points.length) next.push("");
     next[i] = val;
-    onChange({ labels: next.slice(0, points.length) });
+    onChange({ labels: next.slice(0, points.length), items });
+  };
+  const setItem = (pi: number, qid: string, val: any) => {
+    const nextItems = { ...items, [String(pi)]: { ...(items[String(pi)] ?? {}), [qid]: val } };
+    onChange({ labels, items: nextItems });
   };
 
   return (
@@ -368,21 +368,70 @@ function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: 
         أجب على كل رقم موجود على الخريطة.
       </p>
       <div className="space-y-2">
-        {points.map((p, i) => (
-          <div key={i} className="rounded-lg border p-2 space-y-1.5 bg-background">
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="w-8 justify-center shrink-0 mt-0.5">{i + 1}</Badge>
-              <p className="text-sm font-medium flex-1">
-                {p.prompt?.trim() || `اكتب اسم الموضع رقم ${i + 1}`}
-              </p>
+        {points.map((p, i) => {
+          const subs: any[] = Array.isArray(p?.questions) ? p.questions : [];
+          return (
+            <div key={i} className="rounded-lg border p-3 space-y-2 bg-background">
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="w-8 justify-center shrink-0 mt-0.5">{i + 1}</Badge>
+                <p className="text-sm font-medium flex-1">
+                  {p.prompt?.trim() || (subs.length === 0 ? `اكتب اسم الموضع رقم ${i + 1}` : `الموقع رقم ${i + 1}`)}
+                </p>
+              </div>
+              {subs.length === 0 ? (
+                <Input placeholder="إجابتك..." value={labels[i] ?? ""} onChange={(e) => setLabel(i, e.target.value)} />
+              ) : (
+                <div className="space-y-2 pr-3 border-r-2 border-primary/30">
+                  {subs.map((sq: any, si: number) => {
+                    const v = items[String(i)]?.[sq.id];
+                    return (
+                      <div key={sq.id} className="space-y-1.5">
+                        <p className="text-sm">
+                          <Badge variant="secondary" className="ml-1">س{si + 1}</Badge>
+                          {sq.text || "سؤال"}
+                          {sq.points ? <span className="text-xs text-muted-foreground mr-2">({sq.points} درجة)</span> : null}
+                        </p>
+                        {sq.type === "mcq" && (
+                          <div className="space-y-1">
+                            {(sq.options ?? []).map((o: any, oi: number) => (
+                              <label key={oi} className="flex items-center gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                                <input
+                                  type="radio"
+                                  name={`map-${q.id}-${i}-${sq.id}`}
+                                  checked={Number(v) === oi}
+                                  onChange={() => setItem(i, sq.id, oi)}
+                                />
+                                <span>{o.text}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {sq.type === "true_false" && (
+                          <div className="flex gap-2">
+                            <label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                              <input type="radio" name={`map-${q.id}-${i}-${sq.id}`} checked={v === "true"} onChange={() => setItem(i, sq.id, "true")} />
+                              صح
+                            </label>
+                            <label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
+                              <input type="radio" name={`map-${q.id}-${i}-${sq.id}`} checked={v === "false"} onChange={() => setItem(i, sq.id, "false")} />
+                              خطأ
+                            </label>
+                          </div>
+                        )}
+                        {(sq.type === "short" || sq.type === "complete") && (
+                          <Input placeholder="إجابتك..." value={v ?? ""} onChange={(e) => setItem(i, sq.id, e.target.value)} />
+                        )}
+                        {sq.type === "essay" && (
+                          <Textarea rows={4} placeholder="إجابتك المقالية..." value={v ?? ""} onChange={(e) => setItem(i, sq.id, e.target.value)} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <Input
-              placeholder="إجابتك..."
-              value={labels[i] ?? ""}
-              onChange={(e) => setLabel(i, e.target.value)}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
