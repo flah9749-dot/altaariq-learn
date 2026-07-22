@@ -22,7 +22,8 @@ import { upsertExam, saveQuestions, publishExam } from "@/lib/exams.functions";
 import { generateInteractiveMap } from "@/lib/ai-map.functions";
 import { listMapTemplates, upsertMapTemplate } from "@/lib/map-templates.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { QUESTION_TYPES, type QuestionType } from "@/lib/exam-utils";
+import { QUESTION_TYPES, type QuestionType, type MapSubQuestion } from "@/lib/exam-utils";
+import { MapPointQuestions } from "@/components/exams/MapPointQuestions";
 
 export const Route = createFileRoute("/admin/exams/$id")({
   head: () => ({ meta: [{ title: "تعديل الامتحان" }] }),
