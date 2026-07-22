@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Loader2, AlertCircle, Bookmark, BookmarkCheck, Save } from "lucide-react";
+import { Clock, ChevronRight, ChevronLeft, CheckCircle2, Loader2, AlertCircle, Bookmark, BookmarkCheck, Save, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ function TakeExamPage() {
   const { data: questions } = useQuery({
     queryKey: ["take-questions", id], enabled: !!exam,
     queryFn: async () => (await supabase.from("questions")
-      .select("id,exam_id,text,type,points,order_index,image_url,difficulty,suggested_time_sec,question_options(id,text,image_url,order_index,match_key)")
+      .select("id,exam_id,text,type,points,order_index,image_url,difficulty,suggested_time_sec,correct_answer,question_options(id,text,image_url,order_index,match_key)")
       .eq("exam_id", id).order("order_index")).data ?? [],
   });
 
@@ -200,7 +200,7 @@ function TakeExamPage() {
             </Button>
           </div>
           <p className="text-lg font-medium">{q?.text}</p>
-          {q?.image_url && <img src={q.image_url} alt="" className="max-h-80 rounded-lg border" />}
+          {q?.image_url && q?.type !== "map" && <img src={q.image_url} alt="صورة السؤال" className="max-h-80 rounded-lg border" />}
           <QuestionInput q={q} value={answers[q.id]} onChange={(v) => setAnswer(q.id, v)} shuffleOptions={exam.shuffle_options} />
         </CardContent>
       </Card>
@@ -284,6 +284,8 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
       return <Input placeholder="اكتب إجابتك..." value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
     case "essay":
       return <Textarea placeholder="اكتب إجابتك المقالية..." rows={8} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
+    case "map":
+      return <MapAnswerInput q={q} value={value} onChange={onChange} />;
     case "order": {
       const arr: string[] = Array.isArray(value) ? value : opts.map((o: any) => o.text);
       return (
@@ -322,4 +324,39 @@ function QuestionInput({ q, value, onChange, shuffleOptions }: { q: any; value: 
     default:
       return <p className="text-sm text-muted-foreground">نوع سؤال غير مدعوم</p>;
   }
+}
+
+function MapAnswerInput({ q, value, onChange }: { q: any; value: any; onChange: (v: any) => void }) {
+  const answerPoint = Array.isArray(value?.points) ? value.points[0] : null;
+  const targetLabel = q?.correct_answer?.points?.[0]?.label ?? "الموقع المطلوب";
+
+  if (!q?.image_url) {
+    return <p className="text-sm text-muted-foreground">لا توجد صورة خريطة لهذا السؤال.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        className="relative block w-full overflow-hidden rounded-lg border bg-muted text-right"
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const x = Math.round(((event.clientX - rect.left) / rect.width) * 1000) / 10;
+          const y = Math.round(((event.clientY - rect.top) / rect.height) * 1000) / 10;
+          onChange({ points: [{ label: targetLabel, x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }] });
+        }}
+      >
+        <img src={q.image_url} alt="خريطة السؤال" className="max-h-[28rem] w-full object-contain" />
+        {answerPoint && (
+          <span
+            className="absolute -translate-x-1/2 -translate-y-full rounded-full bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow"
+            style={{ left: `${answerPoint.x}%`, top: `${answerPoint.y}%` }}
+          >
+            <MapPin className="inline h-3 w-3 ml-1" />إجابتك
+          </span>
+        )}
+      </button>
+      <p className="text-xs text-muted-foreground">اضغط على الموضع الصحيح داخل الخريطة. يمكنك تغيير الإجابة بالضغط مرة أخرى.</p>
+    </div>
+  );
 }

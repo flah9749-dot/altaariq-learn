@@ -335,9 +335,10 @@ function ExamResultsPage() {
                   {a.awarded_points != null && <span className="mr-auto text-sm font-medium">{a.awarded_points}/{a.questions?.points}</span>}
                 </div>
                 <p className="font-medium text-sm mb-1">{a.questions?.text}</p>
+                {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mb-2 max-h-64 rounded-lg border" />}
                 <div className="text-sm bg-muted/50 p-2 rounded">
                   <span className="text-xs text-muted-foreground">إجابة الطالب: </span>
-                  <span>{typeof a.answer === "object" ? JSON.stringify(a.answer) : String(a.answer ?? "لا إجابة")}</span>
+                  <span>{formatAnswer(a.answer, a.questions?.type)}</span>
                 </div>
                 {a.ai_feedback && (
                   <div className="mt-2 p-2 rounded bg-primary/5 border border-primary/20 text-xs">
@@ -431,4 +432,15 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
       </div>
     </CardContent></Card>
   );
+}
+
+function formatAnswer(answer: any, type?: string) {
+  if (answer == null || answer === "") return "لا إجابة";
+  if (type === "map") {
+    const point = Array.isArray(answer?.points) ? answer.points[0] : answer;
+    if (point && typeof point === "object") {
+      return `${point.label ?? "موضع محدد"} — x:${Number(point.x ?? 0).toFixed(1)} / y:${Number(point.y ?? 0).toFixed(1)}`;
+    }
+  }
+  return typeof answer === "object" ? JSON.stringify(answer) : String(answer);
 }

@@ -36,6 +36,12 @@ function fileToDataUrl(f: File): Promise<string> {
   });
 }
 
+async function prepareAttachmentFile(file: File): Promise<File | Blob> {
+  if (!file.type.startsWith("image/")) return file;
+  const { compressImage } = await import("@/lib/message-utils");
+  return compressImage(file, 1800, 0.84);
+}
+
 function StudentAssistantPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -72,7 +78,8 @@ function StudentAssistantPage() {
       const isImg = f.type.startsWith("image/");
       const isPdf = f.type === "application/pdf";
       if (!isImg && !isPdf) { toast.error(`${f.name}: نوع الملف غير مدعوم (صور أو PDF فقط)`); continue; }
-      const data_url = await fileToDataUrl(f);
+      const prepared = await prepareAttachmentFile(f);
+      const data_url = await fileToDataUrl(prepared instanceof File ? prepared : new File([prepared], f.name, { type: "image/jpeg" }));
       out.push({ kind: isImg ? "image" : "pdf", name: f.name, data_url, size: f.size });
     }
     setAttachments((prev) => [...prev, ...out]);

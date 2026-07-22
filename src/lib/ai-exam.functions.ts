@@ -24,13 +24,14 @@ const SCHEMA_HINT = `أعد ردًا بصيغة JSON فقط بالمخطط ال�
   "title": "عنوان مقترح للامتحان",
   "questions": [
     {
-      "type": "mcq | true_false | complete | essay | order | match",
+      "type": "mcq | true_false | complete | essay | order | match | map",
       "text": "نص السؤال",
       "difficulty": "easy | medium | hard",
       "points": 1,
       "explanation": "شرح الإجابة (اختياري)",
       "options": [{"text": "...", "is_correct": true}],  // للاختيار من متعدد فقط
-      "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل
+      "image_url": "attachment:اسم_الصورة" , // لأسئلة الخرائط فقط عند استخدام صورة مرفقة
+      "correct_answer": ...  // للأنواع الأخرى: true/false، نص للإكمال، مصفوفة للترتيب، كائن key->value للتوصيل، وللخريطة: {"points":[{"label":"الموقع","x":50,"y":50,"tolerance":8}]}
     }
   ]
 }`;
@@ -63,7 +64,13 @@ ${SCHEMA_HINT}`;
     const textInstruction = [
       data.topic ? `الموضوع: ${data.topic}` : "",
       data.raw_text ? `المحتوى المرجعي:\n${data.raw_text.slice(0, 12000)}` : "",
-      data.attachments.length ? "استخرج النص من المرفقات (صور/PDF) إن وُجدت واستخدمه لإنشاء الأسئلة." : "",
+      data.attachments.length ? `استخرج النص من المرفقات (صور/PDF) إن وُجدت واستخدمه لإنشاء الأسئلة.\nالمرفقات المتاحة:\n${data.attachments.map((a, index) => `- ${index + 1}. ${a.name} (${a.kind})`).join("\n")}` : "",
+      data.question_types.includes("map") ? `تعليمات أسئلة الخرائط:
+- إذا وجدت خريطة في صورة مرفقة أو كان الموضوع مناسبًا للخرائط، أنشئ سؤالاً أو أكثر من النوع "map".
+- سؤال الخريطة يجب أن يحتوي image_url بقيمة "attachment:اسم_الصورة" عند استخدام صورة مرفقة.
+- استخدم إحداثيات نسبية على الخريطة من 0 إلى 100: x من اليمين/اليسار بصريًا داخل الصورة و y من أعلى الصورة إلى أسفلها.
+- correct_answer يجب أن يكون: {"points":[{"label":"اسم الموقع المطلوب","x":50,"y":50,"tolerance":8}]}.
+- لا تختر أسئلة خريطة إذا لم توجد صورة خريطة أو سياق جغرافي واضح.` : "",
       "أنشئ الآن الامتحان بصيغة JSON فقط.",
     ].filter(Boolean).join("\n\n");
     parts.push({ type: "text", text: textInstruction });
@@ -100,20 +107,48 @@ ${SCHEMA_HINT}`;
     if (!questions.length) throw new Error("لم يتم توليد أي أسئلة. حاول تعديل المدخلات.");
 
     // Normalize
-    const normalized = questions.map((q: any, i: number) => ({
-      type: q.type ?? "mcq",
-      text: q.text ?? "",
-      points: Number(q.points ?? data.points_per_question) || data.points_per_question,
-      explanation: q.explanation ?? null,
-      difficulty: q.difficulty ?? null,
-      order_index: i,
-      correct_answer: q.correct_answer ?? null,
-      options: Array.isArray(q.options) ? q.options.map((o: any, oi: number) => ({
-        text: String(o.text ?? ""),
-        is_correct: !!o.is_correct,
-        order_index: oi,
-      })) : [],
-    }));
+    const imageAttachments = data.attachments.filter((att) => att.kind === "image");
+    const resolveImageUrl = (value: unknown) => {
+      if (typeof value === "string" && value.startsWith("data:")) return value;
+      if (typeof value === "string" && value.startsWith("attachment:")) {
+        const name = value.replace(/^attachment:/, "").trim();
+        return imageAttachments.find((att) => att.name === name)?.data_url ?? imageAttachments[0]?.data_url ?? null;
+      }
+      return typeof value === "string" && value.trim() ? value : null;
+    };
+
+    const normalizeMapAnswer = (answer: any) => {
+      const points = Array.isArray(answer?.points) ? answer.points : Array.isArray(answer) ? answer : [];
+      const clean = points
+        .map((p: any) => ({
+          label: String(p?.label ?? "الموقع الصحيح"),
+          x: Math.max(0, Math.min(100, Number(p?.x ?? 50))),
+          y: Math.max(0, Math.min(100, Number(p?.y ?? 50))),
+          tolerance: Math.max(3, Math.min(20, Number(p?.tolerance ?? 8))),
+        }))
+        .filter((p: any) => Number.isFinite(p.x) && Number.isFinite(p.y));
+      return { points: clean.length ? clean : [{ label: "الموقع الصحيح", x: 50, y: 50, tolerance: 8 }] };
+    };
+
+    const normalized = questions.map((q: any, i: number) => {
+      const type = data.question_types.includes(q.type) ? q.type : "mcq";
+      const imageUrl = resolveImageUrl(q.image_url) ?? (type === "map" ? imageAttachments[0]?.data_url ?? null : null);
+      return {
+        type,
+        text: q.text ?? "",
+        image_url: imageUrl,
+        points: Number(q.points ?? data.points_per_question) || data.points_per_question,
+        explanation: q.explanation ?? null,
+        difficulty: q.difficulty ?? null,
+        order_index: i,
+        correct_answer: type === "map" ? normalizeMapAnswer(q.correct_answer) : q.correct_answer ?? null,
+        options: Array.isArray(q.options) ? q.options.map((o: any, oi: number) => ({
+          text: String(o.text ?? ""),
+          is_correct: !!o.is_correct,
+          order_index: oi,
+        })) : [],
+      };
+    });
 
     // Enforce total_score exactly if provided (scale then round to 0.5, fix drift on last question)
     if (data.total_score && data.total_score > 0 && normalized.length > 0) {
