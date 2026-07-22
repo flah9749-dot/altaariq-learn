@@ -385,6 +385,8 @@ function ExamEditor() {
                         imageUrl={q.image_url}
                         points={getMapPoints(q.correct_answer)}
                         onPick={(x, y) => updateQ(i, { correct_answer: addMapPoint(q.correct_answer, x, y) })}
+                        onMove={(pi, x, y) => updateQ(i, { correct_answer: setMapPoint(q.correct_answer, pi, { x, y }) })}
+                        onRemove={(pi) => updateQ(i, { correct_answer: removeMapPoint(q.correct_answer, pi) })}
                       />
                     ) : (
                       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">ارفع صورة خريطة ثم اضغط على المواقع المطلوبة لإضافتها.</div>
