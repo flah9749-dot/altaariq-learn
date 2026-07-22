@@ -1,9 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported, deleteToken } from "firebase/messaging";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { firebaseConfig, VAPID_KEY } from "./firebase-config";
 import { getFirebaseApiKey } from "./firebase-config.functions";
+
 
 let cachedApiKey: string | null = null;
 async function resolveApiKey(): Promise<string> {
