@@ -26,7 +26,14 @@ import { QUESTION_TYPES, type QuestionType, type MapSubQuestion } from "@/lib/ex
 import { MapPointQuestions } from "@/components/exams/MapPointQuestions";
 
 export const Route = createFileRoute("/admin/exams/$id")({
-  head: () => ({ meta: [{ title: "تعديل الامتحان" }] }),
+  head: () => ({ meta: [
+    { title: "تعديل الامتحان — الطارق التعليمية" },
+    { name: "description", content: "تحرير إعدادات وأسئلة امتحانات منصة الطارق التعليمية." },
+    { property: "og:title", content: "تعديل الامتحان — الطارق التعليمية" },
+    { property: "og:description", content: "تحرير إعدادات وأسئلة امتحانات منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ExamEditor,
 });
 

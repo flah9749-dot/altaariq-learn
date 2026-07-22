@@ -21,7 +21,14 @@ import { autoBuildMapPage, createMapExam } from "@/lib/map-exam.functions";
 import type { MapSubQuestion } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/admin/exams/map/new")({
-  head: () => ({ meta: [{ title: "امتحان خرائط ذكي — إنشاء" }] }),
+  head: () => ({ meta: [
+    { title: "إنشاء امتحان خرائط ذكي — الطارق التعليمية" },
+    { name: "description", content: "إنشاء امتحانات خرائط تفاعلية للطلاب مع نقاط مرقمة واستهداف الصفوف والمجموعات." },
+    { property: "og:title", content: "إنشاء امتحان خرائط ذكي — الطارق التعليمية" },
+    { property: "og:description", content: "إنشاء امتحانات خرائط تفاعلية للطلاب مع نقاط مرقمة واستهداف الصفوف والمجموعات." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: NewMapExamPage,
 });
 

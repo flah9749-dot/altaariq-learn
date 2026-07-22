@@ -20,7 +20,14 @@ import { startAttempt, saveAnswer, submitAttempt, recordLeave, saveReviewMarks }
 import { formatDuration } from "@/lib/exam-utils";
 
 export const Route = createFileRoute("/student/exams/$id/take")({
-  head: () => ({ meta: [{ title: "أداء الامتحان" }] }),
+  head: () => ({ meta: [
+    { title: "أداء الامتحان — الطارق التعليمية" },
+    { name: "description", content: "واجهة أداء امتحانات الطالب في منصة الطارق التعليمية." },
+    { property: "og:title", content: "أداء الامتحان — الطارق التعليمية" },
+    { property: "og:description", content: "واجهة أداء امتحانات الطالب في منصة الطارق التعليمية." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: TakeExamPage,
 });
 
