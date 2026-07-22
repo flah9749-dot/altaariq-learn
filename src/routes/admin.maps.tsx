@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Map, Plus, Trash2, Search, ImagePlus, Save } from "lucide-react";
+import { Map, Plus, Trash2, Search, ImagePlus, Save, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { listMapTemplates, upsertMapTemplate, deleteMapTemplate } from "@/lib/map-templates.functions";
+import { analyzeMapImage } from "@/lib/ai-map.functions";
+import { InteractiveMapEditor, type MapEditorPoint } from "@/components/maps/InteractiveMapEditor";
 
 export const Route = createFileRoute("/admin/maps")({
   head: () => ({
@@ -40,9 +42,12 @@ function MapsLibrary() {
   const listFn = useServerFn(listMapTemplates);
   const saveFn = useServerFn(upsertMapTemplate);
   const delFn = useServerFn(deleteMapTemplate);
+  const analyzeFn = useServerFn(analyzeMapImage);
   const [search, setSearch] = useState("");
   const [openEditor, setOpenEditor] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [aiFocus, setAiFocus] = useState("");
+  const [aiMaxPoints, setAiMaxPoints] = useState(8);
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["map-templates"],
@@ -72,6 +77,41 @@ function MapsLibrary() {
     mutationFn: async (id: string) => delFn({ data: { id } }),
     onSuccess: () => { toast.success("تم الحذف"); qc.invalidateQueries({ queryKey: ["map-templates"] }); },
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
+  });
+
+  const analyzeMut = useMutation({
+    mutationFn: async () => {
+      if (!editing?.image_url || editing.image_url === "...") throw new Error("ارفع صورة الخريطة أولاً");
+      // AI needs a data URL (or a publicly reachable URL). Data URLs work best here.
+      if (!/^data:image\//i.test(editing.image_url) && !/^https?:\/\//i.test(editing.image_url)) {
+        throw new Error("صيغة الصورة غير مدعومة");
+      }
+      return analyzeFn({
+        data: {
+          image_data_url: editing.image_url,
+          language: "ar" as const,
+          max_points: aiMaxPoints,
+          focus: aiFocus.trim(),
+        },
+      });
+    },
+    onSuccess: (res: any) => {
+      const detected: MapEditorPoint[] = (res.points ?? []).map((p: any) => ({
+        label: p.label ?? "",
+        prompt: p.prompt ?? "",
+        hint: p.hint ?? "",
+        x: p.x, y: p.y,
+      }));
+      // Merge with existing (replace all — AI mode is a fresh analysis)
+      setEditing((prev: any) => ({
+        ...prev,
+        title: prev.title?.trim() ? prev.title : (res.title ?? prev.title),
+        description: prev.description?.trim() ? prev.description : (res.summary ?? prev.description),
+        points: detected,
+      }));
+      toast.success(`تم تحليل الخريطة وتحديد ${detected.length} موقعًا. عدّل أيًا منها قبل الحفظ.`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل التحليل بالذكاء الاصطناعي"),
   });
 
   const openNew = () => { setEditing({ title: "", category: "", description: "", image_url: "", points: [] }); setOpenEditor(true); };
@@ -127,8 +167,8 @@ function MapsLibrary() {
         </div>
       )}
 
-      <Dialog open={openEditor} onOpenChange={(v) => { setOpenEditor(v); if (!v) setEditing(null); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={openEditor} onOpenChange={(v) => { setOpenEditor(v); if (!v) { setEditing(null); setAiFocus(""); } }}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing?.id ? "تعديل قالب الخريطة" : "قالب خريطة جديد"}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-3">
@@ -154,29 +194,39 @@ function MapsLibrary() {
                     </label>
                   </Button>
                 </div>
-                {editing.image_url && editing.image_url !== "..." && <img src={editing.image_url} alt="preview" className="max-h-56 rounded border" />}
               </div>
 
-              <div className="space-y-2 border rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <Label>النقاط ({editing.points.length})</Label>
-                  <Button size="sm" variant="outline" onClick={() => setEditing({ ...editing, points: [...editing.points, { label: `الموقع ${editing.points.length + 1}`, prompt: "", x: 50, y: 50 }] })}>
-                    <Plus className="h-3 w-3 ml-1" />نقطة
-                  </Button>
-                </div>
-                {editing.points.map((p: any, i: number) => (
-                  <div key={i} className="grid gap-2 md:grid-cols-[32px_1fr_1fr_80px_80px_auto] items-center border rounded p-2 bg-background">
-                    <Badge variant="outline" className="justify-center">{i + 1}</Badge>
-                    <Input placeholder="السؤال (اختياري)" value={p.prompt ?? ""} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], prompt: e.target.value }; setEditing({ ...editing, points: n }); }} />
-                    <Input placeholder="الإجابة" value={p.label ?? ""} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], label: e.target.value }; setEditing({ ...editing, points: n }); }} />
-                    <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], x: Number(e.target.value) }; setEditing({ ...editing, points: n }); }} />
-                    <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], y: Number(e.target.value) }; setEditing({ ...editing, points: n }); }} />
-                    <Button size="icon" variant="ghost" onClick={() => setEditing({ ...editing, points: editing.points.filter((_: any, k: number) => k !== i) })}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+              {editing.image_url && editing.image_url !== "..." && (
+                <>
+                  {/* AI Analysis panel */}
+                  <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <Label className="font-semibold">تحليل الخريطة بالذكاء الاصطناعي</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      يحلل الذكاء الاصطناعي صورة الخريطة، يتعرّف على المعالم الجغرافية، ويضع العلامات المرقمة تلقائيًا مع اقتراح سؤال وإجابة لكل معلم. جميع النتائج قابلة للتعديل قبل الحفظ.
+                    </p>
+                    <div className="grid gap-2 md:grid-cols-[1fr_140px_auto]">
+                      <Input value={aiFocus} onChange={(e) => setAiFocus(e.target.value)} placeholder="التركيز (اختياري): مثال — الجبال والأنهار فقط" />
+                      <Input type="number" min={2} max={25} value={aiMaxPoints} onChange={(e) => setAiMaxPoints(Math.max(2, Math.min(25, Number(e.target.value) || 8)))} placeholder="عدد النقاط" />
+                      <Button onClick={() => analyzeMut.mutate()} disabled={analyzeMut.isPending}>
+                        {analyzeMut.isPending ? <><Loader2 className="h-4 w-4 ml-1 animate-spin" />جارِ التحليل...</> : <><Sparkles className="h-4 w-4 ml-1" />تحليل الخريطة</>}
+                      </Button>
+                    </div>
+                    {editing.points?.length > 0 && (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">⚠️ إعادة التحليل ستستبدل النقاط الحالية.</p>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Interactive visual editor */}
+                  <InteractiveMapEditor
+                    imageUrl={editing.image_url}
+                    points={editing.points ?? []}
+                    onChange={(next) => setEditing({ ...editing, points: next })}
+                  />
+                </>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -200,3 +250,4 @@ function MapsLibrary() {
     </div>
   );
 }
+
