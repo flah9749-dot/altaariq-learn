@@ -34,10 +34,11 @@ export function getPermission(): NotificationPermission | "unsupported" {
 }
 
 const LOCAL_DISABLED_KEY = "push_locally_disabled_v1";
+const FCM_SCOPE = "/firebase-cloud-messaging-push-scope/";
 export function isLocallyDisabled(): boolean {
   try { return typeof window !== "undefined" && localStorage.getItem(LOCAL_DISABLED_KEY) === "1"; } catch { return false; }
 }
-function setLocallyDisabled(v: boolean) {
+export function setPushLocallyDisabled(v: boolean) {
   try {
     if (typeof window === "undefined") return;
     if (v) localStorage.setItem(LOCAL_DISABLED_KEY, "1");
@@ -48,10 +49,9 @@ function setLocallyDisabled(v: boolean) {
 async function registerSW(): Promise<ServiceWorkerRegistration> {
   const apiKey = await resolveApiKey();
   const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`;
-  const scope = "/firebase-cloud-messaging-push-scope";
-  const reg =
-    (await navigator.serviceWorker.getRegistration(scope)) ??
-    (await navigator.serviceWorker.register(swUrl, { scope }));
+  // Always call register with the current URL so older devices update away from
+  // stale workers that were installed with an old/missing Firebase apiKey.
+  const reg = await navigator.serviceWorker.register(swUrl, { scope: FCM_SCOPE });
   // getToken/PushManager.subscribe require an ACTIVE service worker.
   if (!reg.active) {
     await new Promise<void>((resolve) => {
@@ -70,12 +70,28 @@ async function registerSW(): Promise<ServiceWorkerRegistration> {
   return reg;
 }
 
+async function getExistingSW(): Promise<ServiceWorkerRegistration | undefined> {
+  try { return await navigator.serviceWorker.getRegistration(FCM_SCOPE); } catch { return undefined; }
+}
+
 async function saveToken(userId: string, token: string) {
   const { error } = await supabase.from("push_tokens").upsert(
     { user_id: userId, token, platform: "web", user_agent: navigator.userAgent, last_seen: new Date().toISOString() },
     { onConflict: "user_id,token" },
   );
   if (error) throw new Error(`تعذّر حفظ جهاز الإشعارات: ${error.message}`);
+}
+
+export async function hasSavedPushDevice(userId: string): Promise<boolean> {
+  if (!userId || typeof navigator === "undefined") return false;
+  const { data, error } = await supabase
+    .from("push_tokens")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("user_agent", navigator.userAgent)
+    .limit(1);
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
 }
 
 /** Request permission and register the current device for push. Returns the FCM token or null. */
@@ -89,11 +105,11 @@ export async function enablePush(userId: string): Promise<string | null> {
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (!token) { toast.error("تعذّر الحصول على توكن الإشعارات"); return null; }
     await saveToken(userId, token);
-    setLocallyDisabled(false);
+    setPushLocallyDisabled(false);
     // Foreground handler — show toast instead of native notification
     onMessage(messaging, (payload) => {
-      const t = payload.notification?.title ?? "إشعار جديد";
-      const b = payload.notification?.body ?? "";
+      const t = payload.notification?.title ?? payload.data?.title ?? "إشعار جديد";
+      const b = payload.notification?.body ?? payload.data?.body ?? "";
       toast(t, { description: b });
     });
     toast.success("تم تفعيل إشعارات Push على هذا الجهاز");
@@ -115,8 +131,8 @@ export async function bootPushIfEnabled(userId: string) {
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (token) await saveToken(userId, token);
     onMessage(messaging, (payload) => {
-      const t = payload.notification?.title ?? "إشعار جديد";
-      const b = payload.notification?.body ?? "";
+      const t = payload.notification?.title ?? payload.data?.title ?? "إشعار جديد";
+      const b = payload.notification?.body ?? payload.data?.body ?? "";
       toast(t, { description: b });
     });
   } catch (e: any) {
@@ -126,11 +142,13 @@ export async function bootPushIfEnabled(userId: string) {
 
 /** Disable push on this device: delete FCM token locally and remove it from the DB. */
 export async function disablePush(userId: string): Promise<boolean> {
+  setPushLocallyDisabled(true);
   try {
     let currentToken: string | null = null;
     if (await isPushSupported()) {
       try {
-        const reg = await registerSW();
+        const reg = await getExistingSW();
+        if (!reg) throw new Error("no existing push worker");
         const messaging = getMessaging(await app());
         try {
           currentToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
@@ -148,7 +166,6 @@ export async function disablePush(userId: string): Promise<boolean> {
       // Fallback: remove all tokens saved from this browser (best effort).
       await supabase.from("push_tokens").delete().eq("user_id", userId).eq("user_agent", navigator.userAgent);
     }
-    setLocallyDisabled(true);
     toast.success("تم إيقاف الإشعارات على هذا الجهاز");
     return true;
   } catch (e: any) {
