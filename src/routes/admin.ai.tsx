@@ -87,7 +87,26 @@ function AIManagementPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ai-providers"] }); },
   });
 
-  const missingKeys = PROVIDERS.filter(p => keyStatus && !keyStatus[p.slug]).length;
+  const saveKeyMut = useMutation({
+    mutationFn: async (v: { slug: string; key: string }) => saveKeyFn({ data: { slug: v.slug as any, key: v.key } }),
+    onSuccess: (_r, v) => {
+      toast.success("✅ تم حفظ المفتاح");
+      setEditing((s) => { const c = { ...s }; delete c[v.slug]; return c; });
+      qc.invalidateQueries({ queryKey: ["ai-keys-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل حفظ المفتاح"),
+  });
+
+  const deleteKeyMut = useMutation({
+    mutationFn: async (slug: string) => deleteKeyFn({ data: { slug: slug as any } }),
+    onSuccess: () => {
+      toast.success("تم حذف المفتاح المخصص");
+      qc.invalidateQueries({ queryKey: ["ai-keys-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
+  });
+
+  const missingKeys = PROVIDERS.filter(p => keyStatus && !keyStatus[p.slug]?.ok).length;
 
   return (
     <div className="space-y-6">
