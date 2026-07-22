@@ -166,26 +166,43 @@ export async function exportExamToPdf(opts: ExamPdfOptions) {
   ].join(";");
 
   const header = `
-    <div style="border-bottom:3px solid #b58900;padding-bottom:12px;margin-bottom:18px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div>
-          <div style="font-size:13px;color:#64748b;">منصة الطارق التعليمية — الدراسات الاجتماعية</div>
-          <h1 style="font-size:22px;font-weight:800;margin:6px 0 4px;color:#0f172a;">${escapeHtml(opts.title)}</h1>
-          ${opts.subtitle ? `<div style="font-size:13px;color:#475569;">${escapeHtml(opts.subtitle)}</div>` : ""}
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-radius:12px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #b58900;flex-shrink:0;">
+            <img src="/icon-192.png" alt="شعار المنصة" crossorigin="anonymous" style="width:100%;height:100%;object-fit:contain;" />
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:#f5deb3;letter-spacing:0.5px;">منصة الطارق التعليمية</div>
+            <div style="font-size:12px;color:#cbd5e1;margin-top:2px;">الدراسات الاجتماعية — تاريخ · جغرافيا · مواطنة</div>
+          </div>
         </div>
-        <div style="text-align:left;font-size:12px;color:#334155;">
-          <div>عدد الأسئلة: <b>${opts.questions.length}</b></div>
-          ${showPoints ? `<div>الدرجة الكلية: <b>${total}</b></div>` : ""}
-          ${showAnswers ? `<div style="color:#dc2626;font-weight:800;margin-top:4px;">نموذج الإجابة</div>` : ""}
+        <div style="text-align:left;font-size:11px;color:#e2e8f0;line-height:1.6;">
+          <div>📅 ${new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}</div>
+          ${showAnswers ? `<div style="margin-top:4px;padding:3px 10px;background:#dc2626;color:#fff;border-radius:999px;font-weight:800;font-size:11px;text-align:center;">نموذج الإجابة</div>` : `<div style="margin-top:4px;padding:3px 10px;background:#b58900;color:#0f172a;border-radius:999px;font-weight:800;font-size:11px;text-align:center;">ورقة الامتحان</div>`}
         </div>
       </div>
+
+      <div style="margin-top:14px;padding:12px 16px;background:#fbfaf6;border:1px solid #e2e8f0;border-right:4px solid #b58900;border-radius:10px;">
+        <h1 style="font-size:20px;font-weight:800;margin:0 0 4px;color:#0f172a;">${escapeHtml(opts.title)}</h1>
+        ${opts.subtitle ? `<div style="font-size:13px;color:#475569;margin-bottom:6px;">${escapeHtml(opts.subtitle)}</div>` : ""}
+        <div style="display:flex;gap:16px;font-size:12px;color:#334155;margin-top:6px;flex-wrap:wrap;">
+          <div>📝 عدد الأسئلة: <b style="color:#0f172a;">${opts.questions.length}</b></div>
+          ${showPoints ? `<div>⭐ الدرجة الكلية: <b style="color:#b58900;">${total}</b></div>` : ""}
+        </div>
+      </div>
+
       ${!showAnswers ? `
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:13px;">
-        <div style="flex:1;min-width:180px;">الاسم: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:180px;">&nbsp;</span></div>
-        <div style="min-width:140px;">الصف/المجموعة: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:120px;">&nbsp;</span></div>
-        <div style="min-width:120px;">التاريخ: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:100px;">&nbsp;</span></div>
-        <div style="min-width:120px;">الدرجة: <span style="display:inline-block;border:1px solid #94a3b8;border-radius:6px;padding:2px 12px;">&nbsp;/ ${total}</span></div>
-      </div>` : ""}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;font-size:13px;">
+        <div style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">الاسم: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:180px;">&nbsp;</span></div>
+        <div style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">الصف/المجموعة: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:140px;">&nbsp;</span></div>
+        <div style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">التاريخ: <span style="display:inline-block;border-bottom:1px solid #94a3b8;min-width:120px;">&nbsp;</span></div>
+        <div style="padding:8px 12px;border:1px solid #b58900;border-radius:8px;background:#fefce8;font-weight:700;">الدرجة: <span style="display:inline-block;border:1px solid #b58900;border-radius:6px;padding:2px 14px;background:#fff;margin-inline-start:6px;">&nbsp;/ ${total}</span></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;background:#eff6ff;border-right:3px solid #2563eb;border-radius:8px;font-size:12px;color:#1e3a8a;">
+        <b>تعليمات:</b> اقرأ كل سؤال جيدًا قبل الإجابة. أجب بخط واضح، واحرص على تنظيم إجاباتك.
+      </div>
+      ` : ""}
     </div>
   `;
 
