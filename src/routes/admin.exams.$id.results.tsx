@@ -379,11 +379,17 @@ function ExamResultsPage() {
                   {a.awarded_points != null && <span className="mr-auto text-sm font-medium">{a.awarded_points}/{questionPoints}</span>}
                 </div>
                 <p className="font-medium text-sm mb-1">{a.questions?.text}</p>
-                {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mb-2 max-h-64 rounded-lg border" />}
-                <div className="text-sm bg-muted/50 p-2 rounded">
-                  <span className="text-xs text-muted-foreground">إجابة الطالب: </span>
-                  <span>{formatAnswer(a.answer, a.questions)}</span>
-                </div>
+                {a.questions?.type === "map" ? (
+                  <MapAnswerReview question={a.questions} answer={a.answer} />
+                ) : (
+                  <>
+                    {a.questions?.image_url && <img src={a.questions.image_url} alt="صورة السؤال" className="mb-2 max-h-64 rounded-lg border" />}
+                    <div className="text-sm bg-muted/50 p-2 rounded">
+                      <span className="text-xs text-muted-foreground">إجابة الطالب: </span>
+                      <span>{formatAnswer(a.answer, a.questions)}</span>
+                    </div>
+                  </>
+                )}
                 {a.ai_feedback && (
                   <div className="mt-2 p-2 rounded bg-primary/5 border border-primary/20 text-xs">
                     <Sparkles className="h-3 w-3 inline ml-1 text-primary" />
