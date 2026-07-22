@@ -33,6 +33,18 @@ export function getPermission(): NotificationPermission | "unsupported" {
   return Notification.permission;
 }
 
+const LOCAL_DISABLED_KEY = "push_locally_disabled_v1";
+export function isLocallyDisabled(): boolean {
+  try { return typeof window !== "undefined" && localStorage.getItem(LOCAL_DISABLED_KEY) === "1"; } catch { return false; }
+}
+function setLocallyDisabled(v: boolean) {
+  try {
+    if (typeof window === "undefined") return;
+    if (v) localStorage.setItem(LOCAL_DISABLED_KEY, "1");
+    else localStorage.removeItem(LOCAL_DISABLED_KEY);
+  } catch {}
+}
+
 async function registerSW(): Promise<ServiceWorkerRegistration> {
   const apiKey = await resolveApiKey();
   const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}`;
