@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
-  KeyRound, Copy, Check, RefreshCw, Eye, IdCard,
+  KeyRound, Copy, Check, RefreshCw, Eye, IdCard, Plus, Minus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { StudentCardDialog } from "@/components/students/StudentCardDialog";
 import { resetStudentPassword } from "@/lib/students.functions";
+import { awardPoints } from "@/lib/gamification";
 import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
 export const Route = createFileRoute("/admin/students/$id")({
