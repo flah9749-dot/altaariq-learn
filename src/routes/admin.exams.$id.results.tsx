@@ -26,7 +26,7 @@ import {
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import {
-  gradeEssay, approveAttempt, updateAttemptScore, reopenAttempt, aiSuggestEssayGrade, sendWhatsAppLog,
+  gradeEssay, approveAttempt, updateAttemptScore, regradeAttempt, reopenAttempt, aiSuggestEssayGrade, sendWhatsAppLog,
 } from "@/lib/exams.functions";
 import { computeGrade, formatDuration } from "@/lib/exam-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
@@ -50,6 +50,7 @@ function ExamResultsPage() {
   const gradeFn = useServerFn(gradeEssay);
   const approveFn = useServerFn(approveAttempt);
   const updateFn = useServerFn(updateAttemptScore);
+  const regradeFn = useServerFn(regradeAttempt);
   const reopenFn = useServerFn(reopenAttempt);
   const aiFn = useServerFn(aiSuggestEssayGrade);
   const waLogFn = useServerFn(sendWhatsAppLog);
@@ -160,6 +161,12 @@ function ExamResultsPage() {
     mutationFn: async () => updateFn({ data: { attempt_id: editScore!.id, score: Number(editScore!.value), admin_notes: editScore!.notes || null } }),
     onSuccess: () => { toast.success("تم تحديث الدرجة"); invalidateAll(); setEditScore(null); },
     onError: (e: any) => toast.error(e?.message ?? "فشل التعديل"),
+  });
+
+  const regrade = useMutation({
+    mutationFn: async (attemptId: string) => regradeFn({ data: { attempt_id: attemptId } }),
+    onSuccess: (r: any) => { toast.success(`تمت إعادة التصحيح — ${r.score}/${r.total}`); invalidateAll(); openReviewRefresh(); },
+    onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التصحيح"),
   });
 
   const rows = (attempts ?? []).map((a: any, i: number) => ({
@@ -291,6 +298,11 @@ function ExamResultsPage() {
                         <Button size="sm" variant="outline" onClick={() => openReview(a)} title="مراجعة">
                           <FileEdit className="h-3 w-3" />
                         </Button>
+                        {!a.approved && a.status !== "in_progress" && (
+                          <Button size="sm" variant="ghost" onClick={() => regrade.mutate(a.id)} disabled={regrade.isPending} title="إعادة التصحيح التلقائي">
+                            <Sparkles className="h-3 w-3" />
+                          </Button>
+                        )}
                         {!a.approved && a.status !== "in_progress" && (
                           <Button size="sm" variant="default" onClick={() => { setApproving(a); setAdminNotes(a.admin_notes ?? ""); }} title="اعتماد">
                             <ShieldCheck className="h-3 w-3" />

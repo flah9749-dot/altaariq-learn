@@ -602,6 +602,66 @@ export const updateAttemptScore = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const regradeAttempt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: att, error: aErr } = await supabaseAdmin.from("exam_attempts")
+      .select("id,exam_id,student_id,started_at,status,approved,submitted_at")
+      .eq("id", data.attempt_id)
+      .maybeSingle();
+    if (aErr || !att) throw new Error("المحاولة غير موجودة");
+    if (att.status === "in_progress") throw new Error("لا يمكن تصحيح محاولة لم يتم تسليمها بعد");
+    if (att.approved) throw new Error("لا يمكن إعادة تصحيح نتيجة معتمدة، افتحها للتعديل أولًا");
+
+    const { data: questions } = await supabaseAdmin.from("questions")
+      .select("id,type,points,correct_answer,question_options(id,is_correct)")
+      .eq("exam_id", att.exam_id);
+    const { data: answers } = await supabaseAdmin.from("attempt_answers")
+      .select("question_id,answer")
+      .eq("attempt_id", att.id);
+    const ansMap = new Map((answers ?? []).map((a: any) => [a.question_id, a.answer]));
+
+    let score = 0, total = 0, needsReview = false;
+    for (const q of questions ?? []) {
+      total += Number(q.points) || 0;
+      const ans = ansMap.get(q.id);
+      if (q.type === "essay") {
+        needsReview = true;
+        await supabaseAdmin.from("attempt_answers").upsert({
+          attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+          is_correct: null, awarded_points: null,
+        }, { onConflict: "attempt_id,question_id" });
+        continue;
+      }
+      const ev = evaluateObjective(q, ans);
+      score += ev.points;
+      if (ev.needsReview) needsReview = true;
+      await supabaseAdmin.from("attempt_answers").upsert({
+        attempt_id: att.id, question_id: q.id, answer: ans ?? null,
+        is_correct: ev.needsReview ? null : ev.correct,
+        awarded_points: ev.points,
+      }, { onConflict: "attempt_id,question_id" });
+    }
+
+    const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
+    await supabaseAdmin.from("exam_attempts").update({
+      status: needsReview ? "submitted" : "graded",
+      submitted_at: att.submitted_at ?? new Date().toISOString(),
+      score, total, percentage: pct, grade: computeGrade(pct),
+      needs_review: needsReview,
+    }).eq("id", att.id);
+
+    await supabaseAdmin.from("results")
+      .update({ score, total })
+      .eq("exam_id", att.exam_id)
+      .eq("student_id", att.student_id);
+    await logActivity(supabaseAdmin, context.userId, "regrade_attempt", "exam_attempt", att.id, { score, total, percentage: pct });
+    return { ok: true, score, total, percentage: pct, needs_review: needsReview };
+  });
+
 export const reopenAttempt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(data))
