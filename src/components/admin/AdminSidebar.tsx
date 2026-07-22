@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Archive, HeartPulse, ClipboardCheck,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Archive, HeartPulse, ClipboardCheck, Map,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
