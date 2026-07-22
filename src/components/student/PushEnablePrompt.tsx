@@ -18,6 +18,7 @@ export function PushEnablePrompt() {
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [locallyDisabled, setLocallyDisabled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +46,7 @@ export function PushEnablePrompt() {
   if (!supported || !user) return null;
 
   // Already enabled — show a small "disable" chip.
-  if (perm === "granted") {
+  if (perm === "granted" && !locallyDisabled) {
     return (
       <div className="mx-auto mb-3 flex max-w-6xl items-center justify-end">
         <Button
@@ -54,15 +55,25 @@ export function PushEnablePrompt() {
           disabled={loading}
           onClick={async () => {
             setLoading(true);
+            // Safety timeout so the UI never gets stuck on "جارٍ الإيقاف..."
+            const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 8000));
             try {
               const { disablePush } = await import("@/lib/push-notifications");
-              const ok = await disablePush(user.id);
+              const ok = await Promise.race([disablePush(user.id), timeout]);
+              try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
+              setLocallyDisabled(true);
+              setDismissed(true);
               if (ok) {
-                try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
-                setDismissed(true);
                 toast.message("لإعادة التفعيل لاحقاً، اسمح بالإشعارات من إعدادات المتصفح.");
+              } else {
+                toast.message("تم إيقاف الإشعارات على هذا الجهاز.");
               }
-            } finally { setLoading(false); }
+            } catch (e: any) {
+              setLocallyDisabled(true);
+              toast.error(e?.message ?? "تعذّر إيقاف الإشعارات");
+            } finally {
+              setLoading(false);
+            }
           }}
           className="gap-2"
         >
