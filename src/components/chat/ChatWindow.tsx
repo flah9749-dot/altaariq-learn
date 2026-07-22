@@ -22,11 +22,13 @@ interface Props {
   peerSubtitle?: string;
   headerRight?: React.ReactNode;
   templateVars?: TemplateVars; // for template substitutions
-  /** Optional extra peer user_ids to include in the same thread view (e.g. other admins). */
+  /** Optional extra peer user_ids to include in the same thread view (e.g. other admins on the student side). */
   extraPeerIds?: string[];
+  /** Optional extra "me" user_ids — messages from/to any of these ids are considered part of my side (e.g. other admin accounts sharing the same student thread). */
+  selfPeerIds?: string[];
 }
 
-export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templateVars, extraPeerIds }: Props) {
+export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templateVars, extraPeerIds, selfPeerIds }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,18 +47,24 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
     const set = new Set<string>([peerId, ...(extraPeerIds ?? [])].filter(Boolean));
     return Array.from(set);
   }, [peerId, extraPeerIds]);
+  const allSelfIds = useMemo(() => {
+    const set = new Set<string>([user?.id, ...(selfPeerIds ?? [])].filter(Boolean) as string[]);
+    return Array.from(set);
+  }, [user?.id, selfPeerIds]);
   const peerKey = allPeerIds.slice().sort().join(",");
+  const selfKey = allSelfIds.slice().sort().join(",");
 
-  const key = ["thread", user?.id, peerKey];
+  const key = ["thread", selfKey, peerKey];
 
   const { data: messages, isLoading, error: messagesError } = useQuery({
     queryKey: key,
-    enabled: !!user && allPeerIds.length > 0,
+    enabled: !!user && allPeerIds.length > 0 && allSelfIds.length > 0,
     queryFn: async () => {
-      const list = allPeerIds.map((p) => `"${p}"`).join(",");
+      const peers = allPeerIds.map((p) => `"${p}"`).join(",");
+      const selves = allSelfIds.map((p) => `"${p}"`).join(",");
       const { data, error } = await supabase.from("messages")
         .select("*")
-        .or(`and(sender_id.eq.${user!.id},recipient_id.in.(${list})),and(recipient_id.eq.${user!.id},sender_id.in.(${list}))`)
+        .or(`and(sender_id.in.(${selves}),recipient_id.in.(${peers})),and(recipient_id.in.(${selves}),sender_id.in.(${peers}))`)
         .order("created_at", { ascending: true }).limit(500);
       if (error) throw error;
       return data ?? [];
@@ -70,14 +78,15 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
   // Realtime: incoming messages + read receipts
   useEffect(() => {
-    if (!user || allPeerIds.length === 0) return;
+    if (!user || allPeerIds.length === 0 || allSelfIds.length === 0) return;
     const peerSet = new Set(allPeerIds);
-    const ch = supabase.channel(`chat-${user.id}-${peerKey}`)
+    const selfSet = new Set(allSelfIds);
+    const ch = supabase.channel(`chat-${selfKey}-${peerKey}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         const m = payload.new as any;
         const involvesUs =
-          (m.sender_id === user.id && peerSet.has(m.recipient_id)) ||
-          (peerSet.has(m.sender_id) && m.recipient_id === user.id);
+          (selfSet.has(m.sender_id) && peerSet.has(m.recipient_id)) ||
+          (peerSet.has(m.sender_id) && selfSet.has(m.recipient_id));
         if (involvesUs) {
           qc.setQueryData<any[]>(key, (prev) => prev ? [...prev, m] : [m]);
           if (peerSet.has(m.sender_id)) readFn({ data: { peer_ids: allPeerIds } }).catch(() => {});
@@ -103,7 +112,8 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
 
     return () => { supabase.removeChannel(ch); supabase.removeChannel(presence); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, peerKey]);
+  }, [user?.id, peerKey, selfKey]);
+
 
   // Mark read when opening
   useEffect(() => {
