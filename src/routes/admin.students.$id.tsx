@@ -82,6 +82,24 @@ function StudentDetailPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
   });
 
+  const adjustPoints = useMutation({
+    mutationFn: async () => {
+      const delta = Math.trunc(Number(pointsDelta));
+      if (!Number.isFinite(delta) || delta === 0) throw new Error("أدخل قيمة صحيحة غير صفر");
+      const reason = pointsReason.trim() || (delta > 0 ? "تعديل يدوي — إضافة" : "تعديل يدوي — خصم");
+      await awardPoints({ studentId: id, points: delta, reason, kind: delta >= 0 ? "earn" : "deduct", refType: "manual" });
+    },
+    onSuccess: () => {
+      toast.success("تم تعديل النقاط");
+      setPointsOpen(false);
+      setPointsDelta("10");
+      setPointsReason("");
+      qc.invalidateQueries({ queryKey: ["student", id] });
+      qc.invalidateQueries({ queryKey: ["student-stats", id] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل تعديل النقاط"),
+  });
+
   async function copyCreds() {
     if (!creds && !student) return;
     const text = `الكود: ${student?.code}\n${creds?.password ? `كلمة المرور: ${creds.password}` : ""}`.trim();
