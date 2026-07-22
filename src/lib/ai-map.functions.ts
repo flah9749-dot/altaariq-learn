@@ -49,10 +49,22 @@ export const analyzeMapImage = createServerFn({ method: "POST" })
     const { callLovableChat, parseJsonLoose } = await import("./ai-gateway.server");
 
     const systemPrompt = `أنت خبير جغرافيا ومحلل خرائط ذكي لمنصة "الطارق التعليمية" (مادة الدراسات الاجتماعية).
-مهمتك: فحص صورة خريطة مرفوعة والتعرف بصريًا على المعالم (دول، عواصم، مدن، محيطات، بحار، أنهار، جبال، صحارى، حدود...)، ثم اقتراح ${data.max_points} نقاط بحد أقصى موزعة على المعالم البارزة.
+مهمتك: فحص صورة الخريطة والتعرف بصريًا على المعالم (دول، عواصم، مدن، محيطات، بحار، أنهار، جبال، صحارى، حدود...)، ثم اقتراح حتى ${data.max_points} نقاط.
 لغة الأسئلة: ${data.language === "ar" ? "العربية الفصحى" : "English"}.
 ${data.focus ? `ركّز على: ${data.focus}.` : ""}
-لكل معلم: ضع النقطة على موقعه الحقيقي في الصورة، واكتب سؤالًا واضحًا وإجابة قصيرة صحيحة.
+
+⚠️ قواعد الإحداثيات (بالغ الأهمية — دقتها أهم من عدد النقاط):
+- x = (المسافة الأفقية من الحافة اليسرى للصورة ÷ العرض الكلي للصورة) × 100.
+- y = (المسافة الرأسية من الحافة العلوية للصورة ÷ الارتفاع الكلي للصورة) × 100.
+- x=0 هي أقصى اليسار، x=100 أقصى اليمين. y=0 الأعلى، y=100 الأسفل. **لا تعكس المحاور**.
+- ضع الإحداثية على **مركز المعلم الفعلي داخل الصورة**، وليس على النص/الاسم المكتوب بجواره.
+- إذا كنت غير متأكد من الموقع الدقيق لمعلم معيّن، **احذفه ولا تخمّن**. جودة أفضل من كمية.
+- تحقّق ذهنيًا من كل نقطة قبل إخراجها: هل لو رسمت دائرة عندها ستقع بالفعل فوق المعلم؟
+
+📝 قواعد الأسئلة:
+- السؤال يجب أن يكون قابلاً للإجابة **دون قراءة أي نص مكتوب على الخريطة**، لأن أسماء الأماكن ستُخفى قبل عرضها للطالب.
+- الإجابة قصيرة (كلمة أو كلمتين).
+- ممنوع تكرار الإجابة أو الموقع، والمسافة بين أي نقطتين ≥ 10 وحدات.
 ${ANALYZE_SCHEMA}`;
 
     const content = await callLovableChat(
@@ -246,4 +258,49 @@ ${SCHEMA_HINT}`;
       points,
       points_per_question: data.points_per_question,
     };
+  });
+
+// ============================================================================
+// cleanMapImage — remove all text labels / place names from the map image
+// using Nano Banana image editing. Returns a data URL of the cleaned map so
+// students see a bare map without the answers written on it.
+// ============================================================================
+const CleanInput = z.object({
+  image_data_url: z.string().min(20),
+  extra_instruction: z.string().optional().default(""),
+});
+
+export const cleanMapImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CleanInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("مسموح للأدمن فقط");
+
+    const { editImageViaGateway } = await import("./ai-gateway.server");
+
+    const instruction = `Edit this map image: REMOVE every text label, place name, country name, city name, ocean name, river name, mountain name, legend text, compass rose text, scale bar text, and any written words or numbers that appear on the map — in every language (Arabic, English, or otherwise). Keep the geography, coastlines, borders, colors, terrain shading, rivers, and visual features exactly the same. Do NOT add new labels. Do NOT crop, rotate, or reframe the image — keep identical dimensions and composition so coordinates remain valid. Output only the cleaned map image.${data.extra_instruction ? ` Additional: ${data.extra_instruction}` : ""}`;
+
+    // Try Nano Banana first, fall back to the newer variant if available.
+    const models = [
+      "google/gemini-2.5-flash-image-preview",
+      "google/gemini-3.1-flash-image",
+      "google/gemini-3-pro-image",
+    ];
+    let cleaned: string | null = null;
+    for (const m of models) {
+      cleaned = await editImageViaGateway(instruction, data.image_data_url, { model: m });
+      if (cleaned) break;
+    }
+    if (!cleaned) throw new Error("تعذّر تنظيف الخريطة الآن. حاول مرة أخرى.");
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("ai_usage_logs").insert({ function_name: "clean_map_image", success: true });
+    } catch {}
+
+    return { image_data_url: cleaned };
   });
