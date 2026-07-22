@@ -301,34 +301,40 @@ function ExamResultsPage() {
                        : <Badge variant="outline">قيد الأداء</Badge>}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => openReview(a)} title="مراجعة">
-                          <FileEdit className="h-3 w-3" />
+                      <div className="flex gap-1 flex-wrap items-center">
+                        <Button size="sm" variant="default" onClick={() => openReview(a)} className="gap-1">
+                          <FileEdit className="h-3.5 w-3.5" />
+                          <span>مراجعة وتعديل</span>
                         </Button>
                         {!a.approved && a.status !== "in_progress" && (
-                          <Button size="sm" variant="ghost" onClick={() => regrade.mutate(a.id)} disabled={regrade.isPending} title="إعادة التصحيح التلقائي">
-                            <Sparkles className="h-3 w-3" />
+                          <Button size="sm" variant="secondary" onClick={() => regrade.mutate(a.id)} disabled={regrade.isPending} className="gap-1" title="إعادة التصحيح التلقائي بالمنطق الحالي">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            <span>إعادة تصحيح</span>
                           </Button>
                         )}
                         {!a.approved && a.status !== "in_progress" && (
-                          <Button size="sm" variant="default" onClick={() => { setApproving(a); setAdminNotes(a.admin_notes ?? ""); }} title="اعتماد">
-                            <ShieldCheck className="h-3 w-3" />
+                          <Button size="sm" variant="outline" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} className="gap-1" title="تعديل الدرجة الإجمالية يدويًا">
+                            <Save className="h-3.5 w-3.5" />
+                            <span>تعديل الدرجة</span>
                           </Button>
                         )}
                         {!a.approved && a.status !== "in_progress" && (
-                          <Button size="sm" variant="ghost" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} title="تعديل الدرجة الإجمالية">
-                            <Save className="h-3 w-3" />
+                          <Button size="sm" variant="outline" onClick={() => { setApproving(a); setAdminNotes(a.admin_notes ?? ""); }} className="gap-1 border-gold text-gold hover:bg-gold/10" title="اعتماد النتيجة نهائيًا ومنح النقاط">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>اعتماد</span>
                           </Button>
                         )}
                         {a.approved && (
-                          <Button size="sm" variant="destructive" onClick={() => setReopenTarget(a)} title="إعادة فتح">
-                            <RotateCcw className="h-3 w-3" />
+                          <Button size="sm" variant="ghost" onClick={() => setReopenTarget(a)} className="gap-1 text-destructive" title="إعادة فتح للتعديل">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span>إعادة فتح</span>
                           </Button>
                         )}
                         <WhatsAppButton phone={a.students?.parent_whatsapp ?? a.students?.parent_phone} template={pickResultTemplate(Number(a.percentage) || 0)} vars={waVars} size="icon" variant="ghost"
                           onClick={() => waLogFn({ data: { student_id: a.students?.id, exam_id: id } }).catch(() => {})} />
                       </div>
                     </TableCell>
+
                   </TableRow>
                 );
               })}
