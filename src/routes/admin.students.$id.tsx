@@ -267,6 +267,38 @@ function StudentDetailPage() {
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
       <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
+
+      <Dialog open={pointsOpen} onOpenChange={setPointsOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-gold" />تعديل نقاط الطالب</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted p-3 text-sm">
+              الرصيد الحالي: <b className="text-gold">{student.points}</b> نقطة
+            </div>
+            <div className="space-y-1.5">
+              <Label>القيمة (استخدم علامة سالب للخصم)</Label>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="icon" onClick={() => setPointsDelta(String(-Math.abs(Number(pointsDelta) || 0)))}><Minus className="h-4 w-4" /></Button>
+                <Input type="number" value={pointsDelta} onChange={(e) => setPointsDelta(e.target.value)} className="text-center font-bold" />
+                <Button type="button" variant="outline" size="icon" onClick={() => setPointsDelta(String(Math.abs(Number(pointsDelta) || 0)))}><Plus className="h-4 w-4" /></Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                الرصيد بعد التعديل: <b>{Math.max(0, (student.points ?? 0) + (Number(pointsDelta) || 0))}</b>
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>السبب (اختياري)</Label>
+              <Textarea rows={2} value={pointsReason} onChange={(e) => setPointsReason(e.target.value)} placeholder="مثال: مشاركة متميزة في الحصة" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPointsOpen(false)}>إلغاء</Button>
+            <Button onClick={() => adjustPoints.mutate()} disabled={adjustPoints.isPending}>حفظ التعديل</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
