@@ -229,14 +229,21 @@ function MapsLibrary() {
                     <div className="grid gap-2 md:grid-cols-[1fr_140px_auto]">
                       <Input value={aiFocus} onChange={(e) => setAiFocus(e.target.value)} placeholder="التركيز (اختياري): مثال — الجبال والأنهار فقط" />
                       <Input type="number" min={2} max={25} value={aiMaxPoints} onChange={(e) => setAiMaxPoints(Math.max(2, Math.min(25, Number(e.target.value) || 8)))} placeholder="عدد النقاط" />
-                      <Button onClick={() => analyzeMut.mutate()} disabled={analyzeMut.isPending}>
+                      <Button onClick={() => analyzeMut.mutate()} disabled={analyzeMut.isPending || cleanMut.isPending}>
                         {analyzeMut.isPending ? <><Loader2 className="h-4 w-4 ml-1 animate-spin" />جارِ التحليل...</> : <><Sparkles className="h-4 w-4 ml-1" />تحليل الخريطة</>}
                       </Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-primary/20">
+                      <Button size="sm" variant="secondary" onClick={() => cleanMut.mutate()} disabled={cleanMut.isPending || analyzeMut.isPending}>
+                        {cleanMut.isPending ? <><Loader2 className="h-4 w-4 ml-1 animate-spin" />جارِ التنظيف...</> : <><Eraser className="h-4 w-4 ml-1" />🧹 تنظيف الخريطة (حذف الأسماء)</>}
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground">يمسح كل الأسماء المكتوبة على الخريطة (دول، مدن، أنهار...) حتى لا تظهر للطالب كإجابات جاهزة.</p>
                     </div>
                     {editing.points?.length > 0 && (
                       <p className="text-[11px] text-amber-700 dark:text-amber-400">⚠️ إعادة التحليل ستستبدل النقاط الحالية.</p>
                     )}
                   </div>
+
 
                   {/* Interactive visual editor */}
                   <InteractiveMapEditor
