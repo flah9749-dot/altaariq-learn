@@ -33,7 +33,7 @@ const QUICK_PROMPTS = [
   "لخّص لي هذا الملف واستخرج أهم النقاط",
 ];
 
-const MAX_FILE_MB = 15;
+const MAX_FILE_MB = 50;
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
