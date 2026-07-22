@@ -81,7 +81,6 @@ async function registerSW(): Promise<ServiceWorkerRegistration> {
       sw.addEventListener("statechange", onChange);
     });
   }
-  await navigator.serviceWorker.ready;
   return reg;
 }
 
