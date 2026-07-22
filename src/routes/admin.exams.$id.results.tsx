@@ -315,8 +315,8 @@ function ExamResultsPage() {
                             <ShieldCheck className="h-3 w-3" />
                           </Button>
                         )}
-                        {!a.approved && a.status === "graded" && (
-                          <Button size="sm" variant="ghost" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} title="تعديل الدرجة">
+                        {!a.approved && a.status !== "in_progress" && (
+                          <Button size="sm" variant="ghost" onClick={() => setEditScore({ id: a.id, value: String(a.score ?? 0), notes: a.admin_notes ?? "" })} title="تعديل الدرجة الإجمالية">
                             <Save className="h-3 w-3" />
                           </Button>
                         )}
