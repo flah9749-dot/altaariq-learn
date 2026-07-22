@@ -170,7 +170,10 @@ ${useGrid ? `⚠️ الصورة الثانية عليها شبكة مرجعية
     return {
       title: String(parsed?.title ?? "خريطة").trim() || "خريطة",
       summary: String(parsed?.summary ?? "").trim(),
-      image_url_clean: cleaned,
+      // Keep marker coordinates tied to the exact uploaded image. Some image
+      // editing models subtly crop/reframe cleaned maps, which makes otherwise
+      // correct x/y values look wrong in the exam viewer.
+      image_url_clean: data.image_data_url,
       points,
     };
   });

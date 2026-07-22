@@ -133,22 +133,22 @@ export function InteractiveMapEditor({
           <Badge variant="secondary">{points.length} نقطة</Badge>
         </div>
 
-        <div className="relative overflow-auto rounded-md border bg-slate-950/5 max-h-[70vh]">
+        <div className="relative overflow-auto rounded-md border bg-slate-950/5 max-h-[70vh] text-center">
           <div
             ref={wrapRef}
             onClick={handleWrapClick}
             style={{
-              width: `${zoom * 100}%`,
+              width: `min(${zoom * 100}%, ${zoom * 900}px)`,
               cursor: mode === "add" ? "crosshair" : "default",
             }}
-            className="relative select-none mx-auto"
+            className="relative inline-block select-none align-top"
           >
             <img
               ref={imgRef}
               src={imageUrl}
               alt="خريطة"
               draggable={false}
-              className="block w-full h-auto pointer-events-none"
+              className="block h-auto max-w-full pointer-events-none"
             />
             {points.map((p, i) => {
               const isSel = i === selected;
