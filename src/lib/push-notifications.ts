@@ -174,12 +174,16 @@ export async function disablePush(userId: string): Promise<boolean> {
         } catch { /* ignore */ }
       } catch { /* ignore */ }
     }
+    let deleteError: { message?: string } | null = null;
     if (currentToken) {
-      await supabase.from("push_tokens").delete().eq("user_id", userId).eq("token", currentToken);
+      const { error } = await supabase.from("push_tokens").delete().eq("user_id", userId).eq("token", currentToken);
+      deleteError = error;
     } else {
       // Fallback: remove all tokens saved from this browser (best effort).
-      await supabase.from("push_tokens").delete().eq("user_id", userId).eq("user_agent", navigator.userAgent);
+      const { error } = await supabase.from("push_tokens").delete().eq("user_id", userId).eq("user_agent", navigator.userAgent);
+      deleteError = error;
     }
+    if (deleteError) throw new Error(`تعذّر حذف جهاز الإشعارات: ${deleteError.message ?? "خطأ غير معروف"}`);
     toast.success("تم إيقاف الإشعارات على هذا الجهاز");
     return true;
   } catch (e: any) {
