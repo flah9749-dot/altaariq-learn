@@ -311,9 +311,8 @@ function evaluateObjective(q: any, ans: any): { correct: boolean | null; points:
       return { correct: ok, points: ok ? pts : 0 };
     }
     case "complete": {
-      const norm = (s: any) => String(s ?? "").trim().toLowerCase();
-      const expected = Array.isArray(q.correct_answer) ? q.correct_answer.map(norm) : [norm(q.correct_answer)];
-      const ok = expected.includes(norm(ans));
+      const expected = Array.isArray(q.correct_answer) ? q.correct_answer : [q.correct_answer];
+      const ok = expected.some((item: any) => textAnswerMatches(item, ans));
       return { correct: ok, points: ok ? pts : 0 };
     }
     case "order": {
