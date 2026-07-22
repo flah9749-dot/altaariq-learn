@@ -43,8 +43,13 @@ export function formatChatDetailedTime(iso: string): string {
   } catch { return ""; }
 }
 
+// Client-server clock skew (server_now - client_now) in ms; calibrated at boot.
+let __serverSkewMs = 0;
+export function setServerClockSkew(ms: number) { __serverSkewMs = ms; }
+export function getServerNow(): number { return Date.now() + __serverSkewMs; }
+
 export function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = getServerNow() - new Date(iso).getTime();
   const min = Math.floor(diff / 60000);
   if (min < 1) return "الآن";
   if (min < 60) return `منذ ${min} د`;
