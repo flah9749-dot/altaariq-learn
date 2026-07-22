@@ -39,14 +39,50 @@ export const FALLBACK_ORDER: ProviderSlug[] = [
   "lovable", "gemini", "openai", "claude", "groq", "deepseek", "mistral", "openrouter",
 ];
 
-export function getKey(slug: ProviderSlug): string | undefined {
+export function getEnvKey(slug: ProviderSlug): string | undefined {
   const v = process.env[SECRET[slug]];
   return v && v.trim() ? v.trim() : undefined;
 }
 
-export function hasKey(slug: ProviderSlug): boolean {
-  return !!getKey(slug);
+// DB overrides (ai_api_keys). Short in-memory cache so hot paths stay fast.
+type KeyCacheEntry = { value: string | null; at: number };
+const DB_KEY_CACHE = new Map<ProviderSlug, KeyCacheEntry>();
+const DB_KEY_TTL_MS = 30_000;
+
+export function invalidateKeyCache(slug?: ProviderSlug) {
+  if (slug) DB_KEY_CACHE.delete(slug);
+  else DB_KEY_CACHE.clear();
 }
+
+async function getDbKey(slug: ProviderSlug): Promise<string | null> {
+  const cached = DB_KEY_CACHE.get(slug);
+  if (cached && Date.now() - cached.at < DB_KEY_TTL_MS) return cached.value;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prov } = await supabaseAdmin.from("ai_providers").select("id").eq("slug", slug).maybeSingle();
+    if (!prov?.id) { DB_KEY_CACHE.set(slug, { value: null, at: Date.now() }); return null; }
+    const { data: row } = await supabaseAdmin.from("ai_api_keys")
+      .select("encrypted_key, enabled").eq("provider_id", prov.id).eq("enabled", true)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const value = row?.encrypted_key && row.encrypted_key.trim() ? row.encrypted_key.trim() : null;
+    DB_KEY_CACHE.set(slug, { value, at: Date.now() });
+    return value;
+  } catch {
+    DB_KEY_CACHE.set(slug, { value: null, at: Date.now() });
+    return null;
+  }
+}
+
+export async function getKey(slug: ProviderSlug): Promise<string | undefined> {
+  const db = await getDbKey(slug);
+  if (db) return db;
+  return getEnvKey(slug);
+}
+
+export async function hasKey(slug: ProviderSlug): Promise<boolean> {
+  return !!(await getKey(slug));
+}
+
 
 const TIMEOUT_MS = 30_000;
 function withTimeout<T>(p: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
