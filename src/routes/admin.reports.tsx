@@ -233,6 +233,7 @@ function ExamsReport({ period, classFilter }: { period: Period; classFilter: str
 
 /* ============ Students Report ============ */
 function StudentsReport({ classFilter }: { classFilter: string }) {
+  const [search, setSearch] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["reports-students", classFilter],
     queryFn: async () => {
@@ -243,7 +244,9 @@ function StudentsReport({ classFilter }: { classFilter: string }) {
     },
   });
 
-  const list = data ?? [];
+  const all = data ?? [];
+  const q = search.trim().toLowerCase();
+  const list = q ? all.filter((s: any) => (s.full_name ?? "").toLowerCase().includes(q) || (s.code ?? "").toLowerCase().includes(q)) : all;
   const active = list.filter((s: any) => s.status === "active").length;
   const suspended = list.filter((s: any) => s.status !== "active").length;
   const totalPts = list.reduce((a: number, s: any) => a + (s.points || 0), 0);
