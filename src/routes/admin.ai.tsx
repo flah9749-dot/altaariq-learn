@@ -94,10 +94,26 @@ function AIManagementPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">حالة كل مزود، اختبار الاتصال، الأولوية، والتفعيل. المفاتيح محفوظة في Secrets فقط.</p>
         </div>
-        <Button asChild variant="outline" className="gap-2">
-          <Link to="/admin/ai/mapping"><Settings2 className="h-4 w-4"/>ربط الوظائف بالمزودين</Link>
-        </Button>
-      </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={testMut.isPending || !keyStatus}
+            onClick={async () => {
+              const targets = PROVIDERS.filter(p => keyStatus?.[p.slug]);
+              if (!targets.length) { toast.error("لا يوجد مزود بمفتاح صالح"); return; }
+              toast.info(`جاري اختبار ${targets.length} مزود...`);
+              for (const t of targets) {
+                await testMut.mutateAsync(t.slug);
+              }
+            }}
+          >
+            <Zap className="h-4 w-4"/>اختبار الكل
+          </Button>
+          <Button asChild variant="outline" className="gap-2">
+            <Link to="/admin/ai/mapping"><Settings2 className="h-4 w-4"/>ربط الوظائف بالمزودين</Link>
+          </Button>
+        </div>
 
       {missingKeys > 0 && (
         <Card className="border-amber-500/40 bg-amber-500/5">
