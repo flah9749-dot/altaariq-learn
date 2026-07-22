@@ -21,13 +21,16 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = (payload.notification && payload.notification.title) || "الطارق التعليمية";
+  const title =
+    (payload.notification && payload.notification.title) ||
+    (payload.data && payload.data.title) ||
+    "الطارق التعليمية";
   const url =
     (payload.fcmOptions && payload.fcmOptions.link) ||
     (payload.data && (payload.data.url || payload.data.link)) ||
     "/";
   const options = {
-    body: (payload.notification && payload.notification.body) || "",
+    body: (payload.notification && payload.notification.body) || (payload.data && payload.data.body) || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     dir: "rtl",
