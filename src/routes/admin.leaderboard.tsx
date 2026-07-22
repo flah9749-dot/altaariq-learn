@@ -60,14 +60,17 @@ function LeaderboardPage() {
       const arr = byStudent.get(a.student_id) ?? [];
       arr.push(a); byStudent.set(a.student_id, arr);
     });
-    return (students ?? []).map((s: any) => {
-      const list = byStudent.get(s.id) ?? [];
-      const total = list.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
-      const avg = list.length ? Math.round(list.reduce((sum, a) => sum + Number(a.percentage), 0) / list.length) : 0;
-      const pass = list.length ? Math.round((list.filter((a: any) => Number(a.percentage) >= 50).length / list.length) * 100) : 0;
-      return { ...s, total_score: total, avg_score: avg, pass_rate: pass, exam_count: list.length };
-    }).sort((a: any, b: any) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0));
-  }, [students, attempts, sortBy]);
+    const q = search.trim().toLowerCase();
+    return (students ?? [])
+      .filter((s: any) => !q || (s.full_name ?? "").toLowerCase().includes(q) || (s.code ?? "").toLowerCase().includes(q))
+      .map((s: any) => {
+        const list = byStudent.get(s.id) ?? [];
+        const total = list.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
+        const avg = list.length ? Math.round(list.reduce((sum, a) => sum + Number(a.percentage), 0) / list.length) : 0;
+        const pass = list.length ? Math.round((list.filter((a: any) => Number(a.percentage) >= 50).length / list.length) * 100) : 0;
+        return { ...s, total_score: total, avg_score: avg, pass_rate: pass, exam_count: list.length };
+      }).sort((a: any, b: any) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0));
+  }, [students, attempts, sortBy, search]);
 
   const doExport = () => {
     exportToExcel(rows.map((r: any, i: number) => ({
