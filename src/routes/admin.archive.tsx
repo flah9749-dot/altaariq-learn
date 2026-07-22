@@ -38,10 +38,16 @@ function ArchivePage() {
   const [yearFilter, setYearFilter] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importOpen, setImportOpen] = useState(false);
+  const [importYear, setImportYear] = useState<string>(String(new Date().getFullYear()));
+  const [importCodes, setImportCodes] = useState<string[]>([]);
+  const [importFileName, setImportFileName] = useState<string>("");
   const debounced = useDebounce(search, 350);
 
   const restoreFn = useServerFn(restoreStudents);
   const promoteFn = useServerFn(promoteStudents);
+  const bulkArchiveFn = useServerFn(bulkArchiveByCodes);
+
 
   const { data: classes } = useQuery({
     queryKey: ["classes-list"],
