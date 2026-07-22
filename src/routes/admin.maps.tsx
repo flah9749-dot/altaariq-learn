@@ -116,6 +116,23 @@ function MapsLibrary() {
     onError: (e: any) => toast.error(e?.message ?? "فشل التحليل بالذكاء الاصطناعي"),
   });
 
+  const cleanMut = useMutation({
+    mutationFn: async () => {
+      if (!editing?.image_url || editing.image_url === "...") throw new Error("ارفع صورة الخريطة أولاً");
+      if (!/^data:image\//i.test(editing.image_url) && !/^https?:\/\//i.test(editing.image_url)) {
+        throw new Error("صيغة الصورة غير مدعومة");
+      }
+      return cleanFn({ data: { image_data_url: editing.image_url } });
+    },
+    onSuccess: (res: any) => {
+      setEditing((prev: any) => ({ ...prev, image_url: res.image_data_url }));
+      toast.success("تم تنظيف الخريطة وحذف الأسماء المكتوبة عليها.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل تنظيف الخريطة"),
+  });
+
+
+
   const openNew = () => { setEditing({ title: "", category: "", description: "", image_url: "", points: [] }); setOpenEditor(true); };
   const openExisting = (t: any) => {
     setEditing({
