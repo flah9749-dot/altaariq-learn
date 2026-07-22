@@ -244,7 +244,11 @@ function ResultsPage() {
                       <div className="flex items-center gap-1 flex-wrap">
                         {a.exams?.id && (
                           <Button asChild size="sm" variant="default" className="gap-1">
-                            <Link to="/admin/exams/$id/results" params={{ id: a.exams.id }}>
+                            <Link
+                              to="/admin/exams/$id/results"
+                              params={{ id: a.exams.id }}
+                              search={{ attempt: a.id }}
+                            >
                               <FileEdit className="h-3.5 w-3.5" />
                               مراجعة وتعديل
                             </Link>
