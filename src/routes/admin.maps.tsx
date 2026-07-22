@@ -167,8 +167,8 @@ function MapsLibrary() {
         </div>
       )}
 
-      <Dialog open={openEditor} onOpenChange={(v) => { setOpenEditor(v); if (!v) setEditing(null); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={openEditor} onOpenChange={(v) => { setOpenEditor(v); if (!v) { setEditing(null); setAiFocus(""); } }}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing?.id ? "تعديل قالب الخريطة" : "قالب خريطة جديد"}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-3">
@@ -194,29 +194,39 @@ function MapsLibrary() {
                     </label>
                   </Button>
                 </div>
-                {editing.image_url && editing.image_url !== "..." && <img src={editing.image_url} alt="preview" className="max-h-56 rounded border" />}
               </div>
 
-              <div className="space-y-2 border rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <Label>النقاط ({editing.points.length})</Label>
-                  <Button size="sm" variant="outline" onClick={() => setEditing({ ...editing, points: [...editing.points, { label: `الموقع ${editing.points.length + 1}`, prompt: "", x: 50, y: 50 }] })}>
-                    <Plus className="h-3 w-3 ml-1" />نقطة
-                  </Button>
-                </div>
-                {editing.points.map((p: any, i: number) => (
-                  <div key={i} className="grid gap-2 md:grid-cols-[32px_1fr_1fr_80px_80px_auto] items-center border rounded p-2 bg-background">
-                    <Badge variant="outline" className="justify-center">{i + 1}</Badge>
-                    <Input placeholder="السؤال (اختياري)" value={p.prompt ?? ""} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], prompt: e.target.value }; setEditing({ ...editing, points: n }); }} />
-                    <Input placeholder="الإجابة" value={p.label ?? ""} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], label: e.target.value }; setEditing({ ...editing, points: n }); }} />
-                    <Input type="number" min={0} max={100} step="0.1" value={p.x} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], x: Number(e.target.value) }; setEditing({ ...editing, points: n }); }} />
-                    <Input type="number" min={0} max={100} step="0.1" value={p.y} onChange={(e) => { const n = [...editing.points]; n[i] = { ...n[i], y: Number(e.target.value) }; setEditing({ ...editing, points: n }); }} />
-                    <Button size="icon" variant="ghost" onClick={() => setEditing({ ...editing, points: editing.points.filter((_: any, k: number) => k !== i) })}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+              {editing.image_url && editing.image_url !== "..." && (
+                <>
+                  {/* AI Analysis panel */}
+                  <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <Label className="font-semibold">تحليل الخريطة بالذكاء الاصطناعي</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      يحلل الذكاء الاصطناعي صورة الخريطة، يتعرّف على المعالم الجغرافية، ويضع العلامات المرقمة تلقائيًا مع اقتراح سؤال وإجابة لكل معلم. جميع النتائج قابلة للتعديل قبل الحفظ.
+                    </p>
+                    <div className="grid gap-2 md:grid-cols-[1fr_140px_auto]">
+                      <Input value={aiFocus} onChange={(e) => setAiFocus(e.target.value)} placeholder="التركيز (اختياري): مثال — الجبال والأنهار فقط" />
+                      <Input type="number" min={2} max={25} value={aiMaxPoints} onChange={(e) => setAiMaxPoints(Math.max(2, Math.min(25, Number(e.target.value) || 8)))} placeholder="عدد النقاط" />
+                      <Button onClick={() => analyzeMut.mutate()} disabled={analyzeMut.isPending}>
+                        {analyzeMut.isPending ? <><Loader2 className="h-4 w-4 ml-1 animate-spin" />جارِ التحليل...</> : <><Sparkles className="h-4 w-4 ml-1" />تحليل الخريطة</>}
+                      </Button>
+                    </div>
+                    {editing.points?.length > 0 && (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">⚠️ إعادة التحليل ستستبدل النقاط الحالية.</p>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Interactive visual editor */}
+                  <InteractiveMapEditor
+                    imageUrl={editing.image_url}
+                    points={editing.points ?? []}
+                    onChange={(next) => setEditing({ ...editing, points: next })}
+                  />
+                </>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -240,3 +250,4 @@ function MapsLibrary() {
     </div>
   );
 }
+
