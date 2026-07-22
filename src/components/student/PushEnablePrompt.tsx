@@ -31,12 +31,18 @@ export function PushEnablePrompt() {
           if (days < DISMISS_DAYS) setDismissed(true);
         }
       } catch {}
-      const { isPushSupported, getPermission, bootPushIfEnabled } = await import("@/lib/push-notifications");
+      const { isPushSupported, getPermission, bootPushIfEnabled, isLocallyDisabled } = await import("@/lib/push-notifications");
       const s = await isPushSupported();
       if (cancelled) return;
       setSupported(s);
-      setPerm(getPermission());
-      if (s && user && Notification.permission === "granted") {
+      const p = getPermission();
+      if (isLocallyDisabled() && p === "granted") {
+        setPerm("default");
+        setLocallyDisabled(true);
+      } else {
+        setPerm(p);
+      }
+      if (s && user && Notification.permission === "granted" && !isLocallyDisabled()) {
         bootPushIfEnabled(user.id);
       }
     })();
