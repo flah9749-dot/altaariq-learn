@@ -106,15 +106,20 @@ function renderMap(q: PaperQuestion, showAnswers: boolean) {
   const img = q.image_url
     ? `<div style="position:relative;display:inline-block;max-width:100%;">
         <img src="${q.image_url}" style="max-width:100%;max-height:340px;border:1px solid #cbd5e1;border-radius:8px;" crossorigin="anonymous" />
-        ${showAnswers ? points.map((p: any) =>
-          `<span style="position:absolute;left:${p.x}%;top:${p.y}%;transform:translate(-50%,-100%);background:#dc2626;color:#fff;padding:2px 6px;border-radius:999px;font-size:11px;font-weight:700;">📍 ${escapeHtml(p.label)}</span>`
-        ).join("") : ""}
+        ${points.map((p: any, i: number) =>
+          `<span style="position:absolute;left:${p.x}%;top:${p.y}%;transform:translate(-50%,-50%);background:#0f172a;color:#fff;width:22px;height:22px;line-height:20px;border-radius:999px;font-size:12px;font-weight:700;text-align:center;border:2px solid #fff;box-shadow:0 0 0 1px #0f172a;">${i + 1}</span>`
+        ).join("")}
       </div>`
     : `<div style="padding:16px;border:1px dashed #94a3b8;border-radius:8px;color:#64748b;">(لم تُرفق صورة الخريطة)</div>`;
-  const key = showAnswers && points.length
-    ? `<div style="margin-top:6px;color:#16a34a;font-weight:700;">المواقع الصحيحة: ${points.map((p: any) => `${escapeHtml(p.label)} (x:${p.x}, y:${p.y})`).join("، ")}</div>`
-    : `<div style="margin-top:6px;color:#64748b;font-size:11px;">حدد الموقع المطلوب على الخريطة بوضع علامة (×).</div>`;
-  return `<div>${img}${key}</div>`;
+  const list = points.length
+    ? `<ol style="margin-top:8px;padding-inline-start:20px;">
+        ${points.map((p: any, i: number) =>
+          `<li style="margin-bottom:4px;">${i + 1}. ${showAnswers ? `<b style="color:#16a34a;">${escapeHtml(p.label)}</b>` : `<span style="display:inline-block;border-bottom:1px dashed #94a3b8;min-width:180px;">&nbsp;</span>`}</li>`
+        ).join("")}
+      </ol>`
+    : "";
+  const hint = !showAnswers ? `<div style="margin-top:4px;color:#64748b;font-size:11px;">اكتب اسم كل مكان بجوار رقمه.</div>` : "";
+  return `<div>${img}${list}${hint}</div>`;
 }
 
 function renderQuestionBody(q: PaperQuestion, showAnswers: boolean) {
