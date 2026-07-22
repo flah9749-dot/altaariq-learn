@@ -32,6 +32,9 @@ import { computeGrade, formatDuration } from "@/lib/exam-utils";
 import { exportToExcel, exportToPdf } from "@/lib/reports-lazy";
 
 export const Route = createFileRoute("/admin/exams/$id/results")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    attempt: typeof s.attempt === "string" ? s.attempt : undefined,
+  }),
   head: () => ({ meta: [
     { title: "تقارير الامتحان — الطارق التعليمية" },
     { name: "description", content: "مراجعة وتصحيح واعتماد نتائج امتحانات منصة الطارق التعليمية." },
