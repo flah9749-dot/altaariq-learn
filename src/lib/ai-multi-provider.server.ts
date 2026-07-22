@@ -202,7 +202,7 @@ export async function callProvider(
 export async function testProviderConnection(slug: ProviderSlug): Promise<{ ok: boolean; error?: string; latencyMs: number }> {
   const start = Date.now();
   try {
-    if (!hasKey(slug)) return { ok: false, error: "المفتاح غير مضبوط في Secrets", latencyMs: 0 };
+    if (!(await hasKey(slug))) return { ok: false, error: "المفتاح غير مضبوط", latencyMs: 0 };
     await callProvider(slug, [{ role: "user", content: "قل كلمة: تم" }]);
     return { ok: true, latencyMs: Date.now() - start };
   } catch (e: any) {
