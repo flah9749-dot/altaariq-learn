@@ -19,14 +19,13 @@ export function EnablePushButton({ variant = "outline", size = "sm" as const, cl
         if (!cancelled) setSupported(false);
         return;
       }
-      // Only pull Firebase bundle if the browser can support push AND either
-      // the user already granted permission (silent boot) or we need to check.
-      const { isPushSupported, getPermission, bootPushIfEnabled } = await import("@/lib/push-notifications");
+      const { isPushSupported, getPermission, bootPushIfEnabled, isLocallyDisabled } = await import("@/lib/push-notifications");
       const s = await isPushSupported();
       if (cancelled) return;
       setSupported(s);
-      setPerm(getPermission());
-      if (s && user && Notification.permission === "granted") {
+      const p = getPermission();
+      setPerm(isLocallyDisabled() && p === "granted" ? "default" : p);
+      if (s && user && Notification.permission === "granted" && !isLocallyDisabled()) {
         bootPushIfEnabled(user.id);
       }
     })();
