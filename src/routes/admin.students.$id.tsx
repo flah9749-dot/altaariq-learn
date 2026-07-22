@@ -127,6 +127,7 @@ function StudentDetailPage() {
           <ArrowRight className="h-4 w-4 ml-1" />القائمة
         </Button>
         <div className="mr-auto flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPointsOpen(true)}><Trophy className="h-4 w-4 ml-1 text-gold" />تعديل النقاط</Button>
           <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}><IdCard className="h-4 w-4 ml-1" />عرض الكارت</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
           <Button size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 ml-1" />تعديل</Button>
