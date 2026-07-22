@@ -19,6 +19,7 @@ export function PushEnablePrompt() {
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [locallyDisabled, setLocallyDisabled] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,11 +32,14 @@ export function PushEnablePrompt() {
           if (days < DISMISS_DAYS) setDismissed(true);
         }
       } catch {}
-      const { isPushSupported, getPermission, bootPushIfEnabled, isLocallyDisabled } = await import("@/lib/push-notifications");
+      const { isPushSupported, getPermission, bootPushIfEnabled, isLocallyDisabled, hasSavedPushDevice } = await import("@/lib/push-notifications");
       const s = await isPushSupported();
       if (cancelled) return;
       setSupported(s);
       const p = getPermission();
+      const saved = user ? await hasSavedPushDevice(user.id) : false;
+      if (cancelled) return;
+      setRegistered(saved && !isLocallyDisabled());
       if (isLocallyDisabled() && p === "granted") {
         setPerm("default");
         setLocallyDisabled(true);
@@ -43,7 +47,8 @@ export function PushEnablePrompt() {
         setPerm(p);
       }
       if (s && user && Notification.permission === "granted" && !isLocallyDisabled()) {
-        bootPushIfEnabled(user.id);
+        await bootPushIfEnabled(user.id);
+        if (!cancelled) setRegistered(await hasSavedPushDevice(user.id));
       }
     })();
     return () => { cancelled = true; };
@@ -52,7 +57,7 @@ export function PushEnablePrompt() {
   if (!supported || !user) return null;
 
   // Already enabled — show a small "disable" chip.
-  if (perm === "granted" && !locallyDisabled) {
+  if (perm === "granted" && registered && !locallyDisabled) {
     return (
       <div className="mx-auto mb-3 flex max-w-6xl items-center justify-end">
         <Button
@@ -61,13 +66,15 @@ export function PushEnablePrompt() {
           disabled={loading}
           onClick={async () => {
             setLoading(true);
+            setRegistered(false);
+            setLocallyDisabled(true);
+            setPerm("default");
+            try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
             // Safety timeout so the UI never gets stuck on "جارٍ الإيقاف..."
-            const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 8000));
+            const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5000));
             try {
               const { disablePush } = await import("@/lib/push-notifications");
               const ok = await Promise.race([disablePush(user.id), timeout]);
-              try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
-              setLocallyDisabled(true);
               setDismissed(true);
               if (ok) {
                 toast.message("لإعادة التفعيل لاحقاً، اسمح بالإشعارات من إعدادات المتصفح.");
@@ -75,7 +82,6 @@ export function PushEnablePrompt() {
                 toast.message("تم إيقاف الإشعارات على هذا الجهاز.");
               }
             } catch (e: any) {
-              setLocallyDisabled(true);
               toast.error(e?.message ?? "تعذّر إيقاف الإشعارات");
             } finally {
               setLoading(false);
@@ -107,10 +113,14 @@ export function PushEnablePrompt() {
         onClick={async () => {
           setLoading(true);
           try {
-            const { enablePush, getPermission } = await import("@/lib/push-notifications");
+            const { enablePush, getPermission, hasSavedPushDevice } = await import("@/lib/push-notifications");
             const token = await enablePush(user.id);
             setPerm(getPermission());
-            if (token) toast.success("تم تفعيل الإشعارات ✅");
+            const saved = await hasSavedPushDevice(user.id);
+            setRegistered(!!token && saved);
+            setLocallyDisabled(false);
+            if (token && saved) toast.success("تم تفعيل الإشعارات ✅");
+            else toast.error("لم يتم حفظ هذا الجهاز للإشعارات، جرّب مرة أخرى");
           } finally { setLoading(false); }
         }}
       >
