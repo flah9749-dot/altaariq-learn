@@ -338,6 +338,7 @@ function ExamEditor() {
                             accept="image/*"
                             className="hidden"
                             onChange={async (e) => {
+                              const input = e.currentTarget;
                               const file = e.target.files?.[0];
                               if (!file) return;
                               if (file.size > 50 * 1024 * 1024) { toast.error("حجم الصورة أكبر من 50MB"); return; }
@@ -348,7 +349,7 @@ function ExamEditor() {
                               } catch {
                                 toast.error("فشل تجهيز صورة الخريطة");
                               } finally {
-                                e.currentTarget.value = "";
+                                input.value = "";
                               }
                             }}
                           />
