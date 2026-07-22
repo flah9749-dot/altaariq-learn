@@ -129,6 +129,10 @@ function LeaderboardPage() {
               <SelectItem value="7">آخر 7 أيام</SelectItem>
             </SelectContent>
           </Select>
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث باسم الطالب أو الكود..." className="pr-9" />
+          </div>
         </CardContent>
       </Card>
 
