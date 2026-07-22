@@ -23,6 +23,22 @@ export const getPrimaryAdminPeer = createServerFn({ method: "GET" })
     return { user_id: data.user_id as string, full_name: (data.full_name as string | null) ?? "المدرس" };
   });
 
+// Returns ALL admin user_ids so the student's chat can aggregate messages
+// from any admin account into a single conversation thread.
+export const getAllAdminPeerIds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ids = new Set<string>();
+    const { data: adminsRows } = await supabaseAdmin
+      .from("admins").select("user_id").not("user_id", "is", null);
+    (adminsRows ?? []).forEach((r: any) => r.user_id && ids.add(r.user_id as string));
+    const { data: roleRows } = await supabaseAdmin
+      .from("user_roles").select("user_id").eq("role", "admin");
+    (roleRows ?? []).forEach((r: any) => r.user_id && ids.add(r.user_id as string));
+    return { ids: Array.from(ids) };
+  });
+
 // -------- Send message (text or with attachment) --------
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -113,12 +129,17 @@ export const broadcastMessage = createServerFn({ method: "POST" })
 // -------- Mark thread as read --------
 export const markThreadRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ peer_id: z.string().uuid() }).parse(data))
+  .inputValidator((data: unknown) => z.object({
+    peer_id: z.string().uuid().optional(),
+    peer_ids: z.array(z.string().uuid()).optional(),
+  }).parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const ids = data.peer_ids && data.peer_ids.length ? data.peer_ids : (data.peer_id ? [data.peer_id] : []);
+    if (!ids.length) return { ok: true };
     await supabase.from("messages")
       .update({ read: true, read_at: new Date().toISOString() })
-      .eq("sender_id", data.peer_id).eq("recipient_id", userId).eq("read", false);
+      .in("sender_id", ids).eq("recipient_id", userId).eq("read", false);
     return { ok: true };
   });
 

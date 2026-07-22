@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { supabase } from "@/integrations/supabase/client";
-import { getPrimaryAdminPeer } from "@/lib/messaging.functions";
+import { getPrimaryAdminPeer, getAllAdminPeerIds } from "@/lib/messaging.functions";
 
 export const Route = createFileRoute("/student/messages")({
   head: () => ({ meta: [{ title: "الرسائل — الطالب" }] }),
@@ -17,10 +17,16 @@ export const Route = createFileRoute("/student/messages")({
 function StudentMessagesPage() {
   const { profile } = useAuth();
   const getPeer = useServerFn(getPrimaryAdminPeer);
+  const getAllPeers = useServerFn(getAllAdminPeerIds);
   const { data: admin, isLoading, error } = useQuery({
     queryKey: ["student-primary-admin-peer"],
     queryFn: async () => getPeer(),
     retry: 1,
+  });
+  const { data: allAdmins } = useQuery({
+    queryKey: ["student-all-admin-peers"],
+    queryFn: async () => getAllPeers(),
+    staleTime: 60_000,
   });
 
   // Live-fetch teacher WhatsApp so updates from settings propagate immediately.
@@ -42,6 +48,7 @@ function StudentMessagesPage() {
             peerId={admin.user_id}
             peerName={admin.full_name}
             peerSubtitle="المدرس"
+            extraPeerIds={(allAdmins?.ids ?? []).filter((id) => id !== admin.user_id)}
             templateVars={{ student_name: profile?.full_name ?? "", code: profile?.identifier ?? "" }}
             headerRight={teacherWa ? (
               <WhatsAppButton
