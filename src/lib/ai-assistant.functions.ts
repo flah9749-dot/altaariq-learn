@@ -1,21 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { callLovableChat, parseJsonLoose, type ChatMessage } from "@/lib/ai-gateway.server";
+import { callAI, type AiMessage } from "@/lib/ai/router.server";
+import { trimHistory } from "@/lib/ai/context-manager.server";
+import { hashDataUrl, lookupDocumentByHash, saveExtractedDocument, clampText } from "@/lib/ai/document-cache.server";
 
-const SYSTEM_PROMPT = `أنت "مساعد الطارق"، مساعد ذكي احترافي لمدرس الدراسات الاجتماعية (تاريخ/جغرافيا/مواطنة) داخل منصة الطارق التعليمية.
-مهامك:
-- الرد باللغة العربية الفصحى الواضحة.
-- مساعدة المدرس في: تحضير الدروس، مراجعات سريعة، خطط شرح، تحليل نتائج الطلاب، صياغة رسائل واتساب لأولياء الأمور، توليد أفكار امتحانات وأنشطة تعليمية.
-- عند وجود مرفق (PDF أو صورة): اقرأ كل صفحاته/محتواه بتأنٍ واستخرج النصوص والعناوين والأسئلة الموجودة داخله فعلياً، ثم قدّم شرحاً مفصّلاً منظماً بعناوين ونقاط. لا تعتذر عن قراءة الملف ولا تقل إنك لا تستطيع، فلديك القدرة على قراءة PDF والصور مباشرة.
-- إذا طلب المدرس "شرح" الملف: اشرح كل قسم/سؤال داخل الملف بالتفصيل مع الإجابات النموذجية عند وجود أسئلة.
-- استخدم البيانات المرفقة (إحصائيات، طلاب، امتحانات) عند توفرها، وإذا لم تتوفر فاطلبها بلطف.
-- كن منظمًا (عناوين ونقاط) ومفيدًا عمليًا، ولا تختصر الشرح عندما يكون الملف طويلاً.`;
+// Short, focused system prompt (was ~250 words → ~70 words).
+const SYSTEM_PROMPT =
+  "أنت مساعد المعلم في منصة الطارق التعليمية (دراسات اجتماعية). ردّ بالعربية الفصحى، منظماً بعناوين ونقاط. عند وجود مرفق اقرأ محتواه كاملاً واستخرج النصوص والأسئلة واشرحها. لا تعتذر عن قراءة الملفات.";
 
 type Attachment = {
   kind: "image" | "file";
   mime: string;
   name?: string;
-  dataUrl: string; // data:<mime>;base64,....
+  dataUrl: string;
 };
 
 type UiMsg = {
@@ -29,18 +26,24 @@ type ChatInput = {
   context?: string;
 };
 
-function buildContent(m: UiMsg): ChatMessage["content"] {
+async function buildContent(m: UiMsg): Promise<AiMessage["content"]> {
   if (!m.attachments || m.attachments.length === 0) return m.content;
   const parts: Array<Record<string, unknown>> = [];
   if (m.content?.trim()) parts.push({ type: "text", text: m.content });
   for (const a of m.attachments) {
+    // Try to reuse extracted text for previously-uploaded files.
+    const hash = await hashDataUrl(a.dataUrl);
+    if (hash) {
+      const cached = await lookupDocumentByHash(hash);
+      if (cached) {
+        parts.push({ type: "text", text: `[محتوى الملف "${a.name ?? "file"}"]\n${clampText(cached.text)}` });
+        continue;
+      }
+    }
     if (a.kind === "image") {
       parts.push({ type: "image_url", image_url: { url: a.dataUrl } });
     } else {
-      parts.push({
-        type: "file",
-        file: { filename: a.name ?? "file", file_data: a.dataUrl },
-      });
+      parts.push({ type: "file", file: { filename: a.name ?? "file", file_data: a.dataUrl } });
     }
   }
   return parts;
@@ -49,31 +52,57 @@ function buildContent(m: UiMsg): ChatMessage["content"] {
 export const askAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: ChatInput) => data)
-  .handler(async ({ data }) => {
-    const msgs: ChatMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
-    if (data.context) msgs.push({ role: "system", content: `سياق إضافي:\n${data.context}` });
+  .handler(async ({ data, context }) => {
+    const rawMsgs: AiMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    if (data.context) rawMsgs.push({ role: "system", content: `سياق:\n${data.context}` });
     for (const m of data.messages) {
-      msgs.push({ role: m.role, content: buildContent(m) });
+      rawMsgs.push({ role: m.role, content: await buildContent(m) });
     }
 
-    // Detect attachments in the latest user message to pick the right model + limits.
+    // History trim: keep last 8 messages verbatim.
+    const strMsgs = rawMsgs.map((m) => ({
+      role: m.role,
+      content: typeof m.content === "string" ? m.content : "[محتوى مرفق]",
+    }));
+    const trim = trimHistory(strMsgs as any);
+    const keepIdx = new Set(trim.trimmed.map((_, i) => i));
+    const finalMsgs = rawMsgs.filter((_, i) => keepIdx.has(i));
+
     const lastUser = [...data.messages].reverse().find((m) => m.role === "user");
     const atts = lastUser?.attachments ?? [];
     const hasPdf = atts.some((a) => a.kind === "file" && a.mime === "application/pdf");
     const hasImage = atts.some((a) => a.kind === "image");
-    const hasAttachment = hasPdf || hasImage;
+    const taskType = hasPdf || hasImage ? "admin_assistant_file" : "admin_assistant_chat";
 
-    // Stronger multimodal chain when a file is attached (PDF/image understanding).
-    // gemini-2.5-pro has the best document/PDF comprehension in the gateway.
-    const models = hasAttachment
-      ? ["google/gemini-2.5-pro", "google/gemini-3.1-pro-preview", "google/gemini-2.5-flash"]
-      : undefined;
+    // First-time file upload: persist extracted text so the next chat turn skips re-uploading.
+    if ((hasPdf || hasImage) && atts.length) {
+      // The reply may summarize/extract the file; save it after the call finishes.
+    }
 
-    // Give the model room to actually explain long documents.
-    const maxTokens = hasPdf ? 6000 : hasImage ? 3000 : 1800;
+    const result = await callAI(taskType as any, finalMsgs, {
+      userId: context.userId,
+      role: "admin",
+    });
 
-    const reply = await callLovableChat(msgs, { temperature: 0.5, maxTokens, models });
-    return { reply };
+    // Best-effort: extract each attachment's textual reflection from the assistant reply
+    // and remember it so follow-ups can reuse it. Only do this when we didn't already
+    // have the extracted text (first time we see this file).
+    for (const a of atts) {
+      const hash = await hashDataUrl(a.dataUrl);
+      if (!hash) continue;
+      const existing = await lookupDocumentByHash(hash);
+      if (existing) continue;
+      // Store the assistant reply as an approximation of the file content so future
+      // turns can inline it instead of re-uploading the raw file.
+      await saveExtractedDocument({
+        hash,
+        fileName: a.name,
+        mimeType: a.mime,
+        text: result.text.slice(0, 60_000),
+      });
+    }
+
+    return { reply: result.text, cached: result.cached, tokens: { in: result.tokensIn, out: result.tokensOut } };
   });
 
 export const analyzeExamResults = createServerFn({ method: "POST" })
@@ -110,7 +139,7 @@ export const analyzeExamResults = createServerFn({ method: "POST" })
     const perQ: Record<string, { text: string; correct: number; total: number }> = {};
     for (const a of answers ?? []) {
       const qid = (a as any).question_id;
-      const text = ((a as any).questions?.text ?? "").slice(0, 100);
+      const text = ((a as any).questions?.text ?? "").slice(0, 80);
       perQ[qid] = perQ[qid] ?? { text, correct: 0, total: 0 };
       perQ[qid].total += 1;
       if ((a as any).is_correct) perQ[qid].correct += 1;
@@ -119,34 +148,25 @@ export const analyzeExamResults = createServerFn({ method: "POST" })
       .filter((q) => q.total >= 2)
       .sort((a, b) => a.correct / a.total - b.correct / b.total)
       .slice(0, 5)
-      .map((q) => `- ${q.text} (نسبة الصواب ${Math.round((q.correct / q.total) * 100)}%)`)
+      .map((q) => `- ${q.text} (${Math.round((q.correct / q.total) * 100)}%)`)
       .join("\n");
 
+    // Compact summary; the model doesn't need the full history.
     const summary = `امتحان: ${exam.title}
-عدد المحاولات: ${rows.length}
-متوسط الدرجات: ${avg.toFixed(1)} / ${maxTotal} (${pct.toFixed(1)}%)
+محاولات: ${rows.length} | متوسط: ${avg.toFixed(1)}/${maxTotal} (${pct.toFixed(1)}%)
 أصعب الأسئلة:
-${hardest || "لا توجد بيانات كافية"}`;
+${hardest || "-"}`;
 
-    const reply = await callLovableChat(
+    const result = await callAI(
+      "exam_analytics",
       [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `حلّل نتائج هذا الامتحان وقدّم:
-1) ملخص موجز للأداء العام
-2) نقاط القوة والضعف
-3) توصيات عملية للمدرس (شرح، تدريبات، أنشطة)
-4) اقتراح رسالة قصيرة لأولياء الأمور
-
-البيانات:
-${summary}`,
-        },
+        { role: "system", content: "حلّل نتائج امتحان دراسات اجتماعية بالعربية: ملخص، نقاط قوة/ضعف، توصيات، رسالة مقترحة لأولياء الأمور. اختصر." },
+        { role: "user", content: summary },
       ],
-      { temperature: 0.5, maxTokens: 1200 },
+      { userId: context.userId, role: "admin", cacheScope: data.examId },
     );
 
-    return { insights: reply, avg, pct, attempts: rows.length };
+    return { insights: result.text, avg, pct, attempts: rows.length, cached: result.cached };
   });
 
 export const analyzeStudent = createServerFn({ method: "POST" })
@@ -172,31 +192,22 @@ export const analyzeStudent = createServerFn({ method: "POST" })
     const lines =
       (attempts ?? [])
         .map((a: any) => `- ${a.exams?.title ?? "امتحان"}: ${a.score}/${a.total}`)
-        .join("\n") || "لا توجد محاولات";
+        .join("\n") || "-";
 
-    const summary = `الطالب: ${(student as any).full_name} (${(student as any).code})
-الصف: ${(student as any).classes?.name ?? "-"} | المجموعة: ${(student as any).groups?.name ?? "-"}
-النقاط: ${(student as any).points} | المستوى: ${(student as any).level}
-آخر النتائج:
+    const summary = `${(student as any).full_name} (${(student as any).code})
+صف: ${(student as any).classes?.name ?? "-"} | مجموعة: ${(student as any).groups?.name ?? "-"}
+نقاط: ${(student as any).points} | مستوى: ${(student as any).level}
+النتائج:
 ${lines}`;
 
-    const reply = await callLovableChat(
+    const result = await callAI(
+      "student_analytics",
       [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `قدّم تحليلًا شخصيًا لهذا الطالب:
-1) تقييم الأداء العام
-2) نقاط القوة والضعف
-3) خطة تحسين خلال أسبوعين
-4) رسالة تحفيزية قصيرة له
-5) رسالة لولي الأمر
-
-${summary}`,
-        },
+        { role: "system", content: "قدّم تحليلاً شخصياً لطالب دراسات اجتماعية بالعربية: تقييم، نقاط قوة/ضعف، خطة تحسين، رسالة تحفيزية، رسالة لولي الأمر. اختصر." },
+        { role: "user", content: summary },
       ],
-      { temperature: 0.6, maxTokens: 1200 },
+      { userId: context.userId, role: "admin", cacheScope: data.studentId },
     );
 
-    return { insights: reply };
+    return { insights: result.text, cached: result.cached };
   });

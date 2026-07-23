@@ -140,6 +140,9 @@ function AIManagementPage() {
         </div>
       </div>
 
+      <div className="flex justify-end">
+        <Link to="/admin/ai/usage"><Button variant="outline" size="sm"><Zap className="w-4 h-4 ml-1"/> استهلاك وتكلفة AI</Button></Link>
+      </div>
 
 
       {missingKeys > 0 && (

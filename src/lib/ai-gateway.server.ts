@@ -1,13 +1,14 @@
-// Server-only helper for calling Lovable AI Gateway with fallback.
-// Do NOT import from client-reachable code (marked .server.ts).
+// Legacy Lovable AI Gateway helper. Kept for backward compatibility with
+// call sites that pass their own model chain (ai-exam, ai-map, image
+// generation). New code should use `src/lib/ai/router.ts` → `callAI(taskType, ...)`
+// which adds caching, rate limiting, and structured logging on top.
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-// Default model priority: cost-efficient multimodal → stronger fallback.
 export const DEFAULT_MODEL_CHAIN = [
+  "google/gemini-3.1-flash-lite",
   "google/gemini-3.5-flash",
-  "google/gemini-3.1-pro-preview",
-  "openai/gpt-5.4-mini",
+  "google/gemini-2.5-flash",
 ];
 
 export type ChatMessage = {
@@ -20,13 +21,46 @@ export type CallOptions = {
   temperature?: number;
   responseJson?: boolean;
   maxTokens?: number;
+  /** When set, usage rows are tagged with this task name for the admin dashboard. */
+  taskType?: string;
 };
+
+async function logLegacyUsage(opts: {
+  taskType?: string;
+  model: string | null;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
+  success: boolean;
+  error?: string;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { estimateCost } = await import("./ai/task-registry.server");
+    const cost = opts.model ? estimateCost(opts.model, opts.tokensIn, opts.tokensOut) : 0;
+    await supabaseAdmin.from("ai_usage_logs").insert({
+      function_name: opts.taskType ?? "legacy",
+      function_key: opts.taskType ?? "legacy",
+      task_type: opts.taskType ?? null,
+      model: opts.model,
+      cache_hit: false,
+      tokens_in: opts.tokensIn,
+      tokens_out: opts.tokensOut,
+      tokens_used: opts.tokensIn + opts.tokensOut,
+      estimated_cost: cost,
+      latency_ms: opts.latencyMs,
+      success: opts.success,
+      error: opts.error ?? null,
+    });
+  } catch {}
+}
 
 export async function callLovableChat(messages: ChatMessage[], opts: CallOptions = {}): Promise<string> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("LOVABLE_API_KEY غير مضبوط");
   const chain = opts.models ?? DEFAULT_MODEL_CHAIN;
   let lastErr: any = null;
+  const start = Date.now();
 
   for (const model of chain) {
     try {
@@ -38,21 +72,12 @@ export async function callLovableChat(messages: ChatMessage[], opts: CallOptions
 
       const res = await fetch(GATEWAY_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Lovable-API-Key": key,
-        },
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
         body: JSON.stringify(body),
       });
 
-      if (res.status === 429) {
-        lastErr = new Error("تم تجاوز حد الاستخدام (429)");
-        continue;
-      }
-      if (res.status === 402) {
-        lastErr = new Error("انتهى رصيد الذكاء الاصطناعي (402). أضف رصيدًا للاستمرار.");
-        continue;
-      }
+      if (res.status === 429) { lastErr = new Error("تم تجاوز حد الاستخدام (429)"); continue; }
+      if (res.status === 402) { lastErr = new Error("انتهى رصيد الذكاء الاصطناعي (402). أضف رصيدًا للاستمرار."); continue; }
       if (!res.ok) {
         const t = await res.text();
         lastErr = new Error(`AI ${res.status}: ${t.slice(0, 300)}`);
@@ -64,26 +89,41 @@ export async function callLovableChat(messages: ChatMessage[], opts: CallOptions
         lastErr = new Error("رد فارغ من AI");
         continue;
       }
+      const tokensIn = Number(json?.usage?.prompt_tokens ?? 0);
+      const tokensOut = Number(json?.usage?.completion_tokens ?? 0);
+      logLegacyUsage({
+        taskType: opts.taskType,
+        model,
+        tokensIn,
+        tokensOut,
+        latencyMs: Date.now() - start,
+        success: true,
+      });
       return content;
     } catch (e: any) {
       lastErr = e;
     }
   }
+  logLegacyUsage({
+    taskType: opts.taskType,
+    model: null,
+    tokensIn: 0,
+    tokensOut: 0,
+    latencyMs: Date.now() - start,
+    success: false,
+    error: lastErr?.message?.slice(0, 200),
+  });
   throw lastErr ?? new Error("فشلت جميع محاولات مزودي الذكاء الاصطناعي");
 }
 
 export function parseJsonLoose<T = unknown>(text: string): T {
-  // Strip markdown fences if present.
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   try { return JSON.parse(cleaned) as T; } catch {}
-  // Fallback: extract first { ... } block
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (match) return JSON.parse(match[0]) as T;
   throw new Error("تعذّر تحليل رد AI كـ JSON");
 }
 
-// Generate an image via Lovable AI Gateway (chat-shape Gemini image model).
-// Returns a data URL string (data:image/...;base64,...) or null on failure.
 export async function generateImageViaGateway(prompt: string, opts: { model?: string } = {}): Promise<string | null> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return null;
@@ -103,7 +143,6 @@ export async function generateImageViaGateway(prompt: string, opts: { model?: st
     const msg = json?.choices?.[0]?.message;
     const imgs = msg?.images;
     if (Array.isArray(imgs) && imgs[0]?.image_url?.url) return String(imgs[0].image_url.url);
-    // Some providers return the image inline in content parts
     const parts = Array.isArray(msg?.content) ? msg.content : [];
     for (const p of parts) {
       if (p?.type === "image_url" && p?.image_url?.url) return String(p.image_url.url);
@@ -114,9 +153,6 @@ export async function generateImageViaGateway(prompt: string, opts: { model?: st
   }
 }
 
-// Edit an existing image via Lovable AI Gateway (chat-shape Gemini image model).
-// Pass the original image as a data URL and a natural-language edit instruction.
-// Returns a data URL string or null on failure.
 export async function editImageViaGateway(
   instruction: string,
   imageDataUrl: string,

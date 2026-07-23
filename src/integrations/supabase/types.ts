@@ -151,6 +151,87 @@ export type Database = {
           },
         ]
       }
+      ai_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string | null
+          hit_count: number | null
+          id: string
+          last_hit_at: string | null
+          model: string | null
+          provider: string | null
+          result: Json
+          task_type: string
+          tokens_in: number | null
+          tokens_out: number | null
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          last_hit_at?: string | null
+          model?: string | null
+          provider?: string | null
+          result: Json
+          task_type: string
+          tokens_in?: number | null
+          tokens_out?: number | null
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          last_hit_at?: string | null
+          model?: string | null
+          provider?: string | null
+          result?: Json
+          task_type?: string
+          tokens_in?: number | null
+          tokens_out?: number | null
+        }
+        Relationships: []
+      }
+      ai_extracted_documents: {
+        Row: {
+          char_count: number | null
+          created_at: string
+          extracted_text: string
+          file_name: string | null
+          id: string
+          last_used_at: string | null
+          mime_type: string | null
+          page_count: number | null
+          source_hash: string
+        }
+        Insert: {
+          char_count?: number | null
+          created_at?: string
+          extracted_text: string
+          file_name?: string | null
+          id?: string
+          last_used_at?: string | null
+          mime_type?: string | null
+          page_count?: number | null
+          source_hash: string
+        }
+        Update: {
+          char_count?: number | null
+          created_at?: string
+          extracted_text?: string
+          file_name?: string | null
+          id?: string
+          last_used_at?: string | null
+          mime_type?: string | null
+          page_count?: number | null
+          source_hash?: string
+        }
+        Relationships: []
+      }
       ai_function_mapping: {
         Row: {
           category: string
@@ -235,39 +316,87 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_rate_limits: {
+        Row: {
+          id: string
+          request_count: number
+          token_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          request_count?: number
+          token_count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          id?: string
+          request_count?: number
+          token_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
+          cache_hit: boolean
           created_at: string
           error: string | null
+          estimated_cost: number | null
           function_key: string | null
           function_name: string | null
           id: string
           latency_ms: number | null
+          model: string | null
+          model_tier: string | null
           provider_id: string | null
           success: boolean | null
+          task_type: string | null
+          tokens_in: number | null
+          tokens_out: number | null
           tokens_used: number | null
+          user_id: string | null
         }
         Insert: {
+          cache_hit?: boolean
           created_at?: string
           error?: string | null
+          estimated_cost?: number | null
           function_key?: string | null
           function_name?: string | null
           id?: string
           latency_ms?: number | null
+          model?: string | null
+          model_tier?: string | null
           provider_id?: string | null
           success?: boolean | null
+          task_type?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           tokens_used?: number | null
+          user_id?: string | null
         }
         Update: {
+          cache_hit?: boolean
           created_at?: string
           error?: string | null
+          estimated_cost?: number | null
           function_key?: string | null
           function_name?: string | null
           id?: string
           latency_ms?: number | null
+          model?: string | null
+          model_tier?: string | null
           provider_id?: string | null
           success?: boolean | null
+          task_type?: string | null
+          tokens_in?: number | null
+          tokens_out?: number | null
           tokens_used?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
