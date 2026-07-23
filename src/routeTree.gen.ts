@@ -53,6 +53,7 @@ import { Route as ApiPublicFcmDispatchRouteImport } from './routes/api/public/fc
 import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id'
 import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
+import { Route as AdminAiUsageRouteImport } from './routes/admin.ai.usage'
 import { Route as AdminAiMappingRouteImport } from './routes/admin.ai.mapping'
 import { Route as StudentExamsIdIndexRouteImport } from './routes/student.exams.$id.index'
 import { Route as AdminExamsIdIndexRouteImport } from './routes/admin.exams.$id.index'
@@ -287,6 +288,11 @@ const AdminExamsIdRoute = AdminExamsIdRouteImport.update({
   path: '/exams/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAiUsageRoute = AdminAiUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => AdminAiRoute,
+} as any)
 const AdminAiMappingRoute = AdminAiMappingRouteImport.update({
   id: '/mapping',
   path: '/mapping',
@@ -392,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
@@ -448,6 +455,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
@@ -506,6 +514,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
@@ -567,6 +576,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
+    | '/admin/ai/usage'
     | '/admin/exams/$id'
     | '/admin/exams/ai'
     | '/admin/students/$id'
@@ -623,6 +633,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/student'
     | '/admin/ai/mapping'
+    | '/admin/ai/usage'
     | '/admin/exams/ai'
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
@@ -680,6 +691,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
+    | '/admin/ai/usage'
     | '/admin/exams/$id'
     | '/admin/exams/ai'
     | '/admin/students/$id'
@@ -1024,6 +1036,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExamsIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/ai/usage': {
+      id: '/admin/ai/usage'
+      path: '/usage'
+      fullPath: '/admin/ai/usage'
+      preLoaderRoute: typeof AdminAiUsageRouteImport
+      parentRoute: typeof AdminAiRoute
+    }
     '/admin/ai/mapping': {
       id: '/admin/ai/mapping'
       path: '/mapping'
@@ -1120,10 +1139,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminAiRouteChildren {
   AdminAiMappingRoute: typeof AdminAiMappingRoute
+  AdminAiUsageRoute: typeof AdminAiUsageRoute
 }
 
 const AdminAiRouteChildren: AdminAiRouteChildren = {
   AdminAiMappingRoute: AdminAiMappingRoute,
+  AdminAiUsageRoute: AdminAiUsageRoute,
 }
 
 const AdminAiRouteWithChildren =
