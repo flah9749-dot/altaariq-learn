@@ -605,6 +605,71 @@ async function creditStudentPoints(
   if (error) throw new Error(`points_log insert failed: ${error.message}`);
 }
 
+// Evaluate active achievements & badges for a student and unlock any newly
+// satisfied ones. Uses the admin client so it works during auto-grade paths
+// where the RLS user context may not permit inserting into student_* tables.
+async function evaluateAchievementsAndBadges(supabaseAdmin: any, studentId: string): Promise<void> {
+  try {
+    const [stuRes, examRes, achRes, badgeRes, mineAch, mineBadge] = await Promise.all([
+      supabaseAdmin.from("students").select("user_id,points,level").eq("id", studentId).maybeSingle(),
+      supabaseAdmin.from("exam_attempts").select("id", { count: "exact", head: true }).eq("student_id", studentId).eq("approved", true),
+      supabaseAdmin.from("achievements").select("*").eq("active", true),
+      supabaseAdmin.from("badges").select("*").eq("active", true),
+      supabaseAdmin.from("student_achievements").select("achievement_id").eq("student_id", studentId),
+      supabaseAdmin.from("student_badges").select("badge_id").eq("student_id", studentId),
+    ]);
+    const points = Number(stuRes.data?.points) || 0;
+    const level = Number(stuRes.data?.level) || 1;
+    const examCount = examRes.count ?? 0;
+    const userId = stuRes.data?.user_id ?? null;
+    const gotAch = new Set((mineAch.data ?? []).map((r: any) => r.achievement_id));
+    const gotBadge = new Set((mineBadge.data ?? []).map((r: any) => r.badge_id));
+
+    const meets = (t: string | null, v: number | null) => {
+      const val = Number(v) || 0;
+      if (t === "exam_count") return examCount >= val;
+      if (t === "points") return points >= val;
+      if (t === "level") return level >= val;
+      return false;
+    };
+
+    for (const a of achRes.data ?? []) {
+      if (gotAch.has(a.id)) continue;
+      if (!meets(a.condition_type, a.condition_value)) continue;
+      const { error } = await supabaseAdmin.from("student_achievements").insert({ student_id: studentId, achievement_id: a.id });
+      if (error) continue;
+      if (Number(a.points_reward) > 0) {
+        await supabaseAdmin.from("points_log").insert({
+          student_id: studentId, points: Number(a.points_reward), reason: `مكافأة إنجاز: ${a.name}`,
+        }).catch(() => {});
+      }
+      if (userId) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: userId, title: "🏆 إنجاز جديد",
+          body: `مبروك! حصلت على إنجاز: ${a.name}`,
+          type: "achievement", link: "/student/achievements",
+        }).catch(() => {});
+      }
+    }
+
+    for (const b of badgeRes.data ?? []) {
+      if (gotBadge.has(b.id)) continue;
+      if (!meets(b.condition_type, b.condition_value)) continue;
+      const { error } = await supabaseAdmin.from("student_badges").insert({ student_id: studentId, badge_id: b.id });
+      if (error) continue;
+      if (userId) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: userId, title: "🎖️ شارة جديدة",
+          body: `حصلت على شارة: ${b.name}`,
+          type: "badge", link: "/student/achievements",
+        }).catch(() => {});
+      }
+    }
+  } catch (e) {
+    console.error("[evaluateAchievementsAndBadges] failed:", e);
+  }
+}
+
 export const approveAttempt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({
