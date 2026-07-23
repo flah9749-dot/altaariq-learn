@@ -482,6 +482,9 @@ export const submitAttempt = createServerFn({ method: "POST" })
         console.error("[submitAttempt] creditStudentPoints failed:", e);
       }
     }
+    if (autoApproved) {
+      await evaluateAchievementsAndBadges(supabaseAdmin, att.student_id);
+    }
 
     // Save to results table (for legacy compatibility)
     await supabaseAdmin.from("results").insert({
