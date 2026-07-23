@@ -701,6 +701,7 @@ export const approveAttempt = createServerFn({ method: "POST" })
     }
 
     await logActivity(supabaseAdmin, context.userId, "approve_attempt", "exam_attempt", att.id, { points_awarded: pts });
+    await evaluateAchievementsAndBadges(supabaseAdmin, att.student_id);
 
     // Notify the student that their result was published/approved.
     try {
