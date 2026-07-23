@@ -19,7 +19,7 @@ function decodeDataUrl(dataUrl: string): { mime: string; bytes: Uint8Array } | n
 export async function hashDataUrl(dataUrl: string): Promise<string | null> {
   const parsed = decodeDataUrl(dataUrl);
   if (!parsed) return null;
-  const buf = await crypto.subtle.digest("SHA-256", parsed.bytes);
+  const buf = await crypto.subtle.digest("SHA-256", parsed.bytes.buffer as ArrayBuffer);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
