@@ -81,12 +81,19 @@ export async function callAI(
     }
   }
 
-  // --- 2. Rate limit + duplicate guard ---
+  // --- 2. Rate limit + duplicate guard + quota reservation ---
+  const feature = taskToFeature(taskType);
+  let quotaPeriod: "daily" | "weekly" | "monthly" | null = null;
   if (!opts.systemCall && opts.userId) {
     await enforceRateLimit(opts.userId, opts.role ?? "student", task.rateWeight ?? 1);
     const reqHash = await hashRequest(taskType, messages);
     await guardDuplicate(opts.userId, reqHash);
+    if (feature) {
+      const { quota } = await checkQuota(opts.userId, opts.role ?? "student", feature);
+      quotaPeriod = quota.period;
+    }
   }
+
 
   // --- 3. Provider chain ---
   const key = process.env.LOVABLE_API_KEY;
