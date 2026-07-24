@@ -133,9 +133,13 @@ function QuestionBankPage() {
               <Button variant="ghost" onClick={() => bulkMut.mutate("private")}>
                 <EyeOff className="w-4 h-4 ml-1" /> جعلها خاصة
               </Button>
+              <Button variant="outline" onClick={() => setOpenTargets(true)}>
+                <Users className="w-4 h-4 ml-1" /> استهداف صفوف/مجموعات
+              </Button>
               <Button variant="default" onClick={() => setOpenExam(true)}>
                 <ClipboardList className="w-4 h-4 ml-1" /> إنشاء امتحان ({selected.size})
               </Button>
+
             </>
           )}
         </div>
