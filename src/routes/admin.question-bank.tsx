@@ -684,3 +684,63 @@ function ExamFromBankDialog({ open, onOpenChange, count, onCreate }: any) {
 function DialogDescriptionInline({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
 }
+
+function BulkTargetsDialog({ open, onOpenChange, count, classes, groups, onApply }: any) {
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useMemo(() => {
+    if (open) { setClassIds([]); setGroupIds([]); }
+  }, [open]);
+
+  const availableGroups = classIds.length > 0
+    ? (groups ?? []).filter((g: any) => classIds.includes(g.class_id))
+    : (groups ?? []);
+  const toggle = (arr: string[], id: string, setter: (v: string[]) => void) =>
+    setter(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent dir="rtl" className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>استهداف {count} عنصر لصفوف / مجموعات</DialogTitle>
+          <DialogDescriptionInline>اترك القائمة فارغة ليصل العنصر لجميع الصفوف/المجموعات.</DialogDescriptionInline>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs font-semibold">الصفوف</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {(classes ?? []).map((c: any) => (
+                <label key={c.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${classIds.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : ""}`}>
+                  <Checkbox checked={classIds.includes(c.id)} onCheckedChange={() => toggle(classIds, c.id, setClassIds)} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold">المجموعات</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {availableGroups.length === 0 && <span className="text-xs text-muted-foreground">لا توجد مجموعات</span>}
+              {availableGroups.map((g: any) => (
+                <label key={g.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${groupIds.includes(g.id) ? "bg-primary text-primary-foreground border-primary" : ""}`}>
+                  <Checkbox checked={groupIds.includes(g.id)} onCheckedChange={() => toggle(groupIds, g.id, setGroupIds)} />
+                  {g.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button disabled={loading} onClick={async () => {
+            setLoading(true);
+            try { await onApply(classIds, groupIds); } finally { setLoading(false); }
+          }}>{loading ? "جارٍ التطبيق…" : "تطبيق"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
