@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listQuestionBank, createQuestionBankEntry, updateQuestionBankEntry,
-  deleteQuestionBankEntry, setBulkVisibility, createUploadUrl,
+  deleteQuestionBankEntry, setBulkVisibility, setBulkTargets, createUploadUrl,
   generateQuestionsWithAI, createExamFromBank,
 } from "@/lib/question-bank.functions";
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +25,9 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Sparkles, Trash2, Edit, Eye, EyeOff, Upload, FileText,
-  Image as ImageIcon, Video, Search, Wand2, ClipboardList,
+  Image as ImageIcon, Video, Search, Wand2, ClipboardList, Users,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/admin/question-bank")({
   head: () => ({ meta: [
