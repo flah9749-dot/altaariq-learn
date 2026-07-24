@@ -32,11 +32,14 @@ export type QBEntry = {
   points: number;
   tags: string[];
   visibility: "private" | "students";
+  class_ids: string[];
+  group_ids: string[];
   source: "manual" | "ai_generated" | "imported";
   usage_count: number;
   created_at: string;
   updated_at: string;
 };
+
 
 const EntrySchema = z.object({
   id: z.string().uuid().optional(),
@@ -55,7 +58,10 @@ const EntrySchema = z.object({
   points: z.number().int().min(0).max(100).default(1),
   tags: z.array(z.string()).default([]),
   visibility: z.enum(["private", "students"]).default("private"),
+  class_ids: z.array(z.string().uuid()).default([]),
+  group_ids: z.array(z.string().uuid()).default([]),
 });
+
 
 async function assertAdmin(ctx: any) {
   const { data: isAdmin } = await ctx.supabase.rpc("has_role", {
