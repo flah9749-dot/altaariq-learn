@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listQuestionBank, createQuestionBankEntry, updateQuestionBankEntry,
-  deleteQuestionBankEntry, setBulkVisibility, createUploadUrl,
+  deleteQuestionBankEntry, setBulkVisibility, setBulkTargets, createUploadUrl,
   generateQuestionsWithAI, createExamFromBank,
 } from "@/lib/question-bank.functions";
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +25,9 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Sparkles, Trash2, Edit, Eye, EyeOff, Upload, FileText,
-  Image as ImageIcon, Video, Search, Wand2, ClipboardList,
+  Image as ImageIcon, Video, Search, Wand2, ClipboardList, Users,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/admin/question-bank")({
   head: () => ({ meta: [
@@ -49,6 +51,7 @@ function QuestionBankPage() {
   const update = useServerFn(updateQuestionBankEntry);
   const remove = useServerFn(deleteQuestionBankEntry);
   const bulk = useServerFn(setBulkVisibility);
+  const bulkTargets = useServerFn(setBulkTargets);
   const genAI = useServerFn(generateQuestionsWithAI);
   const makeExam = useServerFn(createExamFromBank);
 
@@ -60,11 +63,26 @@ function QuestionBankPage() {
   const [openForm, setOpenForm] = useState(false);
   const [openAI, setOpenAI] = useState(false);
   const [openExam, setOpenExam] = useState(false);
+  const [openTargets, setOpenTargets] = useState(false);
+
+  const classesQ = useQuery({
+    queryKey: ["qb-classes-groups"],
+    queryFn: async () => {
+      const [cRes, gRes] = await Promise.all([
+        supabase.from("classes").select("id,name").order("name"),
+        supabase.from("groups").select("id,name,class_id").order("name"),
+      ]);
+      return { classes: cRes.data ?? [], groups: gRes.data ?? [] };
+    },
+  });
+  const classes = classesQ.data?.classes ?? [];
+  const groups = classesQ.data?.groups ?? [];
 
   const q = useQuery({
     queryKey: ["question-bank", { search, subject, entryType }],
     queryFn: () => list({ data: { search, subject, entry_type: entryType } }),
   });
+
 
   const removeMut = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
@@ -115,9 +133,13 @@ function QuestionBankPage() {
               <Button variant="ghost" onClick={() => bulkMut.mutate("private")}>
                 <EyeOff className="w-4 h-4 ml-1" /> جعلها خاصة
               </Button>
+              <Button variant="outline" onClick={() => setOpenTargets(true)}>
+                <Users className="w-4 h-4 ml-1" /> استهداف صفوف/مجموعات
+              </Button>
               <Button variant="default" onClick={() => setOpenExam(true)}>
                 <ClipboardList className="w-4 h-4 ml-1" /> إنشاء امتحان ({selected.size})
               </Button>
+
             </>
           )}
         </div>
@@ -173,7 +195,24 @@ function QuestionBankPage() {
                       <Sparkles className="w-2.5 h-2.5 ml-0.5" /> AI
                     </Badge>
                   )}
+                  {(e.class_ids?.length ?? 0) === 0 && (e.group_ids?.length ?? 0) === 0 ? (
+                    e.visibility === "students" && (
+                      <Badge variant="outline" className="text-[10px]">كل الطلاب</Badge>
+                    )
+                  ) : (
+                    <>
+                      {(e.class_ids ?? []).map((cid) => {
+                        const cName = classes.find((c) => c.id === cid)?.name ?? "صف";
+                        return <Badge key={cid} variant="outline" className="text-[10px]">🎓 {cName}</Badge>;
+                      })}
+                      {(e.group_ids ?? []).map((gid) => {
+                        const gName = groups.find((g) => g.id === gid)?.name ?? "مجموعة";
+                        return <Badge key={gid} variant="outline" className="text-[10px]">👥 {gName}</Badge>;
+                      })}
+                    </>
+                  )}
                 </div>
+
               </div>
             </CardHeader>
             <CardContent className="p-3 pt-0 space-y-2">
@@ -219,6 +258,7 @@ function QuestionBankPage() {
       {/* --- Manual form --- */}
       <EntryFormDialog
         open={openForm} onOpenChange={setOpenForm} editing={editing}
+        classes={classes} groups={groups}
         onSave={async (payload: any) => {
           try {
             if (editing) await update({ data: { ...payload, id: editing.id } });
@@ -229,6 +269,21 @@ function QuestionBankPage() {
           } catch (e: any) { toast.error(e?.message ?? "فشل الحفظ"); }
         }}
       />
+
+      {/* --- Bulk targets --- */}
+      <BulkTargetsDialog
+        open={openTargets} onOpenChange={setOpenTargets}
+        count={selected.size} classes={classes} groups={groups}
+        onApply={async (cIds: string[], gIds: string[]) => {
+          try {
+            await bulkTargets({ data: { ids: Array.from(selected), class_ids: cIds, group_ids: gIds } });
+            toast.success("تم تحديث الاستهداف");
+            qc.invalidateQueries({ queryKey: ["question-bank"] });
+            setOpenTargets(false); setSelected(new Set());
+          } catch (e: any) { toast.error(e?.message ?? "فشل التحديث"); }
+        }}
+      />
+
 
       {/* --- AI generation --- */}
       <AiGenerateDialog
@@ -261,7 +316,7 @@ function QuestionBankPage() {
 
 // --------- Sub-dialogs ---------
 
-function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
+function EntryFormDialog({ open, onOpenChange, editing, onSave, classes = [], groups = [] }: any) {
   const uploadFn = useServerFn(createUploadUrl);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -279,6 +334,9 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+
 
   // reset on open
   useMemo(() => {
@@ -297,12 +355,16 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
       setExplanation(editing.content?.explanation ?? "");
       setBody(editing.content?.body ?? "");
       setAttachments(editing.attachments ?? []);
+      setClassIds(editing.class_ids ?? []);
+      setGroupIds(editing.group_ids ?? []);
     } else {
       setTitle(""); setDescription(""); setEntryType("question"); setQuestionType("mcq");
       setSubject("general"); setVisibility("private");
       setText(""); setOptions([{ text: "", is_correct: true }, { text: "", is_correct: false }, { text: "", is_correct: false }, { text: "", is_correct: false }]);
       setCorrectAnswer(""); setExplanation(""); setBody(""); setAttachments([]);
+      setClassIds([]); setGroupIds([]);
     }
+
   }, [open, editing]);
 
   const handleUpload = async (file: File) => {
@@ -335,11 +397,20 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
       points: 1,
       tags: [],
       visibility,
+      class_ids: classIds,
+      group_ids: groupIds,
     });
   };
 
+  const availableGroups = classIds.length > 0
+    ? groups.filter((g: any) => classIds.includes(g.class_id))
+    : groups;
+  const toggleId = (arr: string[], id: string, setter: (v: string[]) => void) =>
+    setter(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle>{editing ? "تعديل" : "إضافة جديدة"}</DialogTitle>
@@ -458,6 +529,36 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
             <Checkbox checked={visibility === "students"} onCheckedChange={(v) => setVisibility(v ? "students" : "private")} />
             <Label className="cursor-pointer">إتاحة للطلاب</Label>
           </div>
+
+          {visibility === "students" && (
+            <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+              <div>
+                <Label className="text-xs font-semibold">استهداف الصفوف (فارغ = كل الصفوف)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {classes.length === 0 && <span className="text-xs text-muted-foreground">لا توجد صفوف</span>}
+                  {classes.map((c: any) => (
+                    <label key={c.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${classIds.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                      <Checkbox checked={classIds.includes(c.id)} onCheckedChange={() => toggleId(classIds, c.id, setClassIds)} />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">استهداف المجموعات (فارغ = كل المجموعات)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {availableGroups.length === 0 && <span className="text-xs text-muted-foreground">لا توجد مجموعات{classIds.length > 0 ? " للصفوف المختارة" : ""}</span>}
+                  {availableGroups.map((g: any) => (
+                    <label key={g.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${groupIds.includes(g.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                      <Checkbox checked={groupIds.includes(g.id)} onCheckedChange={() => toggleId(groupIds, g.id, setGroupIds)} />
+                      {g.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         <DialogFooter>
@@ -583,3 +684,63 @@ function ExamFromBankDialog({ open, onOpenChange, count, onCreate }: any) {
 function DialogDescriptionInline({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
 }
+
+function BulkTargetsDialog({ open, onOpenChange, count, classes, groups, onApply }: any) {
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useMemo(() => {
+    if (open) { setClassIds([]); setGroupIds([]); }
+  }, [open]);
+
+  const availableGroups = classIds.length > 0
+    ? (groups ?? []).filter((g: any) => classIds.includes(g.class_id))
+    : (groups ?? []);
+  const toggle = (arr: string[], id: string, setter: (v: string[]) => void) =>
+    setter(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent dir="rtl" className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>استهداف {count} عنصر لصفوف / مجموعات</DialogTitle>
+          <DialogDescriptionInline>اترك القائمة فارغة ليصل العنصر لجميع الصفوف/المجموعات.</DialogDescriptionInline>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs font-semibold">الصفوف</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {(classes ?? []).map((c: any) => (
+                <label key={c.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${classIds.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : ""}`}>
+                  <Checkbox checked={classIds.includes(c.id)} onCheckedChange={() => toggle(classIds, c.id, setClassIds)} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold">المجموعات</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {availableGroups.length === 0 && <span className="text-xs text-muted-foreground">لا توجد مجموعات</span>}
+              {availableGroups.map((g: any) => (
+                <label key={g.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${groupIds.includes(g.id) ? "bg-primary text-primary-foreground border-primary" : ""}`}>
+                  <Checkbox checked={groupIds.includes(g.id)} onCheckedChange={() => toggle(groupIds, g.id, setGroupIds)} />
+                  {g.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button disabled={loading} onClick={async () => {
+            setLoading(true);
+            try { await onApply(classIds, groupIds); } finally { setLoading(false); }
+          }}>{loading ? "جارٍ التطبيق…" : "تطبيق"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

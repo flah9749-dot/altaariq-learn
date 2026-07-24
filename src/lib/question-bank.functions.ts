@@ -32,11 +32,14 @@ export type QBEntry = {
   points: number;
   tags: string[];
   visibility: "private" | "students";
+  class_ids: string[];
+  group_ids: string[];
   source: "manual" | "ai_generated" | "imported";
   usage_count: number;
   created_at: string;
   updated_at: string;
 };
+
 
 const EntrySchema = z.object({
   id: z.string().uuid().optional(),
@@ -55,7 +58,10 @@ const EntrySchema = z.object({
   points: z.number().int().min(0).max(100).default(1),
   tags: z.array(z.string()).default([]),
   visibility: z.enum(["private", "students"]).default("private"),
+  class_ids: z.array(z.string().uuid()).default([]),
+  group_ids: z.array(z.string().uuid()).default([]),
 });
+
 
 async function assertAdmin(ctx: any) {
   const { data: isAdmin } = await ctx.supabase.rpc("has_role", {
@@ -175,6 +181,21 @@ export const setBulkVisibility = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, count: data.ids.length };
   });
+
+// ---------- Bulk targeting (classes / groups) ----------
+export const setBulkTargets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; class_ids: string[]; group_ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("question_bank")
+      .update({ class_ids: data.class_ids, group_ids: data.group_ids })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.ids.length };
+  });
+
 
 // ---------- Generate signed upload URL for attachment ----------
 export const createUploadUrl = createServerFn({ method: "POST" })

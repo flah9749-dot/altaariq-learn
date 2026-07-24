@@ -1556,12 +1556,14 @@ export type Database = {
           admin_id: string | null
           attachments: Json
           chapter: string | null
+          class_ids: string[]
           content: Json
           created_at: string
           description: string | null
           difficulty: string
           entry_type: string
           grade_level: string | null
+          group_ids: string[]
           id: string
           points: number
           question_type: string | null
@@ -1579,12 +1581,14 @@ export type Database = {
           admin_id?: string | null
           attachments?: Json
           chapter?: string | null
+          class_ids?: string[]
           content?: Json
           created_at?: string
           description?: string | null
           difficulty?: string
           entry_type?: string
           grade_level?: string | null
+          group_ids?: string[]
           id?: string
           points?: number
           question_type?: string | null
@@ -1602,12 +1606,14 @@ export type Database = {
           admin_id?: string | null
           attachments?: Json
           chapter?: string | null
+          class_ids?: string[]
           content?: Json
           created_at?: string
           description?: string | null
           difficulty?: string
           entry_type?: string
           grade_level?: string | null
+          group_ids?: string[]
           id?: string
           points?: number
           question_type?: string | null
