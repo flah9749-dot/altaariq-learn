@@ -397,11 +397,20 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave, classes = [], gr
       points: 1,
       tags: [],
       visibility,
+      class_ids: classIds,
+      group_ids: groupIds,
     });
   };
 
+  const availableGroups = classIds.length > 0
+    ? groups.filter((g: any) => classIds.includes(g.class_id))
+    : groups;
+  const toggleId = (arr: string[], id: string, setter: (v: string[]) => void) =>
+    setter(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle>{editing ? "تعديل" : "إضافة جديدة"}</DialogTitle>
