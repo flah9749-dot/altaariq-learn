@@ -98,92 +98,97 @@ export async function callAI(
   }
 
 
-  // --- 3. Provider chain ---
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY غير مضبوط");
-
+  // --- 3. Provider chain: Lovable Gateway → user-configured providers ---
   const start = Date.now();
   let lastErr: any = null;
+  const lovableKey = process.env.LOVABLE_API_KEY;
 
-  for (const model of models) {
-    try {
-      const body: Record<string, unknown> = { model, messages, max_tokens: maxTokens };
-      if (task.temperature != null) body.temperature = task.temperature;
-      if (opts.responseJson) body.response_format = { type: "json_object" };
-      if (model.startsWith("openai/gpt-5.6")) body.reasoning_effort = "none";
-
-      const res = await fetch(GATEWAY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
-        body: JSON.stringify(body),
+  const finish = (result: AiCallResult, providerLabel: string) => {
+    if (cacheKey) {
+      void writeCache({
+        cacheKey, taskType, model: result.model ?? undefined,
+        provider: providerLabel,
+        result: { text: result.text, model: result.model, tokensIn: result.tokensIn, tokensOut: result.tokensOut },
+        tokensIn: result.tokensIn, tokensOut: result.tokensOut, ttlSeconds: task.ttl,
       });
+    }
+    logUsage({
+      taskType, modelTier: task.tier, model: result.model, cacheHit: false,
+      tokensIn: result.tokensIn, tokensOut: result.tokensOut, latencyMs: result.latencyMs,
+      success: true, userId: opts.userId ?? null, feature,
+      charged: !!(feature && !opts.systemCall && opts.userId),
+      provider: providerLabel,
+    });
+    if (feature && quotaPeriod && !opts.systemCall && opts.userId) {
+      void commitQuotaUsage(opts.userId, feature, quotaPeriod);
+    }
+    return result;
+  };
 
-      if (res.status === 429) { lastErr = new Error("تجاوز حد الاستخدام (429)"); continue; }
-      if (res.status === 402) { lastErr = new Error("انتهى رصيد الذكاء الاصطناعي (402)"); continue; }
-      if (!res.ok) {
-        const t = await res.text();
-        lastErr = new Error(`AI ${res.status}: ${t.slice(0, 300)}`);
-        continue;
-      }
-      const json = (await res.json()) as any;
-      const text = json?.choices?.[0]?.message?.content;
-      if (typeof text !== "string" || !text.trim()) { lastErr = new Error("رد فارغ من AI"); continue; }
+  // --- 3a. Try Lovable Gateway across configured models ---
+  if (lovableKey) {
+    for (const model of models) {
+      try {
+        const body: Record<string, unknown> = { model, messages, max_tokens: maxTokens };
+        if (task.temperature != null) body.temperature = task.temperature;
+        if (opts.responseJson) body.response_format = { type: "json_object" };
+        if (model.startsWith("openai/gpt-5.6")) body.reasoning_effort = "none";
 
-      const tokensIn = Number(json?.usage?.prompt_tokens ?? 0);
-      const tokensOut = Number(json?.usage?.completion_tokens ?? 0);
-      const latencyMs = Date.now() - start;
-
-      // --- 4. Cache write ---
-      if (cacheKey) {
-        await writeCache({
-          cacheKey,
-          taskType,
-          model,
-          provider: "lovable",
-          result: { text, model, tokensIn, tokensOut },
-          tokensIn,
-          tokensOut,
-          ttlSeconds: task.ttl,
+        const res = await fetch(GATEWAY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey },
+          body: JSON.stringify(body),
         });
-      }
 
-      // --- 5. Log usage + commit quota ---
-      logUsage({
-        taskType,
-        modelTier: task.tier,
-        model,
-        cacheHit: false,
-        tokensIn,
-        tokensOut,
-        latencyMs,
-        success: true,
-        userId: opts.userId ?? null,
-        feature,
-        charged: !!(feature && !opts.systemCall && opts.userId),
-      });
-      if (feature && quotaPeriod && !opts.systemCall && opts.userId) {
-        void commitQuotaUsage(opts.userId, feature, quotaPeriod);
-      }
-
-      return { text, cached: false, model, tokensIn, tokensOut, latencyMs };
-    } catch (e: any) {
-      lastErr = e;
+        if (res.status === 429 || res.status === 402) {
+          lastErr = new Error(res.status === 402 ? "انتهى رصيد Lovable (402)" : "تجاوز حد Lovable (429)");
+          break; // both mean this provider is done — jump to fallback providers
+        }
+        if (!res.ok) {
+          const t = await res.text();
+          lastErr = new Error(`Lovable ${res.status}: ${t.slice(0, 300)}`);
+          continue; // try next model on same provider
+        }
+        const json = (await res.json()) as any;
+        const text = json?.choices?.[0]?.message?.content;
+        if (typeof text !== "string" || !text.trim()) { lastErr = new Error("رد فارغ من AI"); continue; }
+        const tokensIn = Number(json?.usage?.prompt_tokens ?? 0);
+        const tokensOut = Number(json?.usage?.completion_tokens ?? 0);
+        return finish({ text, cached: false, model, tokensIn, tokensOut, latencyMs: Date.now() - start }, "lovable");
+      } catch (e: any) { lastErr = e; }
     }
   }
 
+  // --- 3b. Fallback: user-configured providers (Gemini → OpenAI → …) ---
+  try {
+    const { FALLBACK_ORDER, hasKey, callProvider } = await import("@/lib/ai-multi-provider.server");
+    const textMessages = messages.map((m) => ({
+      role: m.role,
+      content: typeof m.content === "string"
+        ? m.content
+        : m.content.map((c: any) => c?.text ?? "").filter(Boolean).join("\n"),
+    })) as { role: "system" | "user" | "assistant"; content: string }[];
+
+    for (const slug of FALLBACK_ORDER) {
+      if (slug === "lovable") continue;
+      if (!(await hasKey(slug))) continue;
+      try {
+        const text = await callProvider(slug, textMessages, { responseJson: opts.responseJson });
+        if (!text?.trim()) continue;
+        return finish(
+          { text, cached: false, model: `${slug}:fallback`, tokensIn: 0, tokensOut: 0, latencyMs: Date.now() - start },
+          slug,
+        );
+      } catch (e: any) { lastErr = e; }
+    }
+  } catch (e: any) { lastErr = lastErr ?? e; }
+
   logUsage({
-    taskType,
-    modelTier: task.tier,
-    model: null,
-    cacheHit: false,
-    tokensIn: 0,
-    tokensOut: 0,
-    latencyMs: Date.now() - start,
-    success: false,
-    userId: opts.userId ?? null,
+    taskType, modelTier: task.tier, model: null, cacheHit: false,
+    tokensIn: 0, tokensOut: 0, latencyMs: Date.now() - start,
+    success: false, userId: opts.userId ?? null,
     error: lastErr?.message?.slice(0, 200),
-    feature,
-    charged: false,
+    feature, charged: false, provider: null,
   });
   throw lastErr ?? new Error("فشلت جميع محاولات مزودي الذكاء الاصطناعي");
 }
