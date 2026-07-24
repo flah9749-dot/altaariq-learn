@@ -258,6 +258,7 @@ function QuestionBankPage() {
       {/* --- Manual form --- */}
       <EntryFormDialog
         open={openForm} onOpenChange={setOpenForm} editing={editing}
+        classes={classes} groups={groups}
         onSave={async (payload: any) => {
           try {
             if (editing) await update({ data: { ...payload, id: editing.id } });
@@ -268,6 +269,21 @@ function QuestionBankPage() {
           } catch (e: any) { toast.error(e?.message ?? "فشل الحفظ"); }
         }}
       />
+
+      {/* --- Bulk targets --- */}
+      <BulkTargetsDialog
+        open={openTargets} onOpenChange={setOpenTargets}
+        count={selected.size} classes={classes} groups={groups}
+        onApply={async (cIds: string[], gIds: string[]) => {
+          try {
+            await bulkTargets({ data: { ids: Array.from(selected), class_ids: cIds, group_ids: gIds } });
+            toast.success("تم تحديث الاستهداف");
+            qc.invalidateQueries({ queryKey: ["question-bank"] });
+            setOpenTargets(false); setSelected(new Set());
+          } catch (e: any) { toast.error(e?.message ?? "فشل التحديث"); }
+        }}
+      />
+
 
       {/* --- AI generation --- */}
       <AiGenerateDialog
