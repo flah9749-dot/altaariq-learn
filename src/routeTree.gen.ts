@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentIndexRouteImport } from './routes/student.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
+import { Route as StudentQuestionBankRouteImport } from './routes/student.question-bank'
 import { Route as StudentPointsRouteImport } from './routes/student.points'
 import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentFilesRouteImport } from './routes/student.files'
@@ -108,6 +109,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const StudentRewardsRoute = StudentRewardsRouteImport.update({
   id: '/rewards',
   path: '/rewards',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentQuestionBankRoute = StudentQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentPointsRoute = StudentPointsRouteImport.update({
@@ -407,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -466,6 +473,7 @@ export interface FileRoutesByTo {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
@@ -527,6 +535,7 @@ export interface FileRoutesById {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -591,6 +600,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -650,6 +660,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin'
     | '/student'
@@ -710,6 +721,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -806,6 +818,13 @@ declare module '@tanstack/react-router' {
       path: '/rewards'
       fullPath: '/student/rewards'
       preLoaderRoute: typeof StudentRewardsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/question-bank': {
+      id: '/student/question-bank'
+      path: '/question-bank'
+      fullPath: '/student/question-bank'
+      preLoaderRoute: typeof StudentQuestionBankRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/points': {
@@ -1324,6 +1343,7 @@ interface StudentRouteChildren {
   StudentFilesRoute: typeof StudentFilesRoute
   StudentMessagesRoute: typeof StudentMessagesRoute
   StudentPointsRoute: typeof StudentPointsRoute
+  StudentQuestionBankRoute: typeof StudentQuestionBankRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
   StudentIndexRoute: typeof StudentIndexRoute
 }
@@ -1336,6 +1356,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentFilesRoute: StudentFilesRoute,
   StudentMessagesRoute: StudentMessagesRoute,
   StudentPointsRoute: StudentPointsRoute,
+  StudentQuestionBankRoute: StudentQuestionBankRoute,
   StudentRewardsRoute: StudentRewardsRoute,
   StudentIndexRoute: StudentIndexRoute,
 }
