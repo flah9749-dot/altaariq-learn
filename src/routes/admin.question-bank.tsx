@@ -219,7 +219,7 @@ function QuestionBankPage() {
       {/* --- Manual form --- */}
       <EntryFormDialog
         open={openForm} onOpenChange={setOpenForm} editing={editing}
-        onSave={async (payload) => {
+        onSave={async (payload: any) => {
           try {
             if (editing) await update({ data: { ...payload, id: editing.id } });
             else await create({ data: payload });

@@ -30,6 +30,7 @@ import { Route as AdminScanRouteImport } from './routes/admin.scan'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminResultsRouteImport } from './routes/admin.results'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminQuestionBankRouteImport } from './routes/admin.question-bank'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMapsRouteImport } from './routes/admin.maps'
@@ -172,6 +173,11 @@ const AdminResultsRoute = AdminResultsRouteImport.update({
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuestionBankRoute = AdminQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -505,6 +513,7 @@ export interface FileRoutesById {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -568,6 +577,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -627,6 +637,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -685,6 +696,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank': {
+      id: '/admin/question-bank'
+      path: '/question-bank'
+      fullPath: '/admin/question-bank'
+      preLoaderRoute: typeof AdminQuestionBankRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/notifications': {
@@ -1213,6 +1232,7 @@ interface AdminRouteChildren {
   AdminMapsRoute: typeof AdminMapsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminQuestionBankRoute: typeof AdminQuestionBankRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResultsRoute: typeof AdminResultsRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
@@ -1245,6 +1265,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMapsRoute: AdminMapsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminQuestionBankRoute: AdminQuestionBankRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminResultsRoute: AdminResultsRoute,
   AdminRewardsRoute: AdminRewardsRoute,
