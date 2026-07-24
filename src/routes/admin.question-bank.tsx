@@ -233,7 +233,7 @@ function QuestionBankPage() {
       {/* --- AI generation --- */}
       <AiGenerateDialog
         open={openAI} onOpenChange={setOpenAI}
-        onGenerate={async (payload) => {
+        onGenerate={async (payload: any) => {
           try {
             const r = await genAI({ data: payload });
             toast.success(`تم توليد ${r.count} سؤال${r.cached ? " (من الكاش)" : ""}`);
