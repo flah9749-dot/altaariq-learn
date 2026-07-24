@@ -51,6 +51,7 @@ function QuestionBankPage() {
   const update = useServerFn(updateQuestionBankEntry);
   const remove = useServerFn(deleteQuestionBankEntry);
   const bulk = useServerFn(setBulkVisibility);
+  const bulkTargets = useServerFn(setBulkTargets);
   const genAI = useServerFn(generateQuestionsWithAI);
   const makeExam = useServerFn(createExamFromBank);
 
@@ -62,11 +63,26 @@ function QuestionBankPage() {
   const [openForm, setOpenForm] = useState(false);
   const [openAI, setOpenAI] = useState(false);
   const [openExam, setOpenExam] = useState(false);
+  const [openTargets, setOpenTargets] = useState(false);
+
+  const classesQ = useQuery({
+    queryKey: ["qb-classes-groups"],
+    queryFn: async () => {
+      const [cRes, gRes] = await Promise.all([
+        supabase.from("classes").select("id,name").order("name"),
+        supabase.from("groups").select("id,name,class_id").order("name"),
+      ]);
+      return { classes: cRes.data ?? [], groups: gRes.data ?? [] };
+    },
+  });
+  const classes = classesQ.data?.classes ?? [];
+  const groups = classesQ.data?.groups ?? [];
 
   const q = useQuery({
     queryKey: ["question-bank", { search, subject, entryType }],
     queryFn: () => list({ data: { search, subject, entry_type: entryType } }),
   });
+
 
   const removeMut = useMutation({
     mutationFn: (id: string) => remove({ data: { id } }),
