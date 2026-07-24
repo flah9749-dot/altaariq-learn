@@ -316,6 +316,117 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_quota_overrides: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          limit_count: number | null
+          max_file_mb: number | null
+          max_pages: number | null
+          notes: string | null
+          period: string | null
+          unlimited: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          limit_count?: number | null
+          max_file_mb?: number | null
+          max_pages?: number | null
+          notes?: string | null
+          period?: string | null
+          unlimited?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          limit_count?: number | null
+          max_file_mb?: number | null
+          max_pages?: number | null
+          notes?: string | null
+          period?: string | null
+          unlimited?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_quota_policies: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature: string
+          id: string
+          limit_count: number
+          max_file_mb: number | null
+          max_pages: number | null
+          period: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature: string
+          id?: string
+          limit_count?: number
+          max_file_mb?: number | null
+          max_pages?: number | null
+          period?: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature?: string
+          id?: string
+          limit_count?: number
+          max_file_mb?: number | null
+          max_pages?: number | null
+          period?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_quota_usage: {
+        Row: {
+          count: number
+          created_at: string
+          feature: string
+          id: string
+          last_used_at: string
+          period_key: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          feature: string
+          id?: string
+          last_used_at?: string
+          period_key: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          feature?: string
+          id?: string
+          last_used_at?: string
+          period_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_rate_limits: {
         Row: {
           id: string
@@ -343,9 +454,11 @@ export type Database = {
       ai_usage_logs: {
         Row: {
           cache_hit: boolean
+          charged: boolean
           created_at: string
           error: string | null
           estimated_cost: number | null
+          feature: string | null
           function_key: string | null
           function_name: string | null
           id: string
@@ -362,9 +475,11 @@ export type Database = {
         }
         Insert: {
           cache_hit?: boolean
+          charged?: boolean
           created_at?: string
           error?: string | null
           estimated_cost?: number | null
+          feature?: string | null
           function_key?: string | null
           function_name?: string | null
           id?: string
@@ -381,9 +496,11 @@ export type Database = {
         }
         Update: {
           cache_hit?: boolean
+          charged?: boolean
           created_at?: string
           error?: string | null
           estimated_cost?: number | null
+          feature?: string | null
           function_key?: string | null
           function_name?: string | null
           id?: string
