@@ -147,7 +147,7 @@ export async function callAI(
         });
       }
 
-      // --- 5. Log usage ---
+      // --- 5. Log usage + commit quota ---
       logUsage({
         taskType,
         modelTier: task.tier,
@@ -158,7 +158,12 @@ export async function callAI(
         latencyMs,
         success: true,
         userId: opts.userId ?? null,
+        feature,
+        charged: !!(feature && !opts.systemCall && opts.userId),
       });
+      if (feature && quotaPeriod && !opts.systemCall && opts.userId) {
+        void commitQuotaUsage(opts.userId, feature, quotaPeriod);
+      }
 
       return { text, cached: false, model, tokensIn, tokensOut, latencyMs };
     } catch (e: any) {
@@ -177,9 +182,12 @@ export async function callAI(
     success: false,
     userId: opts.userId ?? null,
     error: lastErr?.message?.slice(0, 200),
+    feature,
+    charged: false,
   });
   throw lastErr ?? new Error("فشلت جميع محاولات مزودي الذكاء الاصطناعي");
 }
+
 
 /** Fire-and-forget usage logger. Never throws. */
 function logUsage(opts: {
