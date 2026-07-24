@@ -17,7 +17,7 @@ const nav: Array<{ title: string; url: string; icon: LucideIcon; badge: NavKey }
   { title: "الرئيسية", url: "/student/dashboard", icon: Home, badge: null },
   { title: "المساعد الذكي", url: "/student/assistant", icon: Sparkles, badge: null },
   { title: "الامتحانات", url: "/student/exams", icon: FileText, badge: "exams" },
-  { title: "الملفات", url: "/student/files", icon: FolderOpen, badge: null },
+  { title: "بنك الأسئلة", url: "/student/question-bank", icon: FolderOpen, badge: null },
   { title: "الرسائل", url: "/student/messages", icon: MessageSquare, badge: "messages" },
   { title: "الجوائز", url: "/student/rewards", icon: Award, badge: "rewards" },
   { title: "نقاطي", url: "/student/points", icon: Star, badge: null },

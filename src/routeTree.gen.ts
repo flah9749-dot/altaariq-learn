@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentIndexRouteImport } from './routes/student.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
+import { Route as StudentQuestionBankRouteImport } from './routes/student.question-bank'
 import { Route as StudentPointsRouteImport } from './routes/student.points'
 import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentFilesRouteImport } from './routes/student.files'
@@ -30,6 +31,7 @@ import { Route as AdminScanRouteImport } from './routes/admin.scan'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminResultsRouteImport } from './routes/admin.results'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminQuestionBankRouteImport } from './routes/admin.question-bank'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMapsRouteImport } from './routes/admin.maps'
@@ -109,6 +111,11 @@ const StudentRewardsRoute = StudentRewardsRouteImport.update({
   path: '/rewards',
   getParentRoute: () => StudentRoute,
 } as any)
+const StudentQuestionBankRoute = StudentQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentPointsRoute = StudentPointsRouteImport.update({
   id: '/points',
   path: '/points',
@@ -172,6 +179,11 @@ const AdminResultsRoute = AdminResultsRouteImport.update({
 const AdminReportsRoute = AdminReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuestionBankRoute = AdminQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
@@ -387,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -400,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -446,6 +460,7 @@ export interface FileRoutesByTo {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -458,6 +473,7 @@ export interface FileRoutesByTo {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
@@ -505,6 +521,7 @@ export interface FileRoutesById {
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/question-bank': typeof AdminQuestionBankRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -518,6 +535,7 @@ export interface FileRoutesById {
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
   '/student/points': typeof StudentPointsRoute
+  '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
@@ -568,6 +586,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -581,6 +600,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -627,6 +647,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -639,6 +660,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin'
     | '/student'
@@ -685,6 +707,7 @@ export interface FileRouteTypes {
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
+    | '/admin/question-bank'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -698,6 +721,7 @@ export interface FileRouteTypes {
     | '/student/files'
     | '/student/messages'
     | '/student/points'
+    | '/student/question-bank'
     | '/student/rewards'
     | '/admin/'
     | '/student/'
@@ -796,6 +820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentRewardsRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/student/question-bank': {
+      id: '/student/question-bank'
+      path: '/question-bank'
+      fullPath: '/student/question-bank'
+      preLoaderRoute: typeof StudentQuestionBankRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/points': {
       id: '/student/points'
       path: '/points'
@@ -885,6 +916,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank': {
+      id: '/admin/question-bank'
+      path: '/question-bank'
+      fullPath: '/admin/question-bank'
+      preLoaderRoute: typeof AdminQuestionBankRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/notifications': {
@@ -1213,6 +1251,7 @@ interface AdminRouteChildren {
   AdminMapsRoute: typeof AdminMapsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminQuestionBankRoute: typeof AdminQuestionBankRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResultsRoute: typeof AdminResultsRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
@@ -1245,6 +1284,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMapsRoute: AdminMapsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminQuestionBankRoute: AdminQuestionBankRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminResultsRoute: AdminResultsRoute,
   AdminRewardsRoute: AdminRewardsRoute,
@@ -1303,6 +1343,7 @@ interface StudentRouteChildren {
   StudentFilesRoute: typeof StudentFilesRoute
   StudentMessagesRoute: typeof StudentMessagesRoute
   StudentPointsRoute: typeof StudentPointsRoute
+  StudentQuestionBankRoute: typeof StudentQuestionBankRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
   StudentIndexRoute: typeof StudentIndexRoute
 }
@@ -1315,6 +1356,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentFilesRoute: StudentFilesRoute,
   StudentMessagesRoute: StudentMessagesRoute,
   StudentPointsRoute: StudentPointsRoute,
+  StudentQuestionBankRoute: StudentQuestionBankRoute,
   StudentRewardsRoute: StudentRewardsRoute,
   StudentIndexRoute: StudentIndexRoute,
 }

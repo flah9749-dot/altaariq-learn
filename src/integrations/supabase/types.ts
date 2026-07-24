@@ -1409,6 +1409,7 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          dedupe_key: string | null
           id: string
           link: string | null
           meta: Json | null
@@ -1420,6 +1421,7 @@ export type Database = {
         Insert: {
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           link?: string | null
           meta?: Json | null
@@ -1431,6 +1433,7 @@ export type Database = {
         Update: {
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           id?: string
           link?: string | null
           meta?: Json | null
@@ -1545,6 +1548,78 @@ export type Database = {
           token?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      question_bank: {
+        Row: {
+          admin_id: string | null
+          attachments: Json
+          chapter: string | null
+          content: Json
+          created_at: string
+          description: string | null
+          difficulty: string
+          entry_type: string
+          grade_level: string | null
+          id: string
+          points: number
+          question_type: string | null
+          source: string
+          subject: string
+          tags: string[]
+          title: string
+          topic: string | null
+          unit: string | null
+          updated_at: string
+          usage_count: number
+          visibility: string
+        }
+        Insert: {
+          admin_id?: string | null
+          attachments?: Json
+          chapter?: string | null
+          content?: Json
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          entry_type?: string
+          grade_level?: string | null
+          id?: string
+          points?: number
+          question_type?: string | null
+          source?: string
+          subject?: string
+          tags?: string[]
+          title: string
+          topic?: string | null
+          unit?: string | null
+          updated_at?: string
+          usage_count?: number
+          visibility?: string
+        }
+        Update: {
+          admin_id?: string | null
+          attachments?: Json
+          chapter?: string | null
+          content?: Json
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          entry_type?: string
+          grade_level?: string | null
+          id?: string
+          points?: number
+          question_type?: string | null
+          source?: string
+          subject?: string
+          tags?: string[]
+          title?: string
+          topic?: string | null
+          unit?: string | null
+          updated_at?: string
+          usage_count?: number
+          visibility?: string
         }
         Relationships: []
       }
