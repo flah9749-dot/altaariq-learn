@@ -195,7 +195,24 @@ function QuestionBankPage() {
                       <Sparkles className="w-2.5 h-2.5 ml-0.5" /> AI
                     </Badge>
                   )}
+                  {(e.class_ids?.length ?? 0) === 0 && (e.group_ids?.length ?? 0) === 0 ? (
+                    e.visibility === "students" && (
+                      <Badge variant="outline" className="text-[10px]">كل الطلاب</Badge>
+                    )
+                  ) : (
+                    <>
+                      {(e.class_ids ?? []).map((cid) => {
+                        const cName = classes.find((c) => c.id === cid)?.name ?? "صف";
+                        return <Badge key={cid} variant="outline" className="text-[10px]">🎓 {cName}</Badge>;
+                      })}
+                      {(e.group_ids ?? []).map((gid) => {
+                        const gName = groups.find((g) => g.id === gid)?.name ?? "مجموعة";
+                        return <Badge key={gid} variant="outline" className="text-[10px]">👥 {gName}</Badge>;
+                      })}
+                    </>
+                  )}
                 </div>
+
               </div>
             </CardHeader>
             <CardContent className="p-3 pt-0 space-y-2">
