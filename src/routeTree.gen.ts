@@ -54,6 +54,7 @@ import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id
 import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
 import { Route as AdminAiUsageRouteImport } from './routes/admin.ai.usage'
+import { Route as AdminAiQuotasRouteImport } from './routes/admin.ai.quotas'
 import { Route as AdminAiMappingRouteImport } from './routes/admin.ai.mapping'
 import { Route as StudentExamsIdIndexRouteImport } from './routes/student.exams.$id.index'
 import { Route as AdminExamsIdIndexRouteImport } from './routes/admin.exams.$id.index'
@@ -293,6 +294,11 @@ const AdminAiUsageRoute = AdminAiUsageRouteImport.update({
   path: '/usage',
   getParentRoute: () => AdminAiRoute,
 } as any)
+const AdminAiQuotasRoute = AdminAiQuotasRouteImport.update({
+  id: '/quotas',
+  path: '/quotas',
+  getParentRoute: () => AdminAiRoute,
+} as any)
 const AdminAiMappingRoute = AdminAiMappingRouteImport.update({
   id: '/mapping',
   path: '/mapping',
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
@@ -455,6 +462,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
@@ -514,6 +522,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
   '/admin/exams/ai': typeof AdminExamsAiRoute
@@ -576,6 +585,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
+    | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
     | '/admin/exams/ai'
@@ -633,6 +643,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/student'
     | '/admin/ai/mapping'
+    | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/ai'
     | '/admin/students/$id'
@@ -691,6 +702,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
+    | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
     | '/admin/exams/ai'
@@ -1043,6 +1055,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiUsageRouteImport
       parentRoute: typeof AdminAiRoute
     }
+    '/admin/ai/quotas': {
+      id: '/admin/ai/quotas'
+      path: '/quotas'
+      fullPath: '/admin/ai/quotas'
+      preLoaderRoute: typeof AdminAiQuotasRouteImport
+      parentRoute: typeof AdminAiRoute
+    }
     '/admin/ai/mapping': {
       id: '/admin/ai/mapping'
       path: '/mapping'
@@ -1139,11 +1158,13 @@ declare module '@tanstack/react-router' {
 
 interface AdminAiRouteChildren {
   AdminAiMappingRoute: typeof AdminAiMappingRoute
+  AdminAiQuotasRoute: typeof AdminAiQuotasRoute
   AdminAiUsageRoute: typeof AdminAiUsageRoute
 }
 
 const AdminAiRouteChildren: AdminAiRouteChildren = {
   AdminAiMappingRoute: AdminAiMappingRoute,
+  AdminAiQuotasRoute: AdminAiQuotasRoute,
   AdminAiUsageRoute: AdminAiUsageRoute,
 }
 
@@ -1315,13 +1336,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -10,6 +10,8 @@ import type { TaskType } from "./task-registry.server";
 import { getTask, modelsForTier, estimateCost } from "./task-registry.server";
 import { buildCacheKey, readCache, writeCache } from "./cache.server";
 import { enforceRateLimit, guardDuplicate, hashRequest } from "./rate-limiter.server";
+import { checkQuota, commitQuotaUsage, taskToFeature, QuotaExceededError } from "./quotas.server";
+
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -62,7 +64,7 @@ export async function callAI(
     if (!opts.noCacheRead) {
       const hit = await readCache<{ text: string; model?: string; tokensIn?: number; tokensOut?: number }>(cacheKey);
       if (hit && typeof hit.text === "string") {
-        // Log cache hit (0 latency, 0 tokens billed).
+        // Log cache hit (0 latency, 0 tokens billed) — NOT charged to quota.
         logUsage({
           taskType,
           modelTier: task.tier,
@@ -73,18 +75,28 @@ export async function callAI(
           latencyMs: 0,
           success: true,
           userId: opts.userId ?? null,
+          feature: taskToFeature(taskType),
+          charged: false,
         });
+
         return { text: hit.text, cached: true, model: hit.model ?? null, tokensIn: 0, tokensOut: 0, latencyMs: 0 };
       }
     }
   }
 
-  // --- 2. Rate limit + duplicate guard ---
+  // --- 2. Rate limit + duplicate guard + quota reservation ---
+  const feature = taskToFeature(taskType);
+  let quotaPeriod: "daily" | "weekly" | "monthly" | null = null;
   if (!opts.systemCall && opts.userId) {
     await enforceRateLimit(opts.userId, opts.role ?? "student", task.rateWeight ?? 1);
     const reqHash = await hashRequest(taskType, messages);
     await guardDuplicate(opts.userId, reqHash);
+    if (feature) {
+      const { quota } = await checkQuota(opts.userId, opts.role ?? "student", feature);
+      quotaPeriod = quota.period;
+    }
   }
+
 
   // --- 3. Provider chain ---
   const key = process.env.LOVABLE_API_KEY;
@@ -135,7 +147,7 @@ export async function callAI(
         });
       }
 
-      // --- 5. Log usage ---
+      // --- 5. Log usage + commit quota ---
       logUsage({
         taskType,
         modelTier: task.tier,
@@ -146,7 +158,12 @@ export async function callAI(
         latencyMs,
         success: true,
         userId: opts.userId ?? null,
+        feature,
+        charged: !!(feature && !opts.systemCall && opts.userId),
       });
+      if (feature && quotaPeriod && !opts.systemCall && opts.userId) {
+        void commitQuotaUsage(opts.userId, feature, quotaPeriod);
+      }
 
       return { text, cached: false, model, tokensIn, tokensOut, latencyMs };
     } catch (e: any) {
@@ -165,9 +182,12 @@ export async function callAI(
     success: false,
     userId: opts.userId ?? null,
     error: lastErr?.message?.slice(0, 200),
+    feature,
+    charged: false,
   });
   throw lastErr ?? new Error("فشلت جميع محاولات مزودي الذكاء الاصطناعي");
 }
+
 
 /** Fire-and-forget usage logger. Never throws. */
 function logUsage(opts: {
@@ -181,6 +201,8 @@ function logUsage(opts: {
   success: boolean;
   userId?: string | null;
   error?: string;
+  feature?: string | null;
+  charged?: boolean;
 }) {
   (async () => {
     try {
@@ -201,10 +223,13 @@ function logUsage(opts: {
         success: opts.success,
         error: opts.error ?? null,
         user_id: opts.userId ?? null,
-      });
+        feature: opts.feature ?? null,
+        charged: !!opts.charged,
+      } as any);
     } catch {}
   })();
 }
+
 
 /** Convenience: parse JSON reply loosely (strips markdown fences). */
 export function parseJsonReply<T = unknown>(text: string): T {
