@@ -316,7 +316,7 @@ function QuestionBankPage() {
 
 // --------- Sub-dialogs ---------
 
-function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
+function EntryFormDialog({ open, onOpenChange, editing, onSave, classes = [], groups = [] }: any) {
   const uploadFn = useServerFn(createUploadUrl);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -334,6 +334,9 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave }: any) {
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+
 
   // reset on open
   useMemo(() => {
