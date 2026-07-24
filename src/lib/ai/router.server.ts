@@ -10,6 +10,8 @@ import type { TaskType } from "./task-registry.server";
 import { getTask, modelsForTier, estimateCost } from "./task-registry.server";
 import { buildCacheKey, readCache, writeCache } from "./cache.server";
 import { enforceRateLimit, guardDuplicate, hashRequest } from "./rate-limiter.server";
+import { checkQuota, commitQuotaUsage, taskToFeature, QuotaExceededError } from "./quotas.server";
+
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
