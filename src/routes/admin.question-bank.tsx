@@ -529,6 +529,36 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave, classes = [], gr
             <Checkbox checked={visibility === "students"} onCheckedChange={(v) => setVisibility(v ? "students" : "private")} />
             <Label className="cursor-pointer">إتاحة للطلاب</Label>
           </div>
+
+          {visibility === "students" && (
+            <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+              <div>
+                <Label className="text-xs font-semibold">استهداف الصفوف (فارغ = كل الصفوف)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {classes.length === 0 && <span className="text-xs text-muted-foreground">لا توجد صفوف</span>}
+                  {classes.map((c: any) => (
+                    <label key={c.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${classIds.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                      <Checkbox checked={classIds.includes(c.id)} onCheckedChange={() => toggleId(classIds, c.id, setClassIds)} />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">استهداف المجموعات (فارغ = كل المجموعات)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {availableGroups.length === 0 && <span className="text-xs text-muted-foreground">لا توجد مجموعات{classIds.length > 0 ? " للصفوف المختارة" : ""}</span>}
+                  {availableGroups.map((g: any) => (
+                    <label key={g.id} className={`flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer ${groupIds.includes(g.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}>
+                      <Checkbox checked={groupIds.includes(g.id)} onCheckedChange={() => toggleId(groupIds, g.id, setGroupIds)} />
+                      {g.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         <DialogFooter>
