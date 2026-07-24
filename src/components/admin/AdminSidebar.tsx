@@ -24,7 +24,7 @@ const items: Array<{ title: string; url: string; icon: any; badge: BadgeKey }> =
   { title: "الجوائز والمسابقات", url: "/admin/rewards", icon: Award, badge: null },
   { title: "الترتيب والتقارير", url: "/admin/reports", icon: BarChart3, badge: null },
   { title: "الإشعارات", url: "/admin/notifications", icon: Bell, badge: "notifications" },
-  { title: "الملفات", url: "/admin/files", icon: FolderOpen, badge: null },
+  { title: "بنك الأسئلة", url: "/admin/question-bank", icon: FolderOpen, badge: null },
   { title: "حالة النظام والنسخ", url: "/admin/system", icon: HeartPulse, badge: null },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings, badge: null },
 ];
