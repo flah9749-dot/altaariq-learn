@@ -182,6 +182,21 @@ export const setBulkVisibility = createServerFn({ method: "POST" })
     return { ok: true, count: data.ids.length };
   });
 
+// ---------- Bulk targeting (classes / groups) ----------
+export const setBulkTargets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; class_ids: string[]; group_ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("question_bank")
+      .update({ class_ids: data.class_ids, group_ids: data.group_ids })
+      .in("id", data.ids);
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.ids.length };
+  });
+
+
 // ---------- Generate signed upload URL for attachment ----------
 export const createUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
