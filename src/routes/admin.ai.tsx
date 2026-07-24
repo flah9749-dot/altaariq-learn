@@ -140,9 +140,11 @@ function AIManagementPage() {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Link to="/admin/ai/quotas"><Button variant="outline" size="sm"><Zap className="w-4 h-4 ml-1"/> حصص الاستخدام</Button></Link>
         <Link to="/admin/ai/usage"><Button variant="outline" size="sm"><Zap className="w-4 h-4 ml-1"/> استهلاك وتكلفة AI</Button></Link>
       </div>
+
 
 
       {missingKeys > 0 && (
