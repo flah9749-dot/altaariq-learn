@@ -208,6 +208,7 @@ function logUsage(opts: {
   error?: string;
   feature?: string | null;
   charged?: boolean;
+  provider?: string | null;
 }) {
   (async () => {
     try {
