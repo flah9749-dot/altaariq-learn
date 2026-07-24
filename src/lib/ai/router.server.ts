@@ -64,7 +64,7 @@ export async function callAI(
     if (!opts.noCacheRead) {
       const hit = await readCache<{ text: string; model?: string; tokensIn?: number; tokensOut?: number }>(cacheKey);
       if (hit && typeof hit.text === "string") {
-        // Log cache hit (0 latency, 0 tokens billed).
+        // Log cache hit (0 latency, 0 tokens billed) — NOT charged to quota.
         logUsage({
           taskType,
           modelTier: task.tier,
@@ -75,7 +75,10 @@ export async function callAI(
           latencyMs: 0,
           success: true,
           userId: opts.userId ?? null,
+          feature: taskToFeature(taskType),
+          charged: false,
         });
+
         return { text: hit.text, cached: true, model: hit.model ?? null, tokensIn: 0, tokensOut: 0, latencyMs: 0 };
       }
     }
