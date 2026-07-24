@@ -246,7 +246,7 @@ function QuestionBankPage() {
       {/* --- Create exam from selected --- */}
       <ExamFromBankDialog
         open={openExam} onOpenChange={setOpenExam} count={selected.size}
-        onCreate={async (title, duration) => {
+        onCreate={async (title: string, duration: number) => {
           try {
             const r = await makeExam({ data: { title, bank_ids: Array.from(selected), duration_minutes: duration } });
             toast.success("تم إنشاء الامتحان (مسودة)");
