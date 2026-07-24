@@ -201,6 +201,8 @@ function logUsage(opts: {
   success: boolean;
   userId?: string | null;
   error?: string;
+  feature?: string | null;
+  charged?: boolean;
 }) {
   (async () => {
     try {
@@ -221,10 +223,13 @@ function logUsage(opts: {
         success: opts.success,
         error: opts.error ?? null,
         user_id: opts.userId ?? null,
-      });
+        feature: opts.feature ?? null,
+        charged: !!opts.charged,
+      } as any);
     } catch {}
   })();
 }
+
 
 /** Convenience: parse JSON reply loosely (strips markdown fences). */
 export function parseJsonReply<T = unknown>(text: string): T {
