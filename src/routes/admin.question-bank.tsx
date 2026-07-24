@@ -355,12 +355,16 @@ function EntryFormDialog({ open, onOpenChange, editing, onSave, classes = [], gr
       setExplanation(editing.content?.explanation ?? "");
       setBody(editing.content?.body ?? "");
       setAttachments(editing.attachments ?? []);
+      setClassIds(editing.class_ids ?? []);
+      setGroupIds(editing.group_ids ?? []);
     } else {
       setTitle(""); setDescription(""); setEntryType("question"); setQuestionType("mcq");
       setSubject("general"); setVisibility("private");
       setText(""); setOptions([{ text: "", is_correct: true }, { text: "", is_correct: false }, { text: "", is_correct: false }, { text: "", is_correct: false }]);
       setCorrectAnswer(""); setExplanation(""); setBody(""); setAttachments([]);
+      setClassIds([]); setGroupIds([]);
     }
+
   }, [open, editing]);
 
   const handleUpload = async (file: File) => {
