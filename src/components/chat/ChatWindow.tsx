@@ -76,26 +76,43 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
     queryFn: async () => (await supabase.from("message_templates").select("*").eq("channel", "chat").order("name")).data ?? [],
   });
 
-  // Realtime: incoming messages + read receipts
+  // Realtime: incoming messages + read receipts.
+  // CRITICAL: filter to the current auth user only. An unfiltered
+  // `postgres_changes` on `messages` broadcasts every message insert/update
+  // on the platform to every open chat window — during exams this is a
+  // firehose that can collapse Realtime and every subscribed browser tab.
   useEffect(() => {
     if (!user || allPeerIds.length === 0 || allSelfIds.length === 0) return;
     const peerSet = new Set(allPeerIds);
-    const selfSet = new Set(allSelfIds);
-    const ch = supabase.channel(`chat-${selfKey}-${peerKey}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-        const m = payload.new as any;
-        const involvesUs =
-          (selfSet.has(m.sender_id) && peerSet.has(m.recipient_id)) ||
-          (peerSet.has(m.sender_id) && selfSet.has(m.recipient_id));
-        if (involvesUs) {
+    const ch = supabase.channel(`chat-${user.id}-${peerKey}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `recipient_id=eq.${user.id}` },
+        (payload) => {
+          const m = payload.new as any;
+          if (!peerSet.has(m.sender_id)) return; // other conversations
           qc.setQueryData<any[]>(key, (prev) => prev ? [...prev, m] : [m]);
-          if (peerSet.has(m.sender_id)) readFn({ data: { peer_ids: allPeerIds } }).catch(() => {});
-        }
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
-        const m = payload.new as any;
-        qc.setQueryData<any[]>(key, (prev) => prev ? prev.map((x) => x.id === m.id ? m : x) : prev);
-      })
+          readFn({ data: { peer_ids: allPeerIds } }).catch(() => {});
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `sender_id=eq.${user.id}` },
+        (payload) => {
+          const m = payload.new as any;
+          if (!peerSet.has(m.recipient_id)) return;
+          qc.setQueryData<any[]>(key, (prev) => prev ? prev.map((x) => x.id === m.id ? m : x) : prev);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `recipient_id=eq.${user.id}` },
+        (payload) => {
+          const m = payload.new as any;
+          if (!peerSet.has(m.sender_id)) return;
+          qc.setQueryData<any[]>(key, (prev) => prev ? prev.map((x) => x.id === m.id ? m : x) : prev);
+        },
+      )
       .subscribe();
 
     // Presence for typing (still scoped to primary peer)
@@ -113,6 +130,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
     return () => { supabase.removeChannel(ch); supabase.removeChannel(presence); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, peerKey, selfKey]);
+
 
 
   // Mark read when opening

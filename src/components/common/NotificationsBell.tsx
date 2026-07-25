@@ -29,7 +29,11 @@ export function NotificationsBell() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase.channel(`notif-${user.id}-${Math.random().toString(36).slice(2)}`)
+    // Stable channel name per user — using Math.random() in the name created
+    // a fresh Realtime subscription on every remount (StrictMode / route
+    // change / tab focus), leaking channels server-side and running the
+    // per-connection quota down under load.
+    const ch = supabase.channel(`notif-${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         (payload: any) => {
           qc.invalidateQueries({ queryKey: ["notifications", user.id] });
@@ -52,6 +56,7 @@ export function NotificationsBell() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, qc, navigate]);
+
 
   const unread = (data ?? []).filter((n: any) => !n.read).length;
 
