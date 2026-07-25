@@ -1,6 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { notifyStudents } from "@/lib/notify-helpers.server";
+
+type BankTargets = { title: string; class_ids?: string[] | null; group_ids?: string[] | null };
+async function notifyBankPublish(items: BankTargets[]) {
+  try {
+    for (const it of items) {
+      const classIds = it.class_ids ?? [];
+      const groupIds = it.group_ids ?? [];
+      const body = `تمت إضافة "${it.title}" إلى بنك الأسئلة`;
+      const link = "/student/question-bank";
+      if (groupIds.length) {
+        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+          target: { kind: "classes_groups", class_id: classIds[0] ?? null, group_ids: groupIds } });
+      } else if (classIds.length) {
+        for (const cid of classIds) {
+          await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+            target: { kind: "class", class_id: cid } });
+        }
+      } else {
+        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+          target: { kind: "all" } });
+      }
+    }
+  } catch (e) { console.error("[notifyBankPublish] failed:", e); }
+}
+
 
 // ---------- Types ----------
 export type QBEntry = {
