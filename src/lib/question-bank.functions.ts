@@ -257,8 +257,15 @@ export const createUploadUrl = createServerFn({ method: "POST" })
   });
 
 // ---------- Generate questions with AI ----------
+const AttachmentSchema = z.object({
+  kind: z.enum(["image", "file"]),
+  mime: z.string(),
+  name: z.string().optional(),
+  dataUrl: z.string(),
+});
+
 const GenSchema = z.object({
-  prompt: z.string().min(3).max(4000),
+  prompt: z.string().max(4000).optional().default(""),
   count: z.number().int().min(1).max(20).default(5),
   subject: z.string().default("general"),
   grade_level: z.string().nullable().optional(),
@@ -266,6 +273,7 @@ const GenSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
   question_type: z.enum(["mcq", "true_false", "short", "essay"]).default("mcq"),
   save_to_bank: z.boolean().default(true),
+  attachments: z.array(AttachmentSchema).default([]),
 });
 
 export const generateQuestionsWithAI = createServerFn({ method: "POST" })
@@ -273,6 +281,9 @@ export const generateQuestionsWithAI = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => GenSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    if (!data.prompt?.trim() && (!data.attachments || data.attachments.length === 0)) {
+      throw new Error("اكتب موضوعاً أو أرفق ملفاً/صورة/فيديو");
+    }
     const { callAI, parseJsonReply } = await import("@/lib/ai/router.server");
 
     const typeInstruction: Record<string, string> = {
@@ -282,8 +293,8 @@ export const generateQuestionsWithAI = createServerFn({ method: "POST" })
       essay: 'كل سؤال مقالي (إجابة تفصيلية).',
     };
 
-    const sys = `أنت خبير تربوي في الدراسات الاجتماعية. اكتب أسئلة عربية دقيقة بتنسيق JSON فقط.`;
-    const user = `اكتب ${data.count} سؤال بمستوى صعوبة "${data.difficulty}" حول: ${data.prompt}
+    const sys = `أنت خبير تربوي في الدراسات الاجتماعية. حلّل أي مرفق (صورة/فيديو/PDF/ملف) واستخرج منه أهم النقاط ثم اكتب أسئلة عربية دقيقة بتنسيق JSON فقط.`;
+    const userText = `اكتب ${data.count} سؤال بمستوى صعوبة "${data.difficulty}" ${data.prompt?.trim() ? `حول: ${data.prompt}` : "بناءً على المرفقات"}.
 ${typeInstruction[data.question_type]}
 أعد JSON بالشكل:
 { "questions": [ { "text": "...", "options": [{"text":"..","is_correct":true},...], "correct_answer": "...", "explanation": "..." } ] }
@@ -291,14 +302,27 @@ ${typeInstruction[data.question_type]}
 - correct_answer نص الإجابة الصحيحة (لـ true_false: "صح" أو "خطأ").
 - explanation شرح موجز.`;
 
-    const result = await callAI("exam_generate", [
+    const parts: Array<Record<string, unknown>> = [{ type: "text", text: userText }];
+    for (const a of data.attachments ?? []) {
+      if (a.kind === "image" || a.mime.startsWith("image/")) {
+        parts.push({ type: "image_url", image_url: { url: a.dataUrl } });
+      } else {
+        parts.push({ type: "file", file: { filename: a.name ?? "file", file_data: a.dataUrl } });
+      }
+    }
+
+    const hasAttachments = (data.attachments?.length ?? 0) > 0;
+    const taskType = hasAttachments ? "admin_assistant_file" : "exam_generate";
+
+    const result = await callAI(taskType as any, [
       { role: "system", content: sys },
-      { role: "user", content: user },
+      { role: "user", content: hasAttachments ? (parts as any) : userText },
     ], {
       responseJson: true,
       userId: context.userId,
       role: "admin",
     });
+
 
     const parsed = parseJsonReply<{ questions: any[] }>(result.text);
     const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
