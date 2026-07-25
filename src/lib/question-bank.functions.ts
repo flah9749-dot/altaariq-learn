@@ -213,6 +213,11 @@ export const setBulkVisibility = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("question_bank").update({ visibility: data.visibility }).in("id", data.ids);
     if (error) throw new Error(error.message);
+    if (data.visibility === "students") {
+      const { data: rows } = await supabaseAdmin.from("question_bank")
+        .select("title,class_ids,group_ids").in("id", data.ids);
+      notifyBankPublish((rows ?? []) as any[]);
+    }
     return { ok: true, count: data.ids.length };
   });
 
@@ -227,8 +232,14 @@ export const setBulkTargets = createServerFn({ method: "POST" })
       .update({ class_ids: data.class_ids, group_ids: data.group_ids })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
+    const { data: rows } = await supabaseAdmin.from("question_bank")
+      .select("title,class_ids,group_ids,visibility").in("id", data.ids);
+    const published = (rows ?? []).filter((r: any) => r.visibility === "students");
+    if (published.length) notifyBankPublish(published as any[]);
     return { ok: true, count: data.ids.length };
   });
+
+
 
 
 // ---------- Generate signed upload URL for attachment ----------
