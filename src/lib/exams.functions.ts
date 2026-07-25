@@ -419,34 +419,44 @@ export const submitAttempt = createServerFn({ method: "POST" })
     const ansMap = new Map((answers ?? []).map((a: any) => [a.question_id, a.answer]));
 
     let score = 0, total = 0, needsReview = false;
+    // Build a batch of rows so we do ONE upsert instead of N sequential round
+    // trips. At 5000 concurrent submits × 30 questions this collapses 150,000
+    // sequential DB writes into 5000 batched ones — the difference between the
+    // platform surviving and falling over at exam-end.
+    const rows: Array<{
+      attempt_id: string; question_id: string; answer: any;
+      is_correct: boolean | null; awarded_points: number | null;
+    }> = [];
     for (const q of questions ?? []) {
       total += getQuestionMaxPoints(q);
       const ans = ansMap.get(q.id);
       if (q.type === "essay") {
         needsReview = true;
-        await supabaseAdmin.from("attempt_answers").upsert({
+        rows.push({
           attempt_id: att.id, question_id: q.id, answer: ans ?? null,
           is_correct: null, awarded_points: null,
-        }, { onConflict: "attempt_id,question_id" });
+        });
         continue;
       }
       const ev = evaluateObjective(q, ans);
       score += ev.points;
       if (ev.needsReview) needsReview = true;
-      await supabaseAdmin.from("attempt_answers").upsert({
+      rows.push({
         attempt_id: att.id, question_id: q.id, answer: ans ?? null,
         is_correct: ev.needsReview ? null : ev.correct,
         awarded_points: ev.points,
-      }, { onConflict: "attempt_id,question_id" });
+      });
+    }
+    if (rows.length) {
+      const { error: upAnsErr } = await supabaseAdmin.from("attempt_answers")
+        .upsert(rows, { onConflict: "attempt_id,question_id" });
+      if (upAnsErr) throw new Error(upAnsErr.message);
     }
 
     const pct = total > 0 ? Math.round((score / total) * 10000) / 100 : 0;
     const timeSpent = Math.floor((Date.now() - new Date(att.started_at).getTime()) / 1000);
 
     // Auto-award points + auto-approve when fully auto-graded (no essay review needed).
-    // Compute points OUTSIDE any try/catch so failures surface instead of silently
-    // dropping approval — that's what caused map-exam attempts to stay approved=false
-    // and points_awarded=0 for high-scoring students.
     const autoApproved = !needsReview;
     let autoPointsAwarded = 0;
     if (autoApproved) {
@@ -454,7 +464,7 @@ export const submitAttempt = createServerFn({ method: "POST" })
         autoPointsAwarded = await awardAttemptPoints(supabaseAdmin, { percentage: pct });
       } catch (e) {
         console.error("[submitAttempt] awardAttemptPoints failed:", e);
-        autoPointsAwarded = 0; // still auto-approve; admin can adjust manually
+        autoPointsAwarded = 0;
       }
     }
 
@@ -471,64 +481,62 @@ export const submitAttempt = createServerFn({ method: "POST" })
     }).eq("id", att.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Credit student points immediately for auto-graded attempts (map + objective).
-    if (autoApproved && autoPointsAwarded > 0) {
+    // === Off-critical-path work ===
+    // Everything below is fire-and-forget. Under load (5000 concurrent
+    // submits) admin notifications + FCM + achievements + legacy `results`
+    // insert must NOT block the student's response — those are what turned
+    // the exam-end spike into an outage. The student sees success as soon
+    // as scoring is written; side-effects finish on the worker in the
+    // background. Errors are logged, never thrown.
+    const sideEffects = (async () => {
       try {
-        await creditStudentPoints(supabaseAdmin, {
-          student_id: att.student_id, exam_id: att.exam_id, points: autoPointsAwarded,
-          reason_prefix: "امتحان",
-        });
+        if (autoApproved && autoPointsAwarded > 0) {
+          await creditStudentPoints(supabaseAdmin, {
+            student_id: att.student_id, exam_id: att.exam_id, points: autoPointsAwarded,
+            reason_prefix: "امتحان",
+          }).catch((e) => console.error("[submitAttempt] creditStudentPoints:", e));
+        }
+        if (autoApproved) {
+          await evaluateAchievementsAndBadges(supabaseAdmin, att.student_id)
+            .catch((e) => console.error("[submitAttempt] achievements:", e));
+        }
+        // Legacy results table
+        supabaseAdmin.from("results").insert({
+          exam_id: att.exam_id, student_id: att.student_id, score, total,
+        }).then(({ error }) => { if (error) console.error("[submitAttempt] results insert:", error); });
+
+        // Student notification only. Skip per-submit admin notifications:
+        // at 5000 submits × N admins this was a fan-out storm (N × 5000
+        // notification rows + N × 5000 FCM pushes) that swamped both DB
+        // writes and outbound HTTP. Admins see submissions live on the
+        // results page instead.
+        const { data: stu } = await supabaseAdmin
+          .from("students").select("user_id").eq("id", att.student_id).maybeSingle();
+        const { data: ex } = await supabaseAdmin
+          .from("exams").select("title").eq("id", att.exam_id).maybeSingle();
+        if (stu?.user_id) {
+          const title = needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك";
+          const body = needsReview
+            ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
+            : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%)${autoPointsAwarded > 0 ? ` · حصلت على ⭐ ${autoPointsAwarded} نقطة` : ""}.`;
+          const link = `/student/exams/${att.exam_id}/result`;
+          await supabaseAdmin.from("notifications").insert({
+            user_id: stu.user_id, title, body, type: "exam_finished", link,
+          });
+          const { pushToUsers } = await import("./notify-helpers.server");
+          await pushToUsers([stu.user_id], { title, body, link });
+        }
       } catch (e) {
-        console.error("[submitAttempt] creditStudentPoints failed:", e);
+        console.error("[submitAttempt] side-effects failed:", e);
       }
-    }
-    if (autoApproved) {
-      await evaluateAchievementsAndBadges(supabaseAdmin, att.student_id);
-    }
-
-    // Save to results table (for legacy compatibility)
-    await supabaseAdmin.from("results").insert({
-      exam_id: att.exam_id, student_id: att.student_id, score, total,
-    });
-
-    // In-app notification for the student (linked to the result page)
-    // + notify all admins so they can send the WhatsApp result to the parent.
-    try {
-      const { data: stu } = await supabaseAdmin
-        .from("students").select("user_id,full_name,code").eq("id", att.student_id).maybeSingle();
-      const { data: ex } = await supabaseAdmin
-        .from("exams").select("title").eq("id", att.exam_id).maybeSingle();
-      const { pushToUsers } = await import("./notify-helpers.server");
-      if (stu?.user_id) {
-        const title = needsReview ? "📝 تم تسليم امتحانك" : "✅ تم تصحيح امتحانك";
-        const body = needsReview
-          ? `تم تسليم امتحان "${ex?.title ?? ""}" بنجاح، النتيجة قيد المراجعة من المدرس.`
-          : `انتهيت من امتحان "${ex?.title ?? ""}" — الدرجة ${score}/${total} (${pct}%)${autoPointsAwarded > 0 ? ` · حصلت على ⭐ ${autoPointsAwarded} نقطة` : ""}.`;
-        const link = `/student/exams/${att.exam_id}/result`;
-        await supabaseAdmin.from("notifications").insert({
-          user_id: stu.user_id, title, body, type: "exam_finished", link,
-        });
-        await pushToUsers([stu.user_id], { title, body, link });
-      }
-      // Notify admins → they can send the parent WhatsApp from the results page.
-      const { data: admins } = await supabaseAdmin
-        .from("admins").select("user_id").not("user_id", "is", null);
-      const adminIds = Array.from(new Set((admins ?? []).map((a: any) => a.user_id).filter(Boolean)));
-      if (adminIds.length) {
-        const title = needsReview ? "📝 طالب سلّم امتحاناً" : "✅ طالب أنهى امتحاناً";
-        const body = `${stu?.full_name ?? "طالب"}${stu?.code ? ` (${stu.code})` : ""} — "${ex?.title ?? ""}" · ${score}/${total} (${pct}%)${needsReview ? " · بحاجة تصحيح" : ""}. اضغط لإبلاغ ولي الأمر.`;
-        const link = `/admin/exams/${att.exam_id}/results`;
-        await supabaseAdmin.from("notifications").insert(
-          adminIds.map((uid: string) => ({
-            user_id: uid, title, body, type: "exam_submitted_admin", link,
-          })),
-        );
-        await pushToUsers(adminIds, { title, body, link });
-      }
-    } catch { /* non-blocking */ }
+    })();
+    // Detach so it doesn't hold the response, but keep a reference so unhandled
+    // rejections still surface in worker logs.
+    sideEffects.catch(() => {});
 
     return { ok: true, score, total, percentage: pct, needs_review: needsReview };
   });
+
 
 
 export const gradeEssay = createServerFn({ method: "POST" })
