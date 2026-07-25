@@ -577,10 +577,28 @@ function AiGenerateDialog({ open, onOpenChange, onGenerate }: any) {
   const [qtype, setQtype] = useState<"mcq" | "true_false" | "short" | "essay">("mcq");
   const [subject, setSubject] = useState("general");
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<{ name: string; mime: string; kind: "image" | "file"; dataUrl: string; size: number }[]>([]);
+  const [reading, setReading] = useState(false);
+
+  const addFile = async (f: File) => {
+    if (f.size > 20 * 1024 * 1024) { toast.error("الحد الأقصى 20MB لكل ملف"); return; }
+    setReading(true);
+    try {
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = () => rej(r.error);
+        r.readAsDataURL(f);
+      });
+      const kind: "image" | "file" = f.type.startsWith("image/") ? "image" : "file";
+      setFiles((prev) => [...prev, { name: f.name, mime: f.type, kind, dataUrl, size: f.size }]);
+    } catch (e: any) { toast.error(e?.message ?? "تعذّر قراءة الملف"); }
+    finally { setReading(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent dir="rtl">
+      <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 className="w-5 h-5 text-purple-600" /> توليد أسئلة بالذكاء الاصطناعي
@@ -588,10 +606,40 @@ function AiGenerateDialog({ open, onOpenChange, onGenerate }: any) {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>الموضوع أو المحتوى</Label>
-            <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
+            <Label>الموضوع أو المحتوى (اختياري عند إرفاق ملف)</Label>
+            <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={3}
               placeholder="مثال: مفاهيم الجغرافيا الطبيعية لمصر، الوحدة الأولى" />
           </div>
+
+          <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+            <Label className="text-xs font-semibold">مرفقات للتحليل (صورة / فيديو / PDF / أي ملف)</Label>
+            <div className="flex flex-wrap gap-2">
+              {files.map((a, i) => (
+                <div key={i} className="text-xs bg-background rounded px-2 py-1 flex items-center gap-1 border">
+                  {a.mime.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> :
+                   a.mime.startsWith("video/") ? <Video className="w-3 h-3" /> :
+                   <FileText className="w-3 h-3" />}
+                  <span className="truncate max-w-[140px]">{a.name}</span>
+                  <button onClick={() => setFiles(files.filter((_, j) => j !== i))}>
+                    <Trash2 className="w-3 h-3 text-destructive" />
+                  </button>
+                </div>
+              ))}
+              {files.length === 0 && <span className="text-xs text-muted-foreground">لم تُرفق أي ملفات</span>}
+            </div>
+            <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-primary">
+              <Upload className="w-4 h-4" /> {reading ? "جارٍ القراءة…" : "إضافة ملف"}
+              <input type="file" hidden multiple
+                accept="image/*,video/*,application/pdf,.doc,.docx,.txt"
+                onChange={(e) => {
+                  const list = Array.from(e.target.files ?? []);
+                  list.forEach(addFile);
+                  e.target.value = "";
+                }} />
+            </label>
+            <p className="text-[10px] text-muted-foreground">سيقوم الذكاء الاصطناعي بتحليل المرفقات واستخراج الأسئلة منها.</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label>عدد الأسئلة</Label>
@@ -634,10 +682,17 @@ function AiGenerateDialog({ open, onOpenChange, onGenerate }: any) {
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button
-            disabled={!prompt.trim() || loading}
+            disabled={(!prompt.trim() && files.length === 0) || loading || reading}
             onClick={async () => {
               setLoading(true);
-              try { await onGenerate({ prompt, count, difficulty, question_type: qtype, subject, save_to_bank: true }); }
+              try {
+                await onGenerate({
+                  prompt, count, difficulty, question_type: qtype, subject,
+                  save_to_bank: true,
+                  attachments: files.map((f) => ({ kind: f.kind, mime: f.mime, name: f.name, dataUrl: f.dataUrl })),
+                });
+                setFiles([]);
+              }
               finally { setLoading(false); }
             }}
           >
@@ -648,6 +703,7 @@ function AiGenerateDialog({ open, onOpenChange, onGenerate }: any) {
     </Dialog>
   );
 }
+
 
 function ExamFromBankDialog({ open, onOpenChange, count, onCreate }: any) {
   const [title, setTitle] = useState("امتحان من بنك الأسئلة");
