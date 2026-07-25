@@ -50,6 +50,12 @@ function TakeExamPage() {
   const startedAt = useRef(Date.now());
   const questionStartAt = useRef(Date.now());
 
+  // Pending/in-flight tracking for debounced saves so we can flush on submit.
+  const savedSnapshot = useRef<Record<string, string>>({});   // last saved value key
+  const debounceTimers = useRef<Record<string, number>>({});
+  const pendingValues = useRef<Record<string, any>>({});
+  const lastLeaveAt = useRef(0);
+
   const { data: exam } = useQuery({
     queryKey: ["take-exam", id],
     queryFn: async () => (await supabase.from("exams").select("*").eq("id", id).eq("published", true).maybeSingle()).data,
@@ -77,7 +83,10 @@ function TakeExamPage() {
       // Load prior answers
       supabase.from("attempt_answers").select("question_id,answer").eq("attempt_id", r.attempt_id).then(({ data }) => {
         const m: Record<string, any> = {};
-        (data ?? []).forEach((a: any) => { m[a.question_id] = a.answer; });
+        (data ?? []).forEach((a: any) => {
+          m[a.question_id] = a.answer;
+          savedSnapshot.current[a.question_id] = JSON.stringify(a.answer);
+        });
         setAnswers(m);
       });
     }).catch((e: any) => { toast.error(e?.message ?? "فشل بدء الامتحان"); nav({ to: "/student/exams" }); });
@@ -98,10 +107,17 @@ function TakeExamPage() {
 
   const ac = (exam?.anti_cheat ?? {}) as { track_leaves?: boolean; block_copy?: boolean; block_paste?: boolean };
 
-  // Anti-cheat: track leaves
+  // Anti-cheat: track leaves (throttled to at most one record every 30s so a
+  // flappy tab or PWA background transitions don't spam the write endpoint).
   useEffect(() => {
     if (!attemptId || !ac.track_leaves) return;
-    const onVis = () => { if (document.hidden) leaveFn({ data: { attempt_id: attemptId } }).catch(() => {}); };
+    const onVis = () => {
+      if (!document.hidden) return;
+      const now = Date.now();
+      if (now - lastLeaveAt.current < 30000) return;
+      lastLeaveAt.current = now;
+      leaveFn({ data: { attempt_id: attemptId } }).catch(() => {});
+    };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [attemptId, ac.track_leaves, leaveFn]);
@@ -121,16 +137,52 @@ function TakeExamPage() {
     return questions;
   }, [questions, exam?.shuffle_questions]);
 
+  // Actual server save — only if value differs from last saved snapshot.
+  const flushAnswer = useCallback(async (qid: string, val: any) => {
+    if (!attemptId) return;
+    const key = JSON.stringify(val);
+    if (savedSnapshot.current[qid] === key) return;
+    setSaveState("saving");
+    const timeSpent = Math.floor((Date.now() - questionStartAt.current) / 1000);
+    try {
+      await saveFn({ data: { attempt_id: attemptId, question_id: qid, answer: val, time_spent_sec: timeSpent } });
+      savedSnapshot.current[qid] = key;
+      setSaveState("saved");
+    } catch { setSaveState("idle"); }
+  }, [attemptId, saveFn]);
+
+  // Debounced per-question setter — batches keystrokes so a student typing
+  // an essay produces at most ~1 write/sec instead of one per keystroke.
+  // Radio/checkbox answers (booleans/short ids) flush after 250ms.
   const setAnswer = (qid: string, val: any) => {
     setAnswers((p) => ({ ...p, [qid]: val }));
-    if (attemptId) {
-      setSaveState("saving");
-      const timeSpent = Math.floor((Date.now() - questionStartAt.current) / 1000);
-      saveFn({ data: { attempt_id: attemptId, question_id: qid, answer: val, time_spent_sec: timeSpent } })
-        .then(() => setSaveState("saved"))
-        .catch(() => setSaveState("idle"));
-    }
+    if (!attemptId) return;
+    pendingValues.current[qid] = val;
+    const isShort = val == null || typeof val === "boolean"
+      || (typeof val === "string" && val.length <= 32);
+    const wait = isShort ? 250 : 1200;
+    if (debounceTimers.current[qid]) window.clearTimeout(debounceTimers.current[qid]);
+    debounceTimers.current[qid] = window.setTimeout(() => {
+      delete debounceTimers.current[qid];
+      const latest = pendingValues.current[qid];
+      delete pendingValues.current[qid];
+      flushAnswer(qid, latest);
+    }, wait);
   };
+
+  const flushAllPending = useCallback(async () => {
+    const qids = Object.keys(debounceTimers.current);
+    for (const qid of qids) {
+      window.clearTimeout(debounceTimers.current[qid]);
+      delete debounceTimers.current[qid];
+    }
+    const pending = { ...pendingValues.current };
+    pendingValues.current = {};
+    // Serialize to avoid a burst of concurrent writes on submit under load.
+    for (const [qid, val] of Object.entries(pending)) {
+      await flushAnswer(qid, val);
+    }
+  }, [flushAnswer]);
 
   const toggleReview = (qid: string) => {
     setReviewMarks((p) => {
@@ -148,15 +200,13 @@ function TakeExamPage() {
     if (!attemptId || submitting) return;
     setSubmitting(true);
     try {
-      const timeSpent = Math.floor((Date.now() - questionStartAt.current) / 1000);
-      await Promise.all(Object.entries(answers).map(([questionId, answer]) =>
-        saveFn({ data: { attempt_id: attemptId, question_id: questionId, answer, time_spent_sec: timeSpent } }),
-      ));
+      await flushAllPending();
       const r: any = await submitFn({ data: { attempt_id: attemptId } });
       toast.success(`تم التسليم — ${r.percentage}%`);
       nav({ to: "/student/exams/$id/result", params: { id } });
     } catch (e: any) { toast.error(e?.message ?? "فشل التسليم"); setSubmitting(false); }
-  }, [attemptId, answers, saveFn, submitFn, nav, id, submitting]);
+  }, [attemptId, flushAllPending, submitFn, nav, id, submitting]);
+
 
   if (!exam || !questions || !attemptId) return <Skeleton className="h-96" />;
 
