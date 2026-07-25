@@ -164,6 +164,9 @@ export const createQuestionBankEntry = createServerFn({ method: "POST" })
       ...data, admin_id: context.userId, source: "manual",
     }).select("*").single();
     if (error) throw new Error(error.message);
+    if ((row as any)?.visibility === "students") {
+      notifyBankPublish([{ title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
+    }
     return row;
   });
 
@@ -175,10 +178,15 @@ export const updateQuestionBankEntry = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { id, ...patch } = data;
+    const { data: prev } = await supabaseAdmin.from("question_bank").select("visibility").eq("id", id).maybeSingle();
     const { data: row, error } = await supabaseAdmin.from("question_bank").update(patch).eq("id", id).select("*").single();
     if (error) throw new Error(error.message);
+    if ((prev as any)?.visibility !== "students" && (row as any)?.visibility === "students") {
+      notifyBankPublish([{ title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
+    }
     return row;
   });
+
 
 // ---------- Delete ----------
 export const deleteQuestionBankEntry = createServerFn({ method: "POST" })
