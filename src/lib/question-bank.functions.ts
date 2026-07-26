@@ -234,9 +234,9 @@ export const setBulkTargets = createServerFn({ method: "POST" })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
     const { data: rows } = await supabaseAdmin.from("question_bank")
-      .select("title,class_ids,group_ids,visibility").in("id", data.ids);
+      .select("id,title,class_ids,group_ids,visibility").in("id", data.ids);
     const published = (rows ?? []).filter((r: any) => r.visibility === "students");
-    if (published.length) notifyBankPublish(published as any[]);
+    if (published.length) await notifyBankPublish(published as any[]);
     return { ok: true, count: data.ids.length };
   });
 
