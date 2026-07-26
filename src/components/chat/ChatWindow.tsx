@@ -156,7 +156,18 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         reply_to: payload.reply_to ?? null,
       },
     }),
-    onSuccess: () => { setReply(null); },
+    onSuccess: (row: any) => {
+      // Optimistically append so the sender sees their own message instantly
+      // without waiting for the realtime UPDATE round-trip.
+      if (row && row.id) {
+        qc.setQueryData<any[]>(key, (prev) => {
+          const list = prev ?? [];
+          if (list.some((m) => m.id === row.id)) return list;
+          return [...list, row];
+        });
+      }
+      setReply(null);
+    },
     onError: (e: any) => toast.error(e?.message ?? "فشل الإرسال"),
   });
 
