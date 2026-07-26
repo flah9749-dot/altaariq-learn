@@ -81,9 +81,20 @@ export const sendMessage = createServerFn({ method: "POST" })
       attachment_size: data.attachment_size ?? null,
       reply_to: data.reply_to ?? null,
       delivered_at: new Date().toISOString(),
-    }).select("id").single();
+    const { data: row, error } = await supabase.from("messages").insert({
+      sender_id: userId,
+      recipient_id: data.recipient_id,
+      body: data.body,
+      message_type: data.message_type,
+      attachment_url: data.attachment_url ?? null,
+      attachment_name: data.attachment_name ?? null,
+      attachment_mime: data.attachment_mime ?? null,
+      attachment_size: data.attachment_size ?? null,
+      reply_to: data.reply_to ?? null,
+      delivered_at: new Date().toISOString(),
+    }).select("*").single();
     if (error) throw new Error(error.message);
-    return { id: row.id };
+    return row as any;
   });
 
 // -------- Broadcast (admin only) --------
