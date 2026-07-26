@@ -88,6 +88,7 @@ export const upsertExam = createServerFn({ method: "POST" })
             type: "exam",
             link: `/student/exams/${data.id}`,
             target: { kind: "classes_groups", class_id: payload.class_id ?? null, group_ids: payload.group_ids ?? [] },
+            dedupe_key: `exam_publish:${data.id}`,
           });
         } catch {}
       }
@@ -105,6 +106,7 @@ export const upsertExam = createServerFn({ method: "POST" })
             type: "exam",
             link: `/student/exams/${row.id}`,
             target: { kind: "classes_groups", class_id: payload.class_id ?? null, group_ids: payload.group_ids ?? [] },
+            dedupe_key: `exam_publish:${row.id}`,
           });
         } catch {}
       }
@@ -152,6 +154,7 @@ export const publishExam = createServerFn({ method: "POST" })
           type: "exam",
           link: `/student/exams/${data.id}`,
           target: { kind: "classes_groups", class_id: prev.class_id, group_ids: prev.group_ids ?? [] },
+          dedupe_key: `exam_publish:${data.id}`,
         });
       } catch {}
     }

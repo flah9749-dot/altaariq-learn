@@ -93,6 +93,9 @@ export async function notifyStudents(opts: {
   type?: string;
   link?: string | null;
   target: Target;
+  /** When set, notifications carry this dedupe key per recipient so repeat
+   * calls (double clicks, retries, republish) do not create duplicate rows. */
+  dedupe_key?: string | null;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   let q = supabaseAdmin
@@ -110,25 +113,47 @@ export async function notifyStudents(opts: {
   }
 
   const { data: rows } = await q;
-  const recipients = Array.from(new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean)));
+  let recipients = Array.from(new Set((rows ?? []).map((r: any) => r.user_id).filter(Boolean))) as string[];
   if (!recipients.length) return { count: 0, pushed: 0 };
+
+  // Skip recipients that already received the same dedupe_key to make repeat
+  // calls (double clicks, retries, republish) idempotent.
+  if (opts.dedupe_key) {
+    const existing = new Set<string>();
+    await chunk(recipients, PUSH_TOKEN_LOOKUP_CHUNK, async (part) => {
+      const { data } = await supabaseAdmin
+        .from("notifications")
+        .select("user_id")
+        .eq("dedupe_key", opts.dedupe_key!)
+        .in("user_id", part);
+      for (const r of data ?? []) existing.add((r as any).user_id);
+      return null;
+    });
+    recipients = recipients.filter((u) => !existing.has(u));
+    if (!recipients.length) return { count: 0, pushed: 0 };
+  }
 
   // Chunk bulk inserts so a class of thousands doesn't produce one huge
   // multi-megabyte payload that stalls PostgREST.
-  await chunk(recipients as string[], NOTIF_INSERT_CHUNK, async (part) => {
-    const { error } = await supabaseAdmin.from("notifications").insert(
-      part.map((uid: string) => ({
-        user_id: uid,
-        title: opts.title,
-        body: opts.body,
-        type: opts.type ?? "general",
-        link: opts.link ?? null,
-      })),
-    );
+  await chunk(recipients, NOTIF_INSERT_CHUNK, async (part) => {
+    const payload = part.map((uid: string) => ({
+      user_id: uid,
+      title: opts.title,
+      body: opts.body,
+      type: opts.type ?? "general",
+      link: opts.link ?? null,
+      dedupe_key: opts.dedupe_key ?? null,
+    }));
+    const { error } = opts.dedupe_key
+      ? await supabaseAdmin.from("notifications").upsert(payload, {
+          onConflict: "user_id,dedupe_key",
+          ignoreDuplicates: true,
+        })
+      : await supabaseAdmin.from("notifications").insert(payload);
     if (error) console.error("[notifyStudents] notification insert chunk failed:", error);
     return null;
   });
-  const push = await pushToUsers(recipients as string[], { title: opts.title, body: opts.body, link: opts.link ?? null });
+  const push = await pushToUsers(recipients, { title: opts.title, body: opts.body, link: opts.link ?? null });
   return { count: recipients.length, pushed: push.sent ?? 0 };
 }
 

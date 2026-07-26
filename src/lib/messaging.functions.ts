@@ -81,9 +81,9 @@ export const sendMessage = createServerFn({ method: "POST" })
       attachment_size: data.attachment_size ?? null,
       reply_to: data.reply_to ?? null,
       delivered_at: new Date().toISOString(),
-    }).select("id").single();
+    }).select("*").single();
     if (error) throw new Error(error.message);
-    return { id: row.id };
+    return row as any;
   });
 
 // -------- Broadcast (admin only) --------

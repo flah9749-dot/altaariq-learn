@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { notifyStudents } from "@/lib/notify-helpers.server";
 
-type BankTargets = { title: string; class_ids?: string[] | null; group_ids?: string[] | null };
+type BankTargets = { id?: string; title: string; class_ids?: string[] | null; group_ids?: string[] | null };
 async function notifyBankPublish(items: BankTargets[]) {
   try {
     for (const it of items) {
@@ -11,16 +11,17 @@ async function notifyBankPublish(items: BankTargets[]) {
       const groupIds = it.group_ids ?? [];
       const body = `تمت إضافة "${it.title}" إلى بنك الأسئلة`;
       const link = "/student/question-bank";
+      const dedupe_key = it.id ? `bank_publish:${it.id}` : null;
       if (groupIds.length) {
-        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link, dedupe_key,
           target: { kind: "classes_groups", class_id: classIds[0] ?? null, group_ids: groupIds } });
       } else if (classIds.length) {
         for (const cid of classIds) {
-          await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+          await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link, dedupe_key,
             target: { kind: "class", class_id: cid } });
         }
       } else {
-        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link,
+        await notifyStudents({ title: "📚 عنصر جديد في بنك الأسئلة", body, type: "question_bank", link, dedupe_key,
           target: { kind: "all" } });
       }
     }
@@ -165,7 +166,7 @@ export const createQuestionBankEntry = createServerFn({ method: "POST" })
     }).select("*").single();
     if (error) throw new Error(error.message);
     if ((row as any)?.visibility === "students") {
-      notifyBankPublish([{ title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
+      await notifyBankPublish([{ id: (row as any).id, title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
     }
     return row;
   });
@@ -182,7 +183,7 @@ export const updateQuestionBankEntry = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin.from("question_bank").update(patch).eq("id", id).select("*").single();
     if (error) throw new Error(error.message);
     if ((prev as any)?.visibility !== "students" && (row as any)?.visibility === "students") {
-      notifyBankPublish([{ title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
+      await notifyBankPublish([{ id: (row as any).id, title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
     }
     return row;
   });
@@ -215,8 +216,8 @@ export const setBulkVisibility = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (data.visibility === "students") {
       const { data: rows } = await supabaseAdmin.from("question_bank")
-        .select("title,class_ids,group_ids").in("id", data.ids);
-      notifyBankPublish((rows ?? []) as any[]);
+        .select("id,title,class_ids,group_ids").in("id", data.ids);
+      await notifyBankPublish((rows ?? []) as any[]);
     }
     return { ok: true, count: data.ids.length };
   });
@@ -233,9 +234,9 @@ export const setBulkTargets = createServerFn({ method: "POST" })
       .in("id", data.ids);
     if (error) throw new Error(error.message);
     const { data: rows } = await supabaseAdmin.from("question_bank")
-      .select("title,class_ids,group_ids,visibility").in("id", data.ids);
+      .select("id,title,class_ids,group_ids,visibility").in("id", data.ids);
     const published = (rows ?? []).filter((r: any) => r.visibility === "students");
-    if (published.length) notifyBankPublish(published as any[]);
+    if (published.length) await notifyBankPublish(published as any[]);
     return { ok: true, count: data.ids.length };
   });
 
