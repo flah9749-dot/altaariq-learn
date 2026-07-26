@@ -216,8 +216,8 @@ export const setBulkVisibility = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (data.visibility === "students") {
       const { data: rows } = await supabaseAdmin.from("question_bank")
-        .select("title,class_ids,group_ids").in("id", data.ids);
-      notifyBankPublish((rows ?? []) as any[]);
+        .select("id,title,class_ids,group_ids").in("id", data.ids);
+      await notifyBankPublish((rows ?? []) as any[]);
     }
     return { ok: true, count: data.ids.length };
   });
