@@ -85,10 +85,6 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row as any;
   });
-    }).select("*").single();
-    if (error) throw new Error(error.message);
-    return row as any;
-  });
 
 // -------- Broadcast (admin only) --------
 export const broadcastMessage = createServerFn({ method: "POST" })
