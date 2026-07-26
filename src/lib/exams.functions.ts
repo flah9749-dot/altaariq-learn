@@ -154,6 +154,7 @@ export const publishExam = createServerFn({ method: "POST" })
           type: "exam",
           link: `/student/exams/${data.id}`,
           target: { kind: "classes_groups", class_id: prev.class_id, group_ids: prev.group_ids ?? [] },
+          dedupe_key: `exam_publish:${data.id}`,
         });
       } catch {}
     }
