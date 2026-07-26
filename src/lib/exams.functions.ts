@@ -106,6 +106,7 @@ export const upsertExam = createServerFn({ method: "POST" })
             type: "exam",
             link: `/student/exams/${row.id}`,
             target: { kind: "classes_groups", class_id: payload.class_id ?? null, group_ids: payload.group_ids ?? [] },
+            dedupe_key: `exam_publish:${row.id}`,
           });
         } catch {}
       }
