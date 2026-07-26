@@ -166,7 +166,7 @@ export const createQuestionBankEntry = createServerFn({ method: "POST" })
     }).select("*").single();
     if (error) throw new Error(error.message);
     if ((row as any)?.visibility === "students") {
-      notifyBankPublish([{ title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
+      await notifyBankPublish([{ id: (row as any).id, title: (row as any).title, class_ids: (row as any).class_ids, group_ids: (row as any).group_ids }]);
     }
     return row;
   });
