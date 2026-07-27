@@ -142,12 +142,23 @@ function ResultPage() {
         </CardContent></Card>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <WhatsAppButton
           phone={student?.parent_whatsapp ?? student?.parent_phone}
           template={pickResultTemplate(pct)}
           vars={waVars}
           label="إرسال النتيجة لولي الأمر عبر واتساب"
+        />
+        <CertificateButton
+          attemptId={attempt.id}
+          studentName={student?.full_name ?? ""}
+          examTitle={attempt.exams?.title ?? ""}
+          score={attempt.score}
+          total={attempt.total}
+          percentage={pct}
+          grade={grade}
+          rank={rank?.classRank ? `${rank.classRank} / ${rank.classTotal}` : undefined}
+          submittedAt={attempt.submitted_at}
         />
       </div>
 
