@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudentRouteImport } from './routes/student'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -32,12 +33,14 @@ import { Route as AdminScanRouteImport } from './routes/admin.scan'
 import { Route as AdminRewardsRouteImport } from './routes/admin.rewards'
 import { Route as AdminResultsRouteImport } from './routes/admin.results'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminRegistrationRequestsRouteImport } from './routes/admin.registration-requests'
 import { Route as AdminQuestionBankRouteImport } from './routes/admin.question-bank'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminMessagesRouteImport } from './routes/admin.messages'
 import { Route as AdminMapsRouteImport } from './routes/admin.maps'
 import { Route as AdminLiveRouteImport } from './routes/admin.live'
 import { Route as AdminLeaderboardRouteImport } from './routes/admin.leaderboard'
+import { Route as AdminJoinCodesRouteImport } from './routes/admin.join-codes'
 import { Route as AdminFilesRouteImport } from './routes/admin.files'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCompetitionsRouteImport } from './routes/admin.competitions'
@@ -81,6 +84,11 @@ const StudentRoute = StudentRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -188,6 +196,12 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRegistrationRequestsRoute =
+  AdminRegistrationRequestsRouteImport.update({
+    id: '/registration-requests',
+    path: '/registration-requests',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminQuestionBankRoute = AdminQuestionBankRouteImport.update({
   id: '/question-bank',
   path: '/question-bank',
@@ -216,6 +230,11 @@ const AdminLiveRoute = AdminLiveRouteImport.update({
 const AdminLeaderboardRoute = AdminLeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminJoinCodesRoute = AdminJoinCodesRouteImport.update({
+  id: '/join-codes',
+  path: '/join-codes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFilesRoute = AdminFilesRouteImport.update({
@@ -394,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/setup': typeof SetupRoute
   '/student': typeof StudentRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
@@ -406,12 +426,14 @@ export interface FileRoutesByFullPath {
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/files': typeof AdminFilesRoute
+  '/admin/join-codes': typeof AdminJoinCodesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/question-bank': typeof AdminQuestionBankRoute
+  '/admin/registration-requests': typeof AdminRegistrationRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -458,6 +480,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/setup': typeof SetupRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/api': typeof AdminApiRoute
@@ -468,12 +491,14 @@ export interface FileRoutesByTo {
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/files': typeof AdminFilesRoute
+  '/admin/join-codes': typeof AdminJoinCodesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/question-bank': typeof AdminQuestionBankRoute
+  '/admin/registration-requests': typeof AdminRegistrationRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -519,6 +544,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/setup': typeof SetupRoute
   '/student': typeof StudentRouteWithChildren
   '/admin/activity': typeof AdminActivityRoute
@@ -531,12 +557,14 @@ export interface FileRoutesById {
   '/admin/competitions': typeof AdminCompetitionsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/files': typeof AdminFilesRoute
+  '/admin/join-codes': typeof AdminJoinCodesRoute
   '/admin/leaderboard': typeof AdminLeaderboardRoute
   '/admin/live': typeof AdminLiveRoute
   '/admin/maps': typeof AdminMapsRoute
   '/admin/messages': typeof AdminMessagesRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/question-bank': typeof AdminQuestionBankRoute
+  '/admin/registration-requests': typeof AdminRegistrationRequestsRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/results': typeof AdminResultsRoute
   '/admin/rewards': typeof AdminRewardsRoute
@@ -586,6 +614,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/register'
     | '/setup'
     | '/student'
     | '/admin/activity'
@@ -598,12 +627,14 @@ export interface FileRouteTypes {
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/files'
+    | '/admin/join-codes'
     | '/admin/leaderboard'
     | '/admin/live'
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/question-bank'
+    | '/admin/registration-requests'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -650,6 +681,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/register'
     | '/setup'
     | '/admin/activity'
     | '/admin/api'
@@ -660,12 +692,14 @@ export interface FileRouteTypes {
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/files'
+    | '/admin/join-codes'
     | '/admin/leaderboard'
     | '/admin/live'
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/question-bank'
+    | '/admin/registration-requests'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -710,6 +744,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/register'
     | '/setup'
     | '/student'
     | '/admin/activity'
@@ -722,12 +757,14 @@ export interface FileRouteTypes {
     | '/admin/competitions'
     | '/admin/dashboard'
     | '/admin/files'
+    | '/admin/join-codes'
     | '/admin/leaderboard'
     | '/admin/live'
     | '/admin/maps'
     | '/admin/messages'
     | '/admin/notifications'
     | '/admin/question-bank'
+    | '/admin/registration-requests'
     | '/admin/reports'
     | '/admin/results'
     | '/admin/rewards'
@@ -776,6 +813,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   SetupRoute: typeof SetupRoute
   StudentRoute: typeof StudentRouteWithChildren
   ApiPublicFcmDispatchRoute: typeof ApiPublicFcmDispatchRoute
@@ -798,6 +836,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -947,6 +992,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReportsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/registration-requests': {
+      id: '/admin/registration-requests'
+      path: '/registration-requests'
+      fullPath: '/admin/registration-requests'
+      preLoaderRoute: typeof AdminRegistrationRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/question-bank': {
       id: '/admin/question-bank'
       path: '/question-bank'
@@ -987,6 +1039,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboard'
       fullPath: '/admin/leaderboard'
       preLoaderRoute: typeof AdminLeaderboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/join-codes': {
+      id: '/admin/join-codes'
+      path: '/join-codes'
+      fullPath: '/admin/join-codes'
+      preLoaderRoute: typeof AdminJoinCodesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/files': {
@@ -1284,12 +1343,14 @@ interface AdminRouteChildren {
   AdminCompetitionsRoute: typeof AdminCompetitionsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminFilesRoute: typeof AdminFilesRoute
+  AdminJoinCodesRoute: typeof AdminJoinCodesRoute
   AdminLeaderboardRoute: typeof AdminLeaderboardRoute
   AdminLiveRoute: typeof AdminLiveRoute
   AdminMapsRoute: typeof AdminMapsRoute
   AdminMessagesRoute: typeof AdminMessagesRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminQuestionBankRoute: typeof AdminQuestionBankRoute
+  AdminRegistrationRequestsRoute: typeof AdminRegistrationRequestsRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminResultsRoute: typeof AdminResultsRoute
   AdminRewardsRoute: typeof AdminRewardsRoute
@@ -1317,12 +1378,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitionsRoute: AdminCompetitionsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminFilesRoute: AdminFilesRoute,
+  AdminJoinCodesRoute: AdminJoinCodesRoute,
   AdminLeaderboardRoute: AdminLeaderboardRoute,
   AdminLiveRoute: AdminLiveRoute,
   AdminMapsRoute: AdminMapsRoute,
   AdminMessagesRoute: AdminMessagesRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminQuestionBankRoute: AdminQuestionBankRoute,
+  AdminRegistrationRequestsRoute: AdminRegistrationRequestsRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminResultsRoute: AdminResultsRoute,
   AdminRewardsRoute: AdminRewardsRoute,
@@ -1408,6 +1471,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   SetupRoute: SetupRoute,
   StudentRoute: StudentRouteWithChildren,
   ApiPublicFcmDispatchRoute: ApiPublicFcmDispatchRoute,
