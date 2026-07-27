@@ -218,9 +218,15 @@ function CodeFormDialog({ onClose, classes, groups, initial }: { onClose: () => 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>الكود *</Label>
-            <Button type="button" variant="ghost" size="sm" onClick={suggest}>اقتراح</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={regenerate}>🎲 توليد جديد</Button>
           </div>
-          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} dir="ltr" className="font-mono" placeholder="G1-A-2026" />
+          <Input
+            value={code}
+            onChange={(e) => { manuallyEdited.current = true; setCode(e.target.value.toUpperCase()); }}
+            dir="ltr"
+            className="font-mono"
+            placeholder="G1-A-2026"
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
