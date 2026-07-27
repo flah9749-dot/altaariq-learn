@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { GraduationCap, Loader2, CheckCircle2, ArrowLeft, ArrowRight, Copy, MessageCircle } from "lucide-react";
@@ -43,6 +43,13 @@ function RegisterPage() {
 
   const validate = useServerFn(validateJoinCode);
   const submit = useServerFn(submitRegistration);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search).get("code");
+    if (p) setCode(p.toUpperCase());
+  }, []);
+
 
   const onCheck = async (e: React.FormEvent) => {
     e.preventDefault();
