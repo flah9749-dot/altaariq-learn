@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,11 +132,27 @@ function JoinCodesPage() {
   );
 }
 
+function randomCodeSuffix() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 5; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function buildAutoCode(classes: any[], groups: any[], classId: string, groupId: string) {
+  const clean = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6);
+  const cls = clean(classes.find((c: any) => c.id === classId)?.name ?? "") || "GEN";
+  const grp = clean(groups.find((g: any) => g.id === groupId)?.name ?? "") || "GRP";
+  const year = new Date().getFullYear();
+  return `${cls}-${grp}-${year}-${randomCodeSuffix()}`;
+}
+
 function CodeFormDialog({ onClose, classes, groups, initial }: { onClose: () => void; classes: any[]; groups: any[]; initial?: any }) {
   const qc = useQueryClient();
   const createFn = useServerFn(createJoinCode);
   const updFn = useServerFn(updateJoinCode);
-  const [code, setCode] = useState<string>(initial?.code ?? "");
+  const [code, setCode] = useState<string>(() => initial?.code ?? `GEN-GRP-${new Date().getFullYear()}-${randomCodeSuffix()}`);
+  const manuallyEdited = useRef<boolean>(!!initial);
   const [classId, setClassId] = useState<string>(initial?.class_id ?? "");
   const [groupId, setGroupId] = useState<string>(initial?.group_id ?? "");
   const [maxUses, setMaxUses] = useState<string>(initial?.max_uses?.toString() ?? "");
@@ -145,12 +161,15 @@ function CodeFormDialog({ onClose, classes, groups, initial }: { onClose: () => 
   const [saving, setSaving] = useState(false);
   const filteredGroups = (groups ?? []).filter((g: any) => !classId || g.class_id === classId);
 
-  const suggest = () => {
-    const cls = classes.find((c: any) => c.id === classId)?.name ?? "G";
-    const grp = groups.find((g: any) => g.id === groupId)?.name ?? "A";
-    const year = new Date().getFullYear();
-    const clean = (s: string) => s.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6) || "X";
-    setCode(`${clean(cls)}-${clean(grp)}-${year}`);
+  // Auto-regenerate code when class/group change, unless user manually edited
+  useEffect(() => {
+    if (manuallyEdited.current) return;
+    setCode(buildAutoCode(classes, groups, classId, groupId));
+  }, [classId, groupId, classes, groups]);
+
+  const regenerate = () => {
+    manuallyEdited.current = false;
+    setCode(buildAutoCode(classes, groups, classId, groupId));
   };
 
   const save = async (e: React.FormEvent) => {
@@ -199,9 +218,15 @@ function CodeFormDialog({ onClose, classes, groups, initial }: { onClose: () => 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>الكود *</Label>
-            <Button type="button" variant="ghost" size="sm" onClick={suggest}>اقتراح</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={regenerate}>🎲 توليد جديد</Button>
           </div>
-          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} dir="ltr" className="font-mono" placeholder="G1-A-2026" />
+          <Input
+            value={code}
+            onChange={(e) => { manuallyEdited.current = true; setCode(e.target.value.toUpperCase()); }}
+            dir="ltr"
+            className="font-mono"
+            placeholder="G1-A-2026"
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

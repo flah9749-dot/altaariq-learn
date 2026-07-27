@@ -58,6 +58,7 @@ function StudentsTreePage() {
   const [selectedStudent, setSelectedStudent] = useState<TreeStudentRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editStudent, setEditStudent] = useState<TreeStudentRow | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -193,7 +194,50 @@ function StudentsTreePage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Button onClick={() => setAddOpen(true)} className="gap-2"><Plus className="h-4 w-4" /> إضافة طالب</Button>
           <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><Upload className="h-4 w-4" /> استيراد</Button>
-          <Button variant="outline" asChild className="gap-2"><a href="/admin/students/export"><Download className="h-4 w-4" /> تصدير</a></Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={exporting}
+            onClick={async () => {
+              try {
+                setExporting(true);
+                const rows = await overviewFn({
+                  data: {
+                    class_id: classFilter || null,
+                    group_id: groupFilter || null,
+                    status: (statusFilter || null) as "active" | "suspended" | null,
+                  },
+                });
+                if (!rows.length) { toast.error("لا يوجد طلاب للتصدير"); return; }
+                const mapped = rows.map((s) => ({
+                  "الاسم": s.full_name,
+                  "الكود": s.code,
+                  "الصف": s.class_name ?? "",
+                  "المجموعة": s.group_name ?? "",
+                  "الهاتف": s.phone ?? "",
+                  "ولي الأمر": s.parent_name ?? "",
+                  "هاتف ولي الأمر": s.parent_phone ?? "",
+                  "واتساب ولي الأمر": s.parent_whatsapp ?? "",
+                  "الحالة": s.status === "active" ? "نشط" : "موقوف",
+                  "النقاط": s.points,
+                  "المستوى": s.level,
+                  "متوسط الدرجات %": Number(s.avg_percentage ?? 0).toFixed(1),
+                  "امتحانات مجدولة": s.scheduled_count,
+                  "امتحانات حضرها": s.attended_count,
+                  "غياب": s.absent_count,
+                }));
+                const { exportToExcel } = await import("@/lib/reports-lazy");
+                await exportToExcel(mapped, `الطلاب-${new Date().toISOString().slice(0, 10)}`, "الطلاب");
+                toast.success(`تم تصدير ${mapped.length} طالب`);
+              } catch (e: any) {
+                toast.error(e?.message ?? "فشل التصدير");
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} تصدير
+          </Button>
         </div>
       </div>
 
