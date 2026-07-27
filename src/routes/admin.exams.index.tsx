@@ -14,18 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
 import { deleteExam, publishExam, upsertExam } from "@/lib/exams.functions";
 import { STATUS_COLOR, STATUS_LABEL, deriveStatus } from "@/lib/exam-utils";
 import { formatArabicDate } from "@/lib/students-utils";
+
 
 export const Route = createFileRoute("/admin/exams/")({
   head: () => ({ meta: [{ title: "الامتحانات — لوحة المدرس" }] }),
