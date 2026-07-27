@@ -19,6 +19,24 @@ export function normalizePhone(p: string): string {
   return p.replace(/\D/g, "");
 }
 
+/**
+ * Normalize a phone to a wa.me-ready digit string (country code + subscriber, no +/0).
+ * - "+cc..." → strips "+"
+ * - "00..."  → strips "00"
+ * - "0..."   → replaces leading 0 with default country code
+ * - otherwise → returned as-is
+ */
+export function normalizeIntlPhone(raw: string, defaultCc = "20"): string {
+  let s = String(raw ?? "").trim();
+  const hasPlus = s.startsWith("+");
+  s = s.replace(/\D/g, "");
+  if (!s) return "";
+  if (hasPlus) return s;
+  if (s.startsWith("00")) return s.slice(2);
+  if (s.startsWith("0")) return defaultCc.replace(/\D/g, "") + s.slice(1);
+  return s;
+}
+
 export function normalizeCode(c: string): string {
   return c.trim().toUpperCase();
 }
