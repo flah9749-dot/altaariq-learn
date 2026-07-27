@@ -20,7 +20,9 @@ const nav: Array<{ title: string; url: string; icon: LucideIcon; badge: NavKey }
   { title: "بنك الأسئلة", url: "/student/question-bank", icon: FolderOpen, badge: null },
   { title: "الرسائل", url: "/student/messages", icon: MessageSquare, badge: "messages" },
   { title: "الجوائز", url: "/student/rewards", icon: Award, badge: "rewards" },
+  { title: "المسابقات", url: "/student/competitions", icon: Trophy, badge: null },
   { title: "نقاطي", url: "/student/points", icon: Star, badge: null },
+
   { title: "الإنجازات", url: "/student/achievements", icon: Trophy, badge: "achievements" },
 ];
 
