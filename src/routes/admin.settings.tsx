@@ -249,6 +249,17 @@ function SettingsPage() {
             </CardContent>
           </Card>
           <Card>
+            <CardHeader>
+              <CardTitle>التسجيل الذاتي للطلاب</CardTitle>
+              <CardDescription>تحكم في تمكين التسجيل الذاتي وطريقة اعتماد الطلبات.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <ToggleField label="تفعيل التسجيل الذاتي" k="self_registration.enabled" val={local["self_registration.enabled"]} onChange={set} />
+              <ToggleField label="قبول تلقائي بعد إدخال كود صحيح" k="self_registration.auto_approve" val={local["self_registration.auto_approve"]} onChange={set} />
+              <ToggleField label="إرسال بيانات الدخول لرقم الطالب أيضاً" k="self_registration.send_to_student_phone" val={local["self_registration.send_to_student_phone"]} onChange={set} />
+            </CardContent>
+          </Card>
+          <Card>
             <CardHeader><CardTitle>المصادقة الثنائية</CardTitle><CardDescription>جاهزة للتفعيل مستقبلًا</CardDescription></CardHeader>
             <CardContent><p className="text-sm text-muted-foreground">ستتم إضافة دعم 2FA في تحديث لاحق.</p></CardContent>
           </Card>
