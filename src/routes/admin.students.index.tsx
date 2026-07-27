@@ -6,14 +6,18 @@ import { toast } from "sonner";
 import {
   Users, Plus, Search, Download, Upload, Layers, GraduationCap,
   ChevronRight, TrendingUp, UserCheck, UserX, AlertTriangle, Sparkles,
-  Loader2, Eye, Edit, MessageCircle, Trophy, ExternalLink, X,
+  Loader2, Eye, Edit, MessageCircle, Trophy, ExternalLink, X, Filter,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -23,9 +27,16 @@ import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import {
   treeListClasses, treeListGroups, treeListStudents,
+  getStudentsOverview,
   type TreeClassRow, type TreeGroupRow, type TreeStudentRow,
+  type StudentOverviewRow,
 } from "@/lib/students-overview.functions";
 import { useDebounce } from "@/hooks/use-debounce";
+
+type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores" | "absent_3plus" | "absent_5plus";
+type InactiveFilter = "" | "3" | "7" | "14" | "30";
+type SortMode = "name" | "avg_desc" | "avg_asc" | "attempts_desc" | "attendance_desc";
+
 
 export const Route = createFileRoute("/admin/students/")({
   head: () => ({
@@ -50,6 +61,31 @@ function StudentsTreePage() {
   const [editStudent, setEditStudent] = useState<TreeStudentRow | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [classFilter, setClassFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "active" | "suspended">("");
+  const [examFilter, setExamFilter] = useState<ExamFilter>("");
+  const [inactiveFilter, setInactiveFilter] = useState<InactiveFilter>("");
+  const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtersActive =
+    debouncedSearch.trim() !== "" ||
+    classFilter !== "" || groupFilter !== "" || statusFilter !== "" ||
+    examFilter !== "" || inactiveFilter !== "" || sortMode !== "name";
+
+  // Classes/groups for filter selects
+  const { data: allClasses } = useQuery({
+    queryKey: ["filter-classes"],
+    queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [],
+    staleTime: 300_000,
+  });
+  const { data: allGroups } = useQuery({
+    queryKey: ["filter-groups"],
+    queryFn: async () => (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [],
+    staleTime: 300_000,
+  });
+
 
   const listClasses = useServerFn(treeListClasses);
   const { data: classes, isLoading: loadingClasses } = useQuery({
@@ -58,12 +94,67 @@ function StudentsTreePage() {
     staleTime: 60_000,
   });
 
-  const filteredClasses = useMemo(() => {
-    if (!classes) return [];
-    if (!debouncedSearch.trim()) return classes;
+  // Flat overview — loaded only when any filter is active
+  const overviewFn = useServerFn(getStudentsOverview);
+  const { data: flatRows, isFetching: loadingFlat } = useQuery({
+    queryKey: ["students-overview", classFilter, groupFilter, statusFilter],
+    queryFn: () => overviewFn({
+      data: {
+        class_id: classFilter || null,
+        group_id: groupFilter || null,
+        status: (statusFilter || null) as "active" | "suspended" | null,
+      },
+    }),
+    enabled: filtersActive,
+    staleTime: 30_000,
+  });
+
+  const filteredFlat = useMemo(() => {
+    if (!filtersActive) return [];
+    const src = flatRows ?? [];
     const q = debouncedSearch.trim().toLowerCase();
-    return classes.filter((c) => c.class_name.toLowerCase().includes(q));
-  }, [classes, debouncedSearch]);
+    let out = src.filter((s) => {
+      if (q) {
+        const hay = `${s.full_name} ${s.code} ${s.phone ?? ""} ${s.parent_name ?? ""} ${s.parent_phone ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (examFilter === "attended_last" && (!s.last_exam_id || !s.last_exam_attended)) return false;
+      if (examFilter === "missed_last" && (!s.last_exam_id || s.last_exam_attended)) return false;
+      if (examFilter === "never_attempted" && s.attended_count > 0) return false;
+      if (examFilter === "high_scores" && Number(s.avg_percentage) < 80) return false;
+      if (examFilter === "low_scores" && (s.attended_count === 0 || Number(s.avg_percentage) >= 50)) return false;
+      if (examFilter === "absent_3plus" && s.absent_count < 3) return false;
+      if (examFilter === "absent_5plus" && s.absent_count < 5) return false;
+      if (inactiveFilter) {
+        const threshold = Number(inactiveFilter);
+        const days = s.last_seen ? (Date.now() - new Date(s.last_seen).getTime()) / 86400000 : Infinity;
+        if (days < threshold) return false;
+      }
+      return true;
+    });
+    out = [...out].sort((a, b) => {
+      switch (sortMode) {
+        case "avg_desc": return Number(b.avg_percentage) - Number(a.avg_percentage);
+        case "avg_asc": return Number(a.avg_percentage) - Number(b.avg_percentage);
+        case "attempts_desc": return b.attended_count - a.attended_count;
+        case "attendance_desc": {
+          const ra = a.scheduled_count ? a.attended_count / a.scheduled_count : 0;
+          const rb = b.scheduled_count ? b.attended_count / b.scheduled_count : 0;
+          return rb - ra;
+        }
+        default: return a.full_name.localeCompare(b.full_name, "ar");
+      }
+    });
+    return out;
+  }, [flatRows, filtersActive, debouncedSearch, examFilter, inactiveFilter, sortMode]);
+
+  const clearAllFilters = () => {
+    setSearch(""); setClassFilter(""); setGroupFilter(""); setStatusFilter("");
+    setExamFilter(""); setInactiveFilter(""); setSortMode("name");
+  };
+  const advancedActiveCount =
+    (examFilter ? 1 : 0) + (inactiveFilter ? 1 : 0) + (sortMode !== "name" ? 1 : 0);
+
 
   const totals = useMemo(() => {
     const cs = classes ?? [];
@@ -114,50 +205,170 @@ function StudentsTreePage() {
         <Kpi icon={AlertTriangle} label="غياب مزمن (3+)" value={totals.chronic} color="text-red-500" />
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث عن صف…"
-          className="pr-9"
-        />
-        {search && (
-          <Button size="icon" variant="ghost" className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      {/* Filters panel */}
+      <Card>
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="grid gap-2 md:grid-cols-4">
+            <div className="relative md:col-span-2">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث بالاسم، الكود، الهاتف، ولي الأمر…"
+                className="pr-9"
+              />
+              {search && (
+                <Button size="icon" variant="ghost" className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Select value={classFilter || "all"} onValueChange={(v) => { setClassFilter(v === "all" ? "" : v); setGroupFilter(""); }}>
+              <SelectTrigger><SelectValue placeholder="كل الصفوف" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الصفوف</SelectItem>
+                {(allClasses ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={groupFilter || "all"} onValueChange={(v) => setGroupFilter(v === "all" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="كل المجموعات" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المجموعات</SelectItem>
+                {(allGroups ?? []).filter((g) => !classFilter || g.class_id === classFilter).map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Tree */}
-      <div className="space-y-2">
-        {loadingClasses && (
-          <>
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-          </>
-        )}
-        {!loadingClasses && filteredClasses.length === 0 && (
-          <EmptyState
-            icon={GraduationCap}
-            title="لا توجد صفوف بعد"
-            hint="أنشئ الصفوف من قائمة الإعدادات، أو أضف أول طالب لينشأ الصف تلقائيًا."
-          />
-        )}
-        {filteredClasses.map((c) => (
-          <ClassNode
-            key={c.class_id}
-            row={c}
-            open={openClasses.has(c.class_id)}
-            openGroups={openGroups}
-            onToggle={() => toggleClass(c.class_id)}
-            onToggleGroup={toggleGroup}
-            onSelectStudent={setSelectedStudent}
-          />
-        ))}
-      </div>
+          <div className="flex items-center flex-wrap gap-2">
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              <Filter className="h-4 w-4 ml-1" />
+              فلاتر متقدمة
+              {advancedActiveCount > 0 && (
+                <Badge variant="secondary" className="mr-1 text-[10px]">{advancedActiveCount}</Badge>
+              )}
+            </Button>
+            <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v as "active" | "suspended")}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="الحالة" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="active">نشط</SelectItem>
+                <SelectItem value="suspended">موقوف</SelectItem>
+              </SelectContent>
+            </Select>
+            {filtersActive && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                <X className="h-4 w-4 ml-1" /> مسح الفلاتر
+              </Button>
+            )}
+            <div className="text-xs text-muted-foreground mr-auto">
+              {filtersActive
+                ? <>نتائج: <span className="font-semibold text-foreground">{filteredFlat.length}</span></>
+                : <>عرض شجري — {totals.students} طالب</>}
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="grid gap-3 md:grid-cols-3 pt-2 border-t">
+              <div>
+                <Label className="text-[11px] text-muted-foreground">حالة الامتحانات</Label>
+                <Select value={examFilter || "all"} onValueChange={(v) => setExamFilter(v === "all" ? "" : v as ExamFilter)}>
+                  <SelectTrigger><SelectValue placeholder="الجميع" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">الجميع</SelectItem>
+                    <SelectItem value="attended_last">حضر آخر امتحان</SelectItem>
+                    <SelectItem value="missed_last">غاب عن آخر امتحان</SelectItem>
+                    <SelectItem value="never_attempted">لم يدخل أي امتحان</SelectItem>
+                    <SelectItem value="high_scores">درجات مرتفعة (80%+)</SelectItem>
+                    <SelectItem value="low_scores">درجات منخفضة (&lt;50%)</SelectItem>
+                    <SelectItem value="absent_3plus">غاب عن 3 امتحانات أو أكثر</SelectItem>
+                    <SelectItem value="absent_5plus">غاب عن 5 امتحانات أو أكثر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">لم يدخل المنصة منذ</Label>
+                <Select value={inactiveFilter || "all"} onValueChange={(v) => setInactiveFilter(v === "all" ? "" : v as InactiveFilter)}>
+                  <SelectTrigger><SelectValue placeholder="أي وقت" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">أي وقت</SelectItem>
+                    <SelectItem value="3">3 أيام أو أكثر</SelectItem>
+                    <SelectItem value="7">أسبوع أو أكثر</SelectItem>
+                    <SelectItem value="14">أسبوعين أو أكثر</SelectItem>
+                    <SelectItem value="30">شهر أو أكثر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">الترتيب</Label>
+                <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">الاسم (أبجديًا)</SelectItem>
+                    <SelectItem value="avg_desc">أعلى الدرجات</SelectItem>
+                    <SelectItem value="avg_asc">أقل الدرجات</SelectItem>
+                    <SelectItem value="attempts_desc">الأكثر امتحانات</SelectItem>
+                    <SelectItem value="attendance_desc">الأكثر التزامًا</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Flat filtered results OR Tree */}
+      {filtersActive ? (
+        <div className="space-y-2">
+          {loadingFlat && !flatRows && (
+            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> جاري تحميل النتائج…
+            </div>
+          )}
+          {!loadingFlat && filteredFlat.length === 0 && (
+            <EmptyState icon={Search} title="لا نتائج مطابقة" hint="جرّب تعديل الفلاتر أو مسحها." />
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {filteredFlat.map((s) => (
+              <FlatStudentRow key={s.id} s={s} onClick={() => setSelectedStudent(overviewToTree(s))} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {loadingClasses && (
+            <>
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+            </>
+          )}
+          {!loadingClasses && (classes ?? []).length === 0 && (
+            <EmptyState
+              icon={GraduationCap}
+              title="لا توجد صفوف بعد"
+              hint="أنشئ الصفوف من قائمة الإعدادات، أو أضف أول طالب لينشأ الصف تلقائيًا."
+            />
+          )}
+          {(classes ?? []).map((c) => (
+            <ClassNode
+              key={c.class_id}
+              row={c}
+              open={openClasses.has(c.class_id)}
+              openGroups={openGroups}
+              onToggle={() => toggleClass(c.class_id)}
+              onToggleGroup={toggleGroup}
+              onSelectStudent={setSelectedStudent}
+            />
+          ))}
+        </div>
+      )}
+
 
       {/* Add/Import dialogs */}
       <StudentFormDialog open={addOpen} onOpenChange={setAddOpen} />
@@ -624,4 +835,58 @@ function mapToStudentForm(s: TreeStudentRow): any {
     points: s.points,
     level: s.level,
   };
+}
+
+function overviewToTree(s: StudentOverviewRow): TreeStudentRow {
+  return {
+    id: s.id, code: s.code, full_name: s.full_name, avatar_url: s.avatar_url,
+    phone: s.phone, parent_name: s.parent_name, parent_phone: s.parent_phone,
+    parent_whatsapp: s.parent_whatsapp, status: s.status, points: s.points,
+    level: s.level, last_seen: s.last_seen,
+    scheduled_count: s.scheduled_count, attended_count: s.attended_count,
+    absent_count: s.absent_count, last_exam_id: s.last_exam_id,
+    last_exam_title: s.last_exam_title, last_exam_attended: s.last_exam_attended,
+    last_exam_percentage: s.last_exam_percentage, avg_percentage: s.avg_percentage,
+  };
+}
+
+function FlatStudentRow({ s, onClick }: { s: StudentOverviewRow; onClick: () => void }) {
+  const missedLast = s.last_exam_id != null && !s.last_exam_attended;
+  const rate = s.scheduled_count > 0 ? Math.round((s.attended_count / s.scheduled_count) * 100) : null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-right p-2.5 rounded-lg border-2 border-border/60 hover:border-primary/50 hover:shadow-sm transition-all bg-card flex items-center gap-2.5 group"
+    >
+      <Avatar className="h-9 w-9 shrink-0 ring-2 ring-primary/10">
+        <AvatarImage src={s.avatar_url ?? undefined} />
+        <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+          {s.full_name.slice(0, 2)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{s.full_name}</div>
+        <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5 flex-wrap" dir="ltr">
+          <span className="font-mono">{s.code}</span>
+          {s.class_name && <><span>•</span><span dir="rtl">{s.class_name}</span></>}
+          {s.group_name && <><span>•</span><span dir="rtl">{s.group_name}</span></>}
+          {rate !== null && <><span>•</span><span dir="rtl">{rate}% حضور</span></>}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {s.status === "suspended" && <Badge variant="destructive" className="text-[9px] h-4 px-1.5">موقوف</Badge>}
+        {missedLast && (
+          <Badge variant="destructive" className="text-[9px] h-4 px-1.5 gap-0.5">
+            <AlertTriangle className="h-2.5 w-2.5" /> غاب
+          </Badge>
+        )}
+        {s.avg_percentage >= 80 && s.attended_count > 0 && (
+          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+            {Math.round(Number(s.avg_percentage))}%
+          </Badge>
+        )}
+      </div>
+    </button>
+  );
 }
