@@ -113,14 +113,15 @@ function LeaderboardPage() {
               <SelectItem value="pass_rate">نسبة النجاح</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={classFilter} onValueChange={setClassFilter}>
+          <Select value={classFilter} onValueChange={(v) => { setClassOverride(v); setGroupOverride("all"); }}>
             <SelectTrigger className="w-40"><SelectValue placeholder="الصف" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل الصفوف</SelectItem>
               {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={groupFilter} onValueChange={setGroupFilter}>
+          <Select value={groupFilter} onValueChange={setGroupOverride}>
+
             <SelectTrigger className="w-40"><SelectValue placeholder="المجموعة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل المجموعات</SelectItem>
