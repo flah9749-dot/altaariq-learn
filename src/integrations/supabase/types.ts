@@ -2369,7 +2369,12 @@ export type Database = {
         }[]
       }
       dispatch_due_exam_start_notifications: { Args: never; Returns: number }
+      exam_question_analytics: { Args: { _exam_id: string }; Returns: Json }
       get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
+      get_certificate_verification: {
+        Args: { _attempt_id: string }
+        Returns: Json
+      }
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2401,7 +2406,12 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      student_gamification_stats: {
+        Args: { _student_id: string }
+        Returns: Json
+      }
       validate_join_code: { Args: { _code: string }; Returns: Json }
+      weekly_champions: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "student"
