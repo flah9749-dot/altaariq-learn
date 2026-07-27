@@ -27,6 +27,8 @@ import {
   Plus, Sparkles, Trash2, Edit, Eye, EyeOff, Upload, FileText,
   Image as ImageIcon, Video, Search, Wand2, ClipboardList, Users,
 } from "lucide-react";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
+
 
 
 export const Route = createFileRoute("/admin/question-bank")({
