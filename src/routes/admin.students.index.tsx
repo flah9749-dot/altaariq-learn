@@ -58,6 +58,7 @@ function StudentsTreePage() {
   const [selectedStudent, setSelectedStudent] = useState<TreeStudentRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editStudent, setEditStudent] = useState<TreeStudentRow | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
