@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { NotificationsBell } from "@/components/common/NotificationsBell";
 import { GlobalSearch } from "@/components/common/GlobalSearch";
 import { InstallAppButton } from "@/components/common/InstallAppButton";
-import { ScopeSelector } from "@/components/admin/ScopeSelector";
+
 import { useAuth } from "@/lib/auth-context";
 
 
@@ -26,7 +26,7 @@ export function AdminHeader() {
         <p className="text-sm text-muted-foreground">مرحبًا</p>
         <p className="text-sm font-semibold truncate">{profile?.full_name ?? profile?.identifier ?? "المدرس"}</p>
       </div>
-      <ScopeSelector />
+      
       <GlobalSearch />
       <InstallAppButton className="hidden sm:inline-flex" />
       <NotificationsBell />
