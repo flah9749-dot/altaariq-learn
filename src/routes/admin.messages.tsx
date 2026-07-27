@@ -17,6 +17,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { BroadcastDialog } from "@/components/chat/BroadcastDialog";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
+
 import { getAllAdminPeerIds } from "@/lib/messaging.functions";
 import { formatChatTime } from "@/lib/message-utils";
 
@@ -190,42 +192,56 @@ function AdminMessagesPage() {
           </Tabs>
         </div>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto p-2">
           {isLoading ? (
             <div className="p-3 space-y-2">{Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-14 w-full"/>)}</div>
-          ) : sorted.length === 0 ? (
-            <p className="p-6 text-center text-xs text-muted-foreground">لا يوجد طلاب</p>
-          ) : sorted.map((s: any) => {
-            const t = threads?.get(s.user_id);
-            const active = selected?.userId === s.user_id;
-            return (
-              <button key={s.id} onClick={() => setSelected({
-                userId: s.user_id, name: s.full_name, code: s.code,
-                parentPhone: s.parent_whatsapp ?? s.parent_phone,
-                className: s.classes?.name, groupName: s.groups?.name,
-              })} className={`w-full text-right p-3 border-b transition-colors ${active ? "bg-primary/10" : "hover:bg-muted"}`}>
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <Avatar className="h-11 w-11"><AvatarImage src={s.avatar_url ?? undefined}/><AvatarFallback>{s.full_name?.[0] ?? "ط"}</AvatarFallback></Avatar>
-                    {s.is_online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"/>}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-sm truncate">{s.full_name}</p>
-                      {t?.last && <span className="text-[10px] text-muted-foreground shrink-0">{formatChatTime(t.last.created_at)}</span>}
+          ) : (
+            <HierarchicalTree
+              items={sorted}
+              getClassId={(s:any) => s.class_id}
+              getClassName={(s:any) => s.classes?.name ?? "بدون صف"}
+              getGroupId={(s:any) => s.group_id}
+              getGroupName={(s:any) => s.groups?.name ?? "بدون مجموعة"}
+              itemsLabel={(n) => `${n} طالب`}
+              emptyLabel="لا يوجد طلاب"
+              renderGroupStats={(list) => {
+                const unread = list.reduce((sum:number,s:any) => sum + (threads?.get(s.user_id)?.unread ?? 0), 0);
+                return unread > 0 ? <div className="text-xs text-primary">{unread} رسالة جديدة</div> : null;
+              }}
+              renderItem={(s:any) => {
+                const t = threads?.get(s.user_id);
+                const active = selected?.userId === s.user_id;
+                return (
+                  <button onClick={() => setSelected({
+                    userId: s.user_id, name: s.full_name, code: s.code,
+                    parentPhone: s.parent_whatsapp ?? s.parent_phone,
+                    className: s.classes?.name, groupName: s.groups?.name,
+                  })} className={`w-full text-right p-2 transition-colors ${active ? "bg-primary/10" : ""}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="relative shrink-0">
+                        <Avatar className="h-9 w-9"><AvatarImage src={s.avatar_url ?? undefined}/><AvatarFallback>{s.full_name?.[0] ?? "ط"}</AvatarFallback></Avatar>
+                        {s.is_online && <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background"/>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-sm truncate">{s.full_name}</p>
+                          {t?.last && <span className="text-[10px] text-muted-foreground shrink-0">{formatChatTime(t.last.created_at)}</span>}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-muted-foreground truncate">
+                            {t?.last ? (t.last.body || `📎 ${t.last.attachment_name ?? "مرفق"}`) : s.code}
+                          </p>
+                          {t && t.unread > 0 && <Badge className="h-4 min-w-4 px-1 text-[10px] rounded-full">{t.unread}</Badge>}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {t?.last ? (t.last.body || `📎 ${t.last.attachment_name ?? "مرفق"}`) : `${s.code}${s.classes?.name ? " • " + s.classes.name : ""}`}
-                      </p>
-                      {t && t.unread > 0 && <Badge className="h-5 min-w-5 px-1.5 text-[10px] rounded-full">{t.unread}</Badge>}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </ScrollArea>
+                  </button>
+                );
+              }}
+            />
+          )}
+        </div>
+
       </Card>
 
       <Card className="flex flex-col overflow-hidden min-h-0">

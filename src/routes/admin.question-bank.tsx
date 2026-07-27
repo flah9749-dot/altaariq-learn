@@ -27,6 +27,8 @@ import {
   Plus, Sparkles, Trash2, Edit, Eye, EyeOff, Upload, FileText,
   Image as ImageIcon, Video, Search, Wand2, ClipboardList, Users,
 } from "lucide-react";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
+
 
 
 export const Route = createFileRoute("/admin/question-bank")({
@@ -171,89 +173,61 @@ function QuestionBankPage() {
 
       {q.isLoading && <div className="text-center text-muted-foreground py-8">جارٍ التحميل…</div>}
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {entries.map((e) => (
-          <Card key={e.id} className={selected.has(e.id) ? "ring-2 ring-primary" : ""}>
-            <CardHeader className="p-3 pb-2 flex-row items-start gap-2 space-y-0">
+      {!q.isLoading && entries.length === 0 ? (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">لا توجد عناصر بعد. ابدأ بإضافة سؤال أو توليد أسئلة بالذكاء الاصطناعي.</CardContent></Card>
+      ) : (
+        <HierarchicalTree
+          items={entries}
+          getClassId={(e:any) => (e.class_ids && e.class_ids[0]) ?? null}
+          getClassName={(e:any) => {
+            const cid = e.class_ids?.[0];
+            if (!cid) return "عام / كل الطلاب";
+            return classes.find((c:any)=>c.id===cid)?.name ?? "صف";
+          }}
+          getGroupId={(e:any) => (e.group_ids && e.group_ids[0]) ?? "__none__"}
+          getGroupName={(e:any) => {
+            const gid = e.group_ids?.[0];
+            if (!gid) return "بدون مجموعة محددة";
+            return groups.find((g:any)=>g.id===gid)?.name ?? "مجموعة";
+          }}
+          itemsLabel={(n) => `${n} عنصر`}
+          renderClassStats={(list) => {
+            const mats = list.filter((e:any)=>e.entry_type==="material").length;
+            return <div className="text-xs text-muted-foreground">{list.length-mats} سؤال · {mats} مادة</div>;
+          }}
+          renderItem={(e:any) => (
+            <div className="flex items-start gap-3 p-3">
               <Checkbox checked={selected.has(e.id)} onCheckedChange={() => toggleSel(e.id)} className="mt-1" />
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-sm truncate">{e.title}</CardTitle>
+                <div className="font-medium text-sm truncate">{e.title}</div>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  <Badge variant="secondary" className="text-[10px]">
-                    {e.entry_type === "material" ? "مادة" : e.question_type ?? "سؤال"}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {SUBJECTS.find((s) => s.v === e.subject)?.l ?? e.subject}
-                  </Badge>
-                  {e.visibility === "students" && (
-                    <Badge className="text-[10px] bg-green-600">
-                      <Eye className="w-2.5 h-2.5 ml-0.5" /> للطلاب
-                    </Badge>
-                  )}
-                  {e.source === "ai_generated" && (
-                    <Badge className="text-[10px] bg-purple-600">
-                      <Sparkles className="w-2.5 h-2.5 ml-0.5" /> AI
-                    </Badge>
-                  )}
-                  {(e.class_ids?.length ?? 0) === 0 && (e.group_ids?.length ?? 0) === 0 ? (
-                    e.visibility === "students" && (
-                      <Badge variant="outline" className="text-[10px]">كل الطلاب</Badge>
-                    )
-                  ) : (
-                    <>
-                      {(e.class_ids ?? []).map((cid) => {
-                        const cName = classes.find((c) => c.id === cid)?.name ?? "صف";
-                        return <Badge key={cid} variant="outline" className="text-[10px]">🎓 {cName}</Badge>;
-                      })}
-                      {(e.group_ids ?? []).map((gid) => {
-                        const gName = groups.find((g) => g.id === gid)?.name ?? "مجموعة";
-                        return <Badge key={gid} variant="outline" className="text-[10px]">👥 {gName}</Badge>;
-                      })}
-                    </>
-                  )}
+                  <Badge variant="secondary" className="text-[10px]">{e.entry_type === "material" ? "مادة" : e.question_type ?? "سؤال"}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{SUBJECTS.find((s)=>s.v===e.subject)?.l ?? e.subject}</Badge>
+                  {e.visibility === "students" && <Badge className="text-[10px] bg-green-600"><Eye className="w-2.5 h-2.5 ml-0.5" /> للطلاب</Badge>}
+                  {e.source === "ai_generated" && <Badge className="text-[10px] bg-purple-600"><Sparkles className="w-2.5 h-2.5 ml-0.5" /> AI</Badge>}
                 </div>
+                {e.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{e.description}</p>}
+                {e.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {e.attachments.slice(0, 3).map((a:any, i:number) => (
+                      <a key={i} href={a.url ?? "#"} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] bg-muted rounded px-2 py-0.5 hover:bg-muted/70">
+                        {a.mime?.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> : a.mime?.startsWith("video/") ? <Video className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                        <span className="truncate max-w-[100px]">{a.name}</span>
+                      </a>
+                    ))}
+                    {e.attachments.length > 3 && <span className="text-xs text-muted-foreground">+{e.attachments.length - 3}</span>}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={() => { setEditing(e); setOpenForm(true); }}><Edit className="w-3.5 h-3.5" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => { if (confirm("حذف هذا العنصر؟")) removeMut.mutate(e.id); }}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+              </div>
+            </div>
+          )}
+        />
+      )}
 
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 space-y-2">
-              {e.description && <p className="text-xs text-muted-foreground line-clamp-2">{e.description}</p>}
-              {e.attachments.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {e.attachments.slice(0, 3).map((a, i) => (
-                    <a
-                      key={i} href={a.url ?? "#"} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-1 text-[11px] bg-muted rounded px-2 py-0.5 hover:bg-muted/70"
-                    >
-                      {a.mime?.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> :
-                       a.mime?.startsWith("video/") ? <Video className="w-3 h-3" /> :
-                       <FileText className="w-3 h-3" />}
-                      <span className="truncate max-w-[100px]">{a.name}</span>
-                    </a>
-                  ))}
-                  {e.attachments.length > 3 && <span className="text-xs text-muted-foreground">+{e.attachments.length - 3}</span>}
-                </div>
-              )}
-              <div className="flex gap-1 justify-end pt-1">
-                <Button size="icon" variant="ghost" onClick={() => { setEditing(e); setOpenForm(true); }}>
-                  <Edit className="w-3.5 h-3.5" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => {
-                  if (confirm("حذف هذا العنصر؟")) removeMut.mutate(e.id);
-                }}>
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {!q.isLoading && entries.length === 0 && (
-          <Card className="col-span-full">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              لا توجد عناصر بعد. ابدأ بإضافة سؤال أو توليد أسئلة بالذكاء الاصطناعي.
-            </CardContent>
-          </Card>
-        )}
-      </div>
 
       {/* --- Manual form --- */}
       <EntryFormDialog

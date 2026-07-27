@@ -12,10 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
 import { listMapTemplates, upsertMapTemplate, deleteMapTemplate } from "@/lib/map-templates.functions";
 import { analyzeMapImage, cleanMapImage } from "@/lib/ai-map.functions";
 import { InteractiveMapEditor, type MapEditorPoint } from "@/components/maps/InteractiveMapEditor";
 import { Eraser } from "lucide-react";
+
 
 export const Route = createFileRoute("/admin/maps")({
   head: () => ({
@@ -156,35 +158,34 @@ function MapsLibrary() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 md:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-56" />)}
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-16 text-center text-muted-foreground">
-          {search ? "لا نتائج للبحث." : "لا توجد قوالب بعد. أنشئ قالبك الأول لتسريع إنشاء أسئلة الخرائط."}
-        </CardContent></Card>
+        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t: any) => (
-            <Card key={t.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openExisting(t)}>
-              <div className="relative bg-muted h-40">
-                {t.image_url ? <img src={t.image_url} alt={t.title} className="w-full h-full object-contain" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">لا توجد صورة</div>}
-                <Badge className="absolute top-2 right-2">{(t.data?.points?.length ?? 0)} نقطة</Badge>
+        <HierarchicalTree
+          items={filtered}
+          getClassId={(t:any) => (t.category?.trim() || "__none__")}
+          getClassName={(t:any) => t.category?.trim() || "بدون تصنيف"}
+          itemsLabel={(n) => `${n} قالب`}
+          emptyLabel={search ? "لا نتائج للبحث." : "لا توجد قوالب بعد."}
+          renderItem={(t:any) => (
+            <div className="flex items-center gap-3 p-3 cursor-pointer" onClick={() => openExisting(t)}>
+              <div className="w-20 h-14 rounded bg-muted overflow-hidden shrink-0">
+                {t.image_url ? <img src={t.image_url} alt={t.title} className="w-full h-full object-contain" /> : null}
               </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{t.title}</CardTitle>
-                {t.category && <p className="text-xs text-muted-foreground">{t.category}</p>}
-              </CardHeader>
-              <CardContent className="pt-0 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground line-clamp-2">{t.description ?? ""}</p>
-                <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("حذف القالب؟")) delMut.mutate(t.id); }}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{t.title}</div>
+                <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
+                  <span>{(t.data?.points?.length ?? 0)} نقطة</span>
+                  {t.description && <span className="truncate">— {t.description}</span>}
+                </div>
+              </div>
+              <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("حذف القالب؟")) delMut.mutate(t.id); }}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          )}
+        />
       )}
+
 
       <Dialog open={openEditor} onOpenChange={(v) => { setOpenEditor(v); if (!v) { setEditing(null); setAiFocus(""); } }}>
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
