@@ -1810,7 +1810,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           class_id: string
-          code_id: string
+          code_id: string | null
           created_at: string
           full_name: string
           group_id: string
@@ -1829,7 +1829,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           class_id: string
-          code_id: string
+          code_id?: string | null
           created_at?: string
           full_name: string
           group_id: string
@@ -1848,7 +1848,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           class_id?: string
-          code_id?: string
+          code_id?: string | null
           created_at?: string
           full_name?: string
           group_id?: string
