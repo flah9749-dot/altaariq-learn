@@ -322,6 +322,8 @@ function StudentsPage() {
                     <SelectItem value="never_attempted">لم يدخل أي امتحان</SelectItem>
                     <SelectItem value="high_scores">درجات مرتفعة (80%+)</SelectItem>
                     <SelectItem value="low_scores">درجات منخفضة (&lt;50%)</SelectItem>
+                    <SelectItem value="absent_3plus">غاب عن 3 امتحانات أو أكثر</SelectItem>
+                    <SelectItem value="absent_5plus">غاب عن 5 امتحانات أو أكثر</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
