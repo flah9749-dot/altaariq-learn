@@ -43,9 +43,9 @@ export const getStudentsOverview = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase.rpc("admin_students_overview", {
-      _class_id: data.class_id ?? null,
-      _group_id: data.group_id ?? null,
-      _status: data.status ?? null,
+      _class_id: data.class_id ?? undefined,
+      _group_id: data.group_id ?? undefined,
+      _status: data.status ?? undefined,
     });
     if (error) throw new Error(error.message);
     return (rows ?? []) as StudentOverviewRow[];
