@@ -7,6 +7,7 @@ import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
   KeyRound, Copy, Check, RefreshCw, Eye, IdCard, Plus, Minus,
+  ClipboardList, AlertTriangle, CheckCircle2, XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +70,54 @@ function StudentDetailPage() {
       const avg = totalExams ? Math.round(rs.reduce((a, r) => a + (r.total ? (r.score / r.total) * 100 : 0), 0) / totalExams) : 0;
       const passRate = totalExams ? Math.round((rs.filter((r) => r.total && r.score / r.total >= 0.5).length / totalExams) * 100) : 0;
       return { totalExams, avg, passRate, rewardsCount: rewards.count ?? 0 };
+    },
+  });
+
+  // Per-exam attendance history for this student (published exams targeting their class/group).
+  const { data: history } = useQuery({
+    queryKey: ["student-exam-history", id, student?.class_id, student?.group_id],
+    enabled: !!student,
+    queryFn: async () => {
+      const classId = student?.class_id ?? null;
+      const groupId = student?.group_id ?? null;
+      let q = supabase
+        .from("exams")
+        .select("id,title,starts_at,ends_at,class_id,group_ids,created_at")
+        .eq("published", true)
+        .order("starts_at", { ascending: false, nullsFirst: false })
+        .limit(100);
+      if (classId) q = q.or(`class_id.is.null,class_id.eq.${classId}`);
+      const { data: exams } = await q;
+      const filtered = (exams ?? []).filter((e: any) => {
+        const gids: string[] = Array.isArray(e.group_ids) ? e.group_ids : [];
+        if (gids.length === 0) return true;
+        return groupId ? gids.includes(groupId) : false;
+      }).filter((e: any) => !e.starts_at || new Date(e.starts_at).getTime() <= Date.now());
+
+      const ids = filtered.map((e: any) => e.id);
+      const { data: atts } = ids.length
+        ? await supabase
+            .from("exam_attempts")
+            .select("exam_id,submitted_at,percentage,score,total")
+            .eq("student_id", id)
+            .in("exam_id", ids)
+        : { data: [] as any[] };
+      const byExam = new Map<string, any>();
+      (atts ?? []).forEach((a: any) => byExam.set(a.exam_id, a));
+      const rows = filtered.map((e: any) => {
+        const a = byExam.get(e.id);
+        return {
+          id: e.id,
+          title: e.title,
+          starts_at: e.starts_at,
+          attended: !!a?.submitted_at,
+          percentage: a?.percentage ?? null,
+          score: a?.score ?? null,
+          total: a?.total ?? null,
+        };
+      });
+      const absent = rows.filter((r) => !r.attended).length;
+      return { rows, absent, scheduled: rows.length };
     },
   });
 
@@ -258,6 +307,81 @@ function StudentDetailPage() {
         </Card>
       </div>
 
+      {/* Attendance history + auto warning */}
+      <Card className="print:hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              سجل الحضور والغياب في الامتحانات
+              {history && (
+                <Badge variant="outline" className="mr-1 font-normal">
+                  {history.scheduled - history.absent}/{history.scheduled} حضور
+                </Badge>
+              )}
+            </CardTitle>
+            {history && history.absent >= 3 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> غاب عن {history.absent} امتحانات
+                </Badge>
+                <WhatsAppButton
+                  phone={student.parent_whatsapp ?? student.parent_phone}
+                  label="إرسال إنذار لولي الأمر"
+                  variant="default"
+                  message={buildAbsenceAlert({
+                    parent: student.parent_name ?? "",
+                    name: student.full_name,
+                    absent: history.absent,
+                    scheduled: history.scheduled,
+                    lastMissed: history.rows.filter((r) => !r.attended).slice(0, 5),
+                  })}
+                />
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!history || history.rows.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              لا توجد امتحانات مخصصة لهذا الطالب بعد.
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto divide-y">
+              {history.rows.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/30">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {r.attended ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{r.title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {formatArabicDateTime(r.starts_at)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs shrink-0">
+                    {r.attended ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" variant="outline">
+                        حضر {r.percentage != null ? `— ${Math.round(Number(r.percentage))}%` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30">
+                        غاب
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 print:hidden">
         <QuickAction icon={FileText} label="الامتحانات" href="/admin/exams" />
         <QuickAction icon={MessageSquare} label="الرسائل" href="/admin/messages" />
@@ -301,6 +425,29 @@ function StudentDetailPage() {
       </Dialog>
     </div>
   );
+}
+
+function buildAbsenceAlert(opts: {
+  parent: string;
+  name: string;
+  absent: number;
+  scheduled: number;
+  lastMissed: { title: string; starts_at: string | null }[];
+}): string {
+  const lines = [
+    `⚠️ إشعار غياب متكرر`,
+    ``,
+    `السلام عليكم ولي أمر الطالب/ة *${opts.name}* 🌿`,
+    ``,
+    `نحيطكم علمًا بأن الطالب/ة تغيّب عن *${opts.absent}* من إجمالي ${opts.scheduled} امتحان.`,
+    ``,
+    `الامتحانات التي تغيّب عنها مؤخرًا:`,
+    ...opts.lastMissed.map((m) => `• ${m.title}${m.starts_at ? ` — ${formatArabicDateTime(m.starts_at)}` : ""}`),
+    ``,
+    `نأمل متابعة الطالب/ة وحثّه/ها على الالتزام بمواعيد الامتحانات.`,
+    `نشكر لكم تعاونكم 🌹`,
+  ];
+  return lines.filter(Boolean).join("\n");
 }
 
 function Stat({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {

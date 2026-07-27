@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { GraduationCap, Loader2, CheckCircle2, ArrowLeft, ArrowRight, Copy, MessageCircle } from "lucide-react";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Logo } from "@/components/common/Logo";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { validateJoinCode, submitRegistration } from "@/lib/self-registration.functions";
@@ -26,6 +27,35 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
+// Country codes commonly used in the region. Egypt is default.
+const COUNTRY_CODES: { cc: string; label: string; flag: string }[] = [
+  { cc: "20",  label: "مصر",            flag: "🇪🇬" },
+  { cc: "966", label: "السعودية",       flag: "🇸🇦" },
+  { cc: "971", label: "الإمارات",       flag: "🇦🇪" },
+  { cc: "965", label: "الكويت",         flag: "🇰🇼" },
+  { cc: "974", label: "قطر",            flag: "🇶🇦" },
+  { cc: "973", label: "البحرين",        flag: "🇧🇭" },
+  { cc: "968", label: "عُمان",          flag: "🇴🇲" },
+  { cc: "962", label: "الأردن",         flag: "🇯🇴" },
+  { cc: "963", label: "سوريا",          flag: "🇸🇾" },
+  { cc: "961", label: "لبنان",          flag: "🇱🇧" },
+  { cc: "964", label: "العراق",         flag: "🇮🇶" },
+  { cc: "967", label: "اليمن",          flag: "🇾🇪" },
+  { cc: "970", label: "فلسطين",         flag: "🇵🇸" },
+  { cc: "218", label: "ليبيا",          flag: "🇱🇾" },
+  { cc: "216", label: "تونس",           flag: "🇹🇳" },
+  { cc: "213", label: "الجزائر",        flag: "🇩🇿" },
+  { cc: "212", label: "المغرب",         flag: "🇲🇦" },
+  { cc: "249", label: "السودان",        flag: "🇸🇩" },
+];
+
+function combineWithCC(cc: string, local: string): string {
+  const digits = local.replace(/\D/g, "");
+  if (!digits) return "";
+  const noZero = digits.replace(/^0+/, "");
+  return `+${cc}${noZero}`;
+}
+
 function RegisterPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [code, setCode] = useState("");
@@ -33,7 +63,9 @@ function RegisterPage() {
   const [checking, setChecking] = useState(false);
 
   const [fullName, setFullName] = useState("");
+  const [studentCC, setStudentCC] = useState("20");
   const [studentPhone, setStudentPhone] = useState("");
+  const [parentCC, setParentCC] = useState("20");
   const [parentPhone, setParentPhone] = useState("");
   const [parentName, setParentName] = useState("");
   const [consent, setConsent] = useState(false);
@@ -43,20 +75,13 @@ function RegisterPage() {
 
   const validate = useServerFn(validateJoinCode);
   const submit = useServerFn(submitRegistration);
+  const autoRan = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const p = new URLSearchParams(window.location.search).get("code");
-    if (p) setCode(p.toUpperCase());
-  }, []);
-
-
-  const onCheck = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.trim().length < 2) { toast.error("أدخل كود الانضمام"); return; }
+  const runCheck = async (rawCode: string) => {
+    if (rawCode.trim().length < 2) { toast.error("أدخل كود الانضمام"); return; }
     setChecking(true);
     try {
-      const r: any = await validate({ data: { code: code.trim() } });
+      const r: any = await validate({ data: { code: rawCode.trim() } });
       if (!r?.valid) { toast.error(r?.reason ?? "كود غير صالح"); return; }
       setCodeInfo({ class_name: r.class_name, group_name: r.group_name });
       setStep(2);
@@ -65,18 +90,42 @@ function RegisterPage() {
     } finally { setChecking(false); }
   };
 
+  // Auto-fill and auto-validate from URL `?code=` param.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search).get("code");
+    if (p) {
+      const up = p.toUpperCase();
+      setCode(up);
+      if (!autoRan.current) {
+        autoRan.current = true;
+        runCheck(up);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await runCheck(code);
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (fullName.trim().split(/\s+/).length < 4) { toast.error("أدخل الاسم رباعياً"); return; }
     if (!consent) { toast.error("يجب الموافقة على الشروط"); return; }
+    const sPhone = combineWithCC(studentCC, studentPhone);
+    const pPhone = combineWithCC(parentCC, parentPhone);
+    if (!sPhone || sPhone.length < 8) { toast.error("رقم هاتف الطالب غير صحيح"); return; }
+    if (!pPhone || pPhone.length < 8) { toast.error("رقم هاتف ولي الأمر غير صحيح"); return; }
     setSubmitting(true);
     try {
       const r: any = await submit({
         data: {
           code: code.trim(),
           full_name: fullName.trim(),
-          student_phone: studentPhone.trim(),
-          parent_phone: parentPhone.trim(),
+          student_phone: sPhone,
+          parent_phone: pPhone,
           parent_name: parentName.trim() || null,
           consent: true,
         },
@@ -135,16 +184,18 @@ function RegisterPage() {
                     <Label htmlFor="fullName">الاسم رباعياً *</Label>
                     <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} />
                   </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="studentPhone">رقم هاتف الطالب *</Label>
-                      <Input id="studentPhone" value={studentPhone} onChange={(e) => setStudentPhone(e.target.value)} required dir="ltr" inputMode="tel" placeholder="01xxxxxxxxx" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parentPhone">رقم هاتف ولي الأمر *</Label>
-                      <Input id="parentPhone" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} required dir="ltr" inputMode="tel" placeholder="01xxxxxxxxx" />
-                    </div>
-                  </div>
+
+                  <PhoneField
+                    id="studentPhone" label="رقم هاتف الطالب *"
+                    cc={studentCC} onCcChange={setStudentCC}
+                    value={studentPhone} onChange={setStudentPhone}
+                  />
+                  <PhoneField
+                    id="parentPhone" label="رقم هاتف ولي الأمر *"
+                    cc={parentCC} onCcChange={setParentCC}
+                    value={parentPhone} onChange={setParentPhone}
+                  />
+
                   <div className="space-y-2">
                     <Label htmlFor="parentName">اسم ولي الأمر (اختياري)</Label>
                     <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)} maxLength={80} />
@@ -174,6 +225,41 @@ function RegisterPage() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PhoneField({
+  id, label, cc, onCcChange, value, onChange,
+}: {
+  id: string; label: string;
+  cc: string; onCcChange: (v: string) => void;
+  value: string; onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex gap-2" dir="ltr">
+        <Select value={cc} onValueChange={onCcChange}>
+          <SelectTrigger className="w-[130px] shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            {COUNTRY_CODES.map((c) => (
+              <SelectItem key={c.cc} value={c.cc}>
+                <span className="font-mono">+{c.cc}</span> <span className="ms-1 text-muted-foreground">{c.flag} {c.label}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          id={id} value={value} onChange={(e) => onChange(e.target.value)}
+          required inputMode="tel" placeholder="1xxxxxxxxx" className="flex-1"
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground text-right">
+        اختر رمز الدولة ثم أدخل الرقم بدون الصفر الأول. الافتراضي: مصر 🇪🇬 (+20).
+      </p>
     </div>
   );
 }
@@ -216,6 +302,7 @@ function SuccessView({ result }: { result: any }) {
   }
   const c = result.credentials;
   const copy = (v: string, l: string) => { navigator.clipboard.writeText(v); toast.success(`تم نسخ ${l}`); };
+  const goLogin = () => navigate({ to: "/login", search: { code: c?.code } as any });
   return (
     <div className="space-y-4 py-2">
       <div className="text-center space-y-2">
@@ -245,7 +332,7 @@ function SuccessView({ result }: { result: any }) {
           </Button>
         )}
       </div>
-      <Button onClick={() => navigate({ to: "/login" })} className="w-full">الانتقال لتسجيل الدخول</Button>
+      <Button onClick={goLogin} className="w-full">الانتقال لتسجيل الدخول</Button>
     </div>
   );
 }

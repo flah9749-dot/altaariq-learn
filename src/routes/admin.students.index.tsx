@@ -44,7 +44,7 @@ export const Route = createFileRoute("/admin/students/")({
 const NO_CLASS = "__no_class__";
 const NO_GROUP = "__no_group__";
 
-type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores";
+type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores" | "absent_3plus" | "absent_5plus";
 type InactiveFilter = "" | "3" | "7" | "14" | "30";
 type SortMode = "name" | "avg_desc" | "avg_asc" | "attempts_desc" | "attendance_desc";
 
@@ -148,6 +148,8 @@ function StudentsPage() {
       if (examFilter === "never_attempted" && s.attended_count > 0) return false;
       if (examFilter === "high_scores" && Number(s.avg_percentage) < 80) return false;
       if (examFilter === "low_scores" && (s.attended_count === 0 || Number(s.avg_percentage) >= 50)) return false;
+      if (examFilter === "absent_3plus" && s.absent_count < 3) return false;
+      if (examFilter === "absent_5plus" && s.absent_count < 5) return false;
       if (inactiveFilter) {
         const threshold = Number(inactiveFilter);
         if (!s.last_seen) return true;
@@ -320,6 +322,8 @@ function StudentsPage() {
                     <SelectItem value="never_attempted">لم يدخل أي امتحان</SelectItem>
                     <SelectItem value="high_scores">درجات مرتفعة (80%+)</SelectItem>
                     <SelectItem value="low_scores">درجات منخفضة (&lt;50%)</SelectItem>
+                    <SelectItem value="absent_3plus">غاب عن 3 امتحانات أو أكثر</SelectItem>
+                    <SelectItem value="absent_5plus">غاب عن 5 امتحانات أو أكثر</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

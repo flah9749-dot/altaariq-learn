@@ -8,6 +8,7 @@ import {
   generateStudentCode,
   normalizeCode,
   normalizePhone,
+  normalizeIntlPhone,
   buildWhatsAppText,
 } from "@/lib/self-registration.server";
 
@@ -231,9 +232,11 @@ export const submitRegistration = createServerFn({ method: "POST" })
         password: res.password,
         loginUrl,
       });
-      const waLinkParent = `https://wa.me/${parentPhone}?text=${encodeURIComponent(waText)}`;
-      const waLinkStudent = settings.sendToStudent
-        ? `https://wa.me/${studentPhone}?text=${encodeURIComponent(waText)}`
+      const parentWa = normalizeIntlPhone(parentPhone);
+      const studentWa = normalizeIntlPhone(studentPhone);
+      const waLinkParent = parentWa ? `https://wa.me/${parentWa}?text=${encodeURIComponent(waText)}` : null;
+      const waLinkStudent = settings.sendToStudent && studentWa
+        ? `https://wa.me/${studentWa}?text=${encodeURIComponent(waText)}`
         : null;
 
       return {
@@ -388,14 +391,16 @@ export const approveRegistration = createServerFn({ method: "POST" })
       password: res.password,
       loginUrl,
     });
+    const parentWa = normalizeIntlPhone(patched.parent_phone);
+    const studentWa = normalizeIntlPhone(patched.student_phone);
     return {
       ok: true,
       studentId: res.studentId,
       credentials: { code: res.code, password: res.password, loginUrl },
       whatsapp: {
-        parent: `https://wa.me/${patched.parent_phone}?text=${encodeURIComponent(waText)}`,
-        student: settings.sendToStudent
-          ? `https://wa.me/${patched.student_phone}?text=${encodeURIComponent(waText)}`
+        parent: parentWa ? `https://wa.me/${parentWa}?text=${encodeURIComponent(waText)}` : null,
+        student: settings.sendToStudent && studentWa
+          ? `https://wa.me/${studentWa}?text=${encodeURIComponent(waText)}`
           : null,
       },
     };
