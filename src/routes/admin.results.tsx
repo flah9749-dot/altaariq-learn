@@ -175,100 +175,83 @@ function ResultsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>الطالب</TableHead>
-                <TableHead>الكود</TableHead>
-                <TableHead>الامتحان</TableHead>
-                <TableHead>الدرجة</TableHead>
-                <TableHead>النسبة</TableHead>
-                <TableHead>التقدير</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-8" /></TableCell></TableRow>
-              )) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-10 text-muted-foreground">لا توجد نتائج مطابقة</TableCell></TableRow>
-              ) : filtered.map((a: any, i: number) => {
-                const pct = Number(a.percentage) || 0;
-                const waVars = {
-                  name: a.students?.full_name ?? "",
-                  exam: a.exams?.title ?? "",
-                  score: a.score ?? 0,
-                  total: a.total ?? 0,
-                  percentage: pct,
-                  grade_text: a.grade ?? computeGrade(pct),
-                };
-                const tone =
-                  pct >= 85 ? "bg-success text-success-foreground" :
-                  pct >= 65 ? "bg-primary text-primary-foreground" :
-                  pct >= 50 ? "bg-warning text-warning-foreground" :
-                  "bg-destructive text-destructive-foreground";
-                return (
-                  <TableRow key={a.id}>
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell>
-                      {a.students?.id ? (
-                        <Link to="/admin/students/$id" params={{ id: a.students.id }} className="hover:underline font-medium">
-                          {a.students?.full_name ?? "—"}
-                        </Link>
-                      ) : (a.students?.full_name ?? "—")}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{a.students?.code ?? "—"}</TableCell>
-                    <TableCell>
-                      {a.exams?.id ? (
-                        <Link to="/admin/exams/$id/results" params={{ id: a.exams.id }} className="hover:underline">
-                          {a.exams?.title ?? "—"}
-                        </Link>
-                      ) : (a.exams?.title ?? "—")}
-                    </TableCell>
-                    <TableCell>{a.score} / {a.total}</TableCell>
-                    <TableCell><Badge className={tone}>{pct}%</Badge></TableCell>
-                    <TableCell><Badge variant="secondary">{a.grade ?? computeGrade(pct)}</Badge></TableCell>
-                    <TableCell>
-                      {a.approved
-                        ? <Badge className="bg-gold text-gold-foreground"><ShieldCheck className="h-3 w-3 ml-1 inline"/>معتمدة</Badge>
-                        : <Badge variant="outline">قيد المراجعة</Badge>}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatArabicDate(a.submitted_at ?? a.created_at)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {a.exams?.id && (
-                          <Button asChild size="sm" variant="default" className="gap-1">
-                            <Link
-                              to="/admin/exams/$id/results"
-                              params={{ id: a.exams.id }}
-                              search={{ attempt: a.id }}
-                            >
-                              <FileEdit className="h-3.5 w-3.5" />
-                              مراجعة وتعديل
-                            </Link>
-                          </Button>
-                        )}
-                        <WhatsAppButton
-                          phone={a.students?.parent_whatsapp ?? a.students?.parent_phone}
-                          template={pickResultTemplate(pct)}
-                          vars={waVars}
-                          size="icon"
-                          variant="ghost"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <Card><CardContent className="p-4 space-y-2">{Array.from({length:5}).map((_,i)=>(<Skeleton key={i} className="h-10"/>))}</CardContent></Card>
+      ) : (
+        <HierarchicalTree
+          items={filtered}
+          getClassId={(a:any) => a.exams?.class_id ?? a.students?.class_id ?? null}
+          getClassName={(a:any) => (classes ?? []).find((c:any)=>c.id === (a.exams?.class_id ?? a.students?.class_id))?.name ?? "بدون صف"}
+          getGroupId={(a:any) => a.exam_id}
+          getGroupName={(a:any) => a.exams?.title ?? "امتحان"}
+          itemsLabel={(n) => `${n} نتيجة`}
+          emptyLabel="لا توجد نتائج مطابقة"
+          renderClassStats={(list) => {
+            const arr = list.map((a:any)=>Number(a.percentage)||0);
+            const avg = arr.length ? Math.round(arr.reduce((s,v)=>s+v,0)/arr.length) : 0;
+            return <div className="text-xs text-muted-foreground">متوسط {avg}%</div>;
+          }}
+          renderGroupStats={(list) => {
+            const arr = list.map((a:any)=>Number(a.percentage)||0);
+            const avg = arr.length ? Math.round(arr.reduce((s,v)=>s+v,0)/arr.length) : 0;
+            const pass = arr.length ? Math.round((arr.filter(v=>v>=50).length/arr.length)*100) : 0;
+            return <div className="text-xs text-muted-foreground">متوسط {avg}% — نجاح {pass}%</div>;
+          }}
+          renderItem={(a:any) => {
+            const pct = Number(a.percentage) || 0;
+            const waVars = {
+              name: a.students?.full_name ?? "",
+              exam: a.exams?.title ?? "",
+              score: a.score ?? 0,
+              total: a.total ?? 0,
+              percentage: pct,
+              grade_text: a.grade ?? computeGrade(pct),
+            };
+            const tone =
+              pct >= 85 ? "bg-success text-success-foreground" :
+              pct >= 65 ? "bg-primary text-primary-foreground" :
+              pct >= 50 ? "bg-warning text-warning-foreground" :
+              "bg-destructive text-destructive-foreground";
+            return (
+              <div className="flex items-center gap-3 p-3 flex-wrap">
+                <div className="flex-1 min-w-[180px]">
+                  {a.students?.id ? (
+                    <Link to="/admin/students/$id" params={{ id: a.students.id }} className="hover:underline font-medium">
+                      {a.students?.full_name ?? "—"}
+                    </Link>
+                  ) : (a.students?.full_name ?? "—")}
+                  <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                    <span className="font-mono">{a.students?.code ?? "—"}</span>
+                    <span>{a.score} / {a.total}</span>
+                    <span>{formatArabicDate(a.submitted_at ?? a.created_at)}</span>
+                    <span>{formatDuration(a.time_spent_sec ?? 0)}</span>
+                  </div>
+                </div>
+                <Badge className={tone}>{pct}%</Badge>
+                <Badge variant="secondary">{a.grade ?? computeGrade(pct)}</Badge>
+                {a.approved
+                  ? <Badge className="bg-gold text-gold-foreground"><ShieldCheck className="h-3 w-3 ml-1 inline"/>معتمدة</Badge>
+                  : <Badge variant="outline">قيد المراجعة</Badge>}
+                {a.exams?.id && (
+                  <Button asChild size="sm" variant="default" className="gap-1">
+                    <Link to="/admin/exams/$id/results" params={{ id: a.exams.id }} search={{ attempt: a.id }}>
+                      <FileEdit className="h-3.5 w-3.5" />مراجعة
+                    </Link>
+                  </Button>
+                )}
+                <WhatsAppButton
+                  phone={a.students?.parent_whatsapp ?? a.students?.parent_phone}
+                  template={pickResultTemplate(pct)}
+                  vars={waVars}
+                  size="icon"
+                  variant="ghost"
+                />
+              </div>
+            );
+          }}
+        />
+      )}
+
     </div>
   );
 }
