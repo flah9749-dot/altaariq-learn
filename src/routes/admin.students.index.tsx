@@ -40,6 +40,8 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminScope } from "@/lib/admin-scope";
+
 
 
 export const Route = createFileRoute("/admin/students/")({
@@ -57,10 +59,15 @@ function StudentsPage() {
   });
   useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("students.viewMode", viewMode); }, [viewMode]);
 
+  const scope = useAdminScope();
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState<string>("");
-  const [groupFilter, setGroupFilter] = useState<string>("");
+  const [classOverride, setClassOverride] = useState<string>("");
+  const [groupOverride, setGroupOverride] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  // Global scope wins; a per-page override clears its own field only.
+  const classFilter = classOverride || scope.classId || "";
+  const groupFilter = groupOverride || scope.groupId || "";
+
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [formOpen, setFormOpen] = useState(false);
@@ -230,20 +237,21 @@ function StudentsPage() {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="ابحث بالاسم، الكود، الهاتف..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pr-9" />
           </div>
-          <Select value={classFilter || "all"} onValueChange={(v) => { setClassFilter(v === "all" ? "" : v); setPage(0); }}>
+          <Select value={classFilter || "all"} onValueChange={(v) => { setClassOverride(v === "all" ? "" : v); setGroupOverride(""); setPage(0); }}>
             <SelectTrigger><SelectValue placeholder="كل الصفوف" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل الصفوف</SelectItem>
               {(classes ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={groupFilter || "all"} onValueChange={(v) => { setGroupFilter(v === "all" ? "" : v); setPage(0); }}>
+          <Select value={groupFilter || "all"} onValueChange={(v) => { setGroupOverride(v === "all" ? "" : v); setPage(0); }}>
             <SelectTrigger><SelectValue placeholder="كل المجموعات" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">كل المجموعات</SelectItem>
               {(groups ?? []).filter((g) => !classFilter || g.class_id === classFilter).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
             </SelectContent>
           </Select>
+
           <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(0); }}>
             <SelectTrigger><SelectValue placeholder="كل الحالات" /></SelectTrigger>
             <SelectContent>
