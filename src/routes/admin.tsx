@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AdminScopeProvider } from "@/lib/admin-scope";
+
 
 
 export const Route = createFileRoute("/admin")({
@@ -24,19 +24,17 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   return (
-    <AdminScopeProvider>
-      <SidebarProvider>
-        <div className="min-h-dvh flex w-full bg-muted/30" dir="rtl">
-          <AdminSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <AdminHeader />
-            <main className="flex-1 p-4 md:p-6">
-              <Outlet />
-            </main>
-          </div>
+    <SidebarProvider>
+      <div className="min-h-dvh flex w-full bg-muted/30" dir="rtl">
+        <AdminSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <AdminHeader />
+          <main className="flex-1 p-4 md:p-6">
+            <Outlet />
+          </main>
         </div>
-      </SidebarProvider>
-    </AdminScopeProvider>
+      </div>
+    </SidebarProvider>
   );
 }
 
