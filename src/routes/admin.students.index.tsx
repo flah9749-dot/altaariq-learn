@@ -205,50 +205,170 @@ function StudentsTreePage() {
         <Kpi icon={AlertTriangle} label="غياب مزمن (3+)" value={totals.chronic} color="text-red-500" />
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث عن صف…"
-          className="pr-9"
-        />
-        {search && (
-          <Button size="icon" variant="ghost" className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      {/* Filters panel */}
+      <Card>
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="grid gap-2 md:grid-cols-4">
+            <div className="relative md:col-span-2">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث بالاسم، الكود، الهاتف، ولي الأمر…"
+                className="pr-9"
+              />
+              {search && (
+                <Button size="icon" variant="ghost" className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Select value={classFilter || "all"} onValueChange={(v) => { setClassFilter(v === "all" ? "" : v); setGroupFilter(""); }}>
+              <SelectTrigger><SelectValue placeholder="كل الصفوف" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الصفوف</SelectItem>
+                {(allClasses ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={groupFilter || "all"} onValueChange={(v) => setGroupFilter(v === "all" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="كل المجموعات" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المجموعات</SelectItem>
+                {(allGroups ?? []).filter((g) => !classFilter || g.class_id === classFilter).map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Tree */}
-      <div className="space-y-2">
-        {loadingClasses && (
-          <>
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-          </>
-        )}
-        {!loadingClasses && filteredClasses.length === 0 && (
-          <EmptyState
-            icon={GraduationCap}
-            title="لا توجد صفوف بعد"
-            hint="أنشئ الصفوف من قائمة الإعدادات، أو أضف أول طالب لينشأ الصف تلقائيًا."
-          />
-        )}
-        {filteredClasses.map((c) => (
-          <ClassNode
-            key={c.class_id}
-            row={c}
-            open={openClasses.has(c.class_id)}
-            openGroups={openGroups}
-            onToggle={() => toggleClass(c.class_id)}
-            onToggleGroup={toggleGroup}
-            onSelectStudent={setSelectedStudent}
-          />
-        ))}
-      </div>
+          <div className="flex items-center flex-wrap gap-2">
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              <Filter className="h-4 w-4 ml-1" />
+              فلاتر متقدمة
+              {advancedActiveCount > 0 && (
+                <Badge variant="secondary" className="mr-1 text-[10px]">{advancedActiveCount}</Badge>
+              )}
+            </Button>
+            <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v as "active" | "suspended")}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="الحالة" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="active">نشط</SelectItem>
+                <SelectItem value="suspended">موقوف</SelectItem>
+              </SelectContent>
+            </Select>
+            {filtersActive && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                <X className="h-4 w-4 ml-1" /> مسح الفلاتر
+              </Button>
+            )}
+            <div className="text-xs text-muted-foreground mr-auto">
+              {filtersActive
+                ? <>نتائج: <span className="font-semibold text-foreground">{filteredFlat.length}</span></>
+                : <>عرض شجري — {totals.students} طالب</>}
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="grid gap-3 md:grid-cols-3 pt-2 border-t">
+              <div>
+                <Label className="text-[11px] text-muted-foreground">حالة الامتحانات</Label>
+                <Select value={examFilter || "all"} onValueChange={(v) => setExamFilter(v === "all" ? "" : v as ExamFilter)}>
+                  <SelectTrigger><SelectValue placeholder="الجميع" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">الجميع</SelectItem>
+                    <SelectItem value="attended_last">حضر آخر امتحان</SelectItem>
+                    <SelectItem value="missed_last">غاب عن آخر امتحان</SelectItem>
+                    <SelectItem value="never_attempted">لم يدخل أي امتحان</SelectItem>
+                    <SelectItem value="high_scores">درجات مرتفعة (80%+)</SelectItem>
+                    <SelectItem value="low_scores">درجات منخفضة (&lt;50%)</SelectItem>
+                    <SelectItem value="absent_3plus">غاب عن 3 امتحانات أو أكثر</SelectItem>
+                    <SelectItem value="absent_5plus">غاب عن 5 امتحانات أو أكثر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">لم يدخل المنصة منذ</Label>
+                <Select value={inactiveFilter || "all"} onValueChange={(v) => setInactiveFilter(v === "all" ? "" : v as InactiveFilter)}>
+                  <SelectTrigger><SelectValue placeholder="أي وقت" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">أي وقت</SelectItem>
+                    <SelectItem value="3">3 أيام أو أكثر</SelectItem>
+                    <SelectItem value="7">أسبوع أو أكثر</SelectItem>
+                    <SelectItem value="14">أسبوعين أو أكثر</SelectItem>
+                    <SelectItem value="30">شهر أو أكثر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">الترتيب</Label>
+                <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">الاسم (أبجديًا)</SelectItem>
+                    <SelectItem value="avg_desc">أعلى الدرجات</SelectItem>
+                    <SelectItem value="avg_asc">أقل الدرجات</SelectItem>
+                    <SelectItem value="attempts_desc">الأكثر امتحانات</SelectItem>
+                    <SelectItem value="attendance_desc">الأكثر التزامًا</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Flat filtered results OR Tree */}
+      {filtersActive ? (
+        <div className="space-y-2">
+          {loadingFlat && !flatRows && (
+            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> جاري تحميل النتائج…
+            </div>
+          )}
+          {!loadingFlat && filteredFlat.length === 0 && (
+            <EmptyState icon={Search} title="لا نتائج مطابقة" hint="جرّب تعديل الفلاتر أو مسحها." />
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {filteredFlat.map((s) => (
+              <FlatStudentRow key={s.id} s={s} onClick={() => setSelectedStudent(overviewToTree(s))} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {loadingClasses && (
+            <>
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+            </>
+          )}
+          {!loadingClasses && (classes ?? []).length === 0 && (
+            <EmptyState
+              icon={GraduationCap}
+              title="لا توجد صفوف بعد"
+              hint="أنشئ الصفوف من قائمة الإعدادات، أو أضف أول طالب لينشأ الصف تلقائيًا."
+            />
+          )}
+          {(classes ?? []).map((c) => (
+            <ClassNode
+              key={c.class_id}
+              row={c}
+              open={openClasses.has(c.class_id)}
+              openGroups={openGroups}
+              onToggle={() => toggleClass(c.class_id)}
+              onToggleGroup={toggleGroup}
+              onSelectStudent={setSelectedStudent}
+            />
+          ))}
+        </div>
+      )}
+
 
       {/* Add/Import dialogs */}
       <StudentFormDialog open={addOpen} onOpenChange={setAddOpen} />
