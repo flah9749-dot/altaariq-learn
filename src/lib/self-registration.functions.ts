@@ -232,9 +232,11 @@ export const submitRegistration = createServerFn({ method: "POST" })
         password: res.password,
         loginUrl,
       });
-      const waLinkParent = `https://wa.me/${parentPhone}?text=${encodeURIComponent(waText)}`;
-      const waLinkStudent = settings.sendToStudent
-        ? `https://wa.me/${studentPhone}?text=${encodeURIComponent(waText)}`
+      const parentWa = normalizeIntlPhone(parentPhone);
+      const studentWa = normalizeIntlPhone(studentPhone);
+      const waLinkParent = parentWa ? `https://wa.me/${parentWa}?text=${encodeURIComponent(waText)}` : null;
+      const waLinkStudent = settings.sendToStudent && studentWa
+        ? `https://wa.me/${studentWa}?text=${encodeURIComponent(waText)}`
         : null;
 
       return {
