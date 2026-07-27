@@ -127,80 +127,60 @@ function ExamsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العنوان</TableHead>
-                <TableHead>المادة</TableHead>
-                <TableHead>الصف</TableHead>
-                <TableHead>الأسئلة</TableHead>
-                <TableHead>الدرجة / الزمن</TableHead>
-                <TableHead>المشاركون</TableHead>
-                <TableHead>المتوسط</TableHead>
-                <TableHead>النجاح</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}><TableCell colSpan={11}><Skeleton className="h-10" /></TableCell></TableRow>
-                ))
-              ) : (exams ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-10">لا يوجد امتحانات بعد</TableCell></TableRow>
-              ) : (exams ?? []).map((e: any) => {
-                const s = deriveStatus(e as any);
-                const st = stats?.[e.id];
-                return (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-medium">
-                      <Link to="/admin/exams/$id" params={{ id: e.id }} className="hover:underline">{e.title}</Link>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{e.subject ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{e.classes?.name ?? "—"}</TableCell>
-                    <TableCell>{st?.q ?? 0}</TableCell>
-                    <TableCell className="text-xs">
-                      <div>{Number(e.total_score) || 0} درجة</div>
-                      <div className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{e.duration_minutes} د</div>
-                    </TableCell>
-                    <TableCell><Users className="h-3 w-3 inline ml-1" />{st?.students ?? 0}</TableCell>
-                    <TableCell>{st?.avg ?? 0}%</TableCell>
-                    <TableCell>{st?.pass ?? 0}%</TableCell>
-                    <TableCell><Badge className={STATUS_COLOR[s]}>{STATUS_LABEL[s]}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatArabicDate(e.created_at)}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin/exams/$id" params={{ id: e.id }}><Edit className="h-4 w-4 ml-2" />تعديل</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin/exams/$id/results" params={{ id: e.id }}><BarChart3 className="h-4 w-4 ml-2" />التقارير</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => pubMut.mutate({ id: e.id, published: !e.published })}>
-                            {e.published ? <><XCircle className="h-4 w-4 ml-2" />إلغاء النشر</> : <><CheckCircle2 className="h-4 w-4 ml-2" />نشر</>}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDel(e.id)}>
-                            <Trash2 className="h-4 w-4 ml-2" />حذف
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <Card><CardContent className="p-4 space-y-2">{Array.from({length:4}).map((_,i)=>(<Skeleton key={i} className="h-14"/>))}</CardContent></Card>
+      ) : (
+        <HierarchicalTree
+          items={exams ?? []}
+          getClassId={(e:any) => e.class_id}
+          getClassName={(e:any) => e.classes?.name ?? "بدون صف"}
+          itemsLabel={(n) => `${n} امتحان`}
+          emptyLabel="لا يوجد امتحانات بعد"
+          renderClassStats={(list) => {
+            const published = list.filter((e:any)=>e.published).length;
+            return <div className="text-xs text-muted-foreground">{published} منشور من {list.length}</div>;
+          }}
+          renderItem={(e:any) => {
+            const s = deriveStatus(e as any);
+            const st = stats?.[e.id];
+            return (
+              <div className="flex items-center gap-3 p-3 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <Link to="/admin/exams/$id" params={{ id: e.id }} className="font-medium hover:underline">{e.title}</Link>
+                  <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                    <span>{e.subject ?? "—"}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3"/>{e.duration_minutes} د</span>
+                    <span>{Number(e.total_score)||0} درجة</span>
+                    <span>{formatArabicDate(e.created_at)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant="outline">أسئلة: {st?.q ?? 0}</Badge>
+                  <Badge variant="outline"><Users className="h-3 w-3 ml-1"/>{st?.students ?? 0}</Badge>
+                  <Badge variant="outline">م: {st?.avg ?? 0}%</Badge>
+                  <Badge variant="outline">نجاح: {st?.pass ?? 0}%</Badge>
+                  <Badge className={STATUS_COLOR[s]}>{STATUS_LABEL[s]}</Badge>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link to="/admin/exams/$id" params={{ id: e.id }}><Edit className="h-4 w-4 ml-2" />تعديل</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/admin/exams/$id/results" params={{ id: e.id }}><BarChart3 className="h-4 w-4 ml-2" />التقارير</Link></DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => pubMut.mutate({ id: e.id, published: !e.published })}>
+                      {e.published ? <><XCircle className="h-4 w-4 ml-2" />إلغاء النشر</> : <><CheckCircle2 className="h-4 w-4 ml-2" />نشر</>}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDel(e.id)}><Trash2 className="h-4 w-4 ml-2" />حذف</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            );
+          }}
+        />
+      )}
+
 
       <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent dir="rtl">
