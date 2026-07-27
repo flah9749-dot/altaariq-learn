@@ -44,7 +44,7 @@ export const Route = createFileRoute("/admin/students/")({
 const NO_CLASS = "__no_class__";
 const NO_GROUP = "__no_group__";
 
-type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores";
+type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores" | "absent_3plus" | "absent_5plus";
 type InactiveFilter = "" | "3" | "7" | "14" | "30";
 type SortMode = "name" | "avg_desc" | "avg_asc" | "attempts_desc" | "attendance_desc";
 
