@@ -94,12 +94,67 @@ function StudentsTreePage() {
     staleTime: 60_000,
   });
 
-  const filteredClasses = useMemo(() => {
-    if (!classes) return [];
-    if (!debouncedSearch.trim()) return classes;
+  // Flat overview — loaded only when any filter is active
+  const overviewFn = useServerFn(getStudentsOverview);
+  const { data: flatRows, isFetching: loadingFlat } = useQuery({
+    queryKey: ["students-overview", classFilter, groupFilter, statusFilter],
+    queryFn: () => overviewFn({
+      data: {
+        class_id: classFilter || null,
+        group_id: groupFilter || null,
+        status: (statusFilter || null) as "active" | "suspended" | null,
+      },
+    }),
+    enabled: filtersActive,
+    staleTime: 30_000,
+  });
+
+  const filteredFlat = useMemo(() => {
+    if (!filtersActive) return [];
+    const src = flatRows ?? [];
     const q = debouncedSearch.trim().toLowerCase();
-    return classes.filter((c) => c.class_name.toLowerCase().includes(q));
-  }, [classes, debouncedSearch]);
+    let out = src.filter((s) => {
+      if (q) {
+        const hay = `${s.full_name} ${s.code} ${s.phone ?? ""} ${s.parent_name ?? ""} ${s.parent_phone ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (examFilter === "attended_last" && (!s.last_exam_id || !s.last_exam_attended)) return false;
+      if (examFilter === "missed_last" && (!s.last_exam_id || s.last_exam_attended)) return false;
+      if (examFilter === "never_attempted" && s.attended_count > 0) return false;
+      if (examFilter === "high_scores" && Number(s.avg_percentage) < 80) return false;
+      if (examFilter === "low_scores" && (s.attended_count === 0 || Number(s.avg_percentage) >= 50)) return false;
+      if (examFilter === "absent_3plus" && s.absent_count < 3) return false;
+      if (examFilter === "absent_5plus" && s.absent_count < 5) return false;
+      if (inactiveFilter) {
+        const threshold = Number(inactiveFilter);
+        const days = s.last_seen ? (Date.now() - new Date(s.last_seen).getTime()) / 86400000 : Infinity;
+        if (days < threshold) return false;
+      }
+      return true;
+    });
+    out = [...out].sort((a, b) => {
+      switch (sortMode) {
+        case "avg_desc": return Number(b.avg_percentage) - Number(a.avg_percentage);
+        case "avg_asc": return Number(a.avg_percentage) - Number(b.avg_percentage);
+        case "attempts_desc": return b.attended_count - a.attended_count;
+        case "attendance_desc": {
+          const ra = a.scheduled_count ? a.attended_count / a.scheduled_count : 0;
+          const rb = b.scheduled_count ? b.attended_count / b.scheduled_count : 0;
+          return rb - ra;
+        }
+        default: return a.full_name.localeCompare(b.full_name, "ar");
+      }
+    });
+    return out;
+  }, [flatRows, filtersActive, debouncedSearch, examFilter, inactiveFilter, sortMode]);
+
+  const clearAllFilters = () => {
+    setSearch(""); setClassFilter(""); setGroupFilter(""); setStatusFilter("");
+    setExamFilter(""); setInactiveFilter(""); setSortMode("name");
+  };
+  const advancedActiveCount =
+    (examFilter ? 1 : 0) + (inactiveFilter ? 1 : 0) + (sortMode !== "name" ? 1 : 0);
+
 
   const totals = useMemo(() => {
     const cs = classes ?? [];
