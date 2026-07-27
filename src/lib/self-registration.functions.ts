@@ -8,6 +8,7 @@ import {
   generateStudentCode,
   normalizeCode,
   normalizePhone,
+  normalizeIntlPhone,
   buildWhatsAppText,
 } from "@/lib/self-registration.server";
 
