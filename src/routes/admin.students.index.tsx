@@ -453,14 +453,12 @@ function StudentsPage() {
       {/* Dialogs */}
       <StudentFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
-        initial={editStudent}
-        onSaved={() => { setFormOpen(false); invalidate(); }}
+        onOpenChange={(o) => { setFormOpen(o); if (!o) invalidate(); }}
+        student={editStudent}
       />
       <ImportStudentsDialog
         open={importOpen}
-        onOpenChange={setImportOpen}
-        onDone={() => { setImportOpen(false); invalidate(); }}
+        onOpenChange={(o) => { setImportOpen(o); if (!o) invalidate(); }}
       />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
