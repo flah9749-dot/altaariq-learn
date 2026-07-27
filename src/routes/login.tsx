@@ -192,6 +192,18 @@ function StudentLoginForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Prefer explicit ?code= URL param (e.g. after self-registration).
+    let urlCode: string | null = null;
+    try {
+      if (typeof window !== "undefined") {
+        urlCode = new URLSearchParams(window.location.search).get("code");
+      }
+    } catch { /* ignore */ }
+    if (urlCode && urlCode.trim().length >= 2) {
+      setCode(urlCode.trim().toUpperCase());
+      toast.success("تم تعبئة الكود — أدخل كلمة المرور");
+      return;
+    }
     try {
       const raw = localStorage.getItem(REMEMBER_KEY);
       if (raw) {
