@@ -307,6 +307,81 @@ function StudentDetailPage() {
         </Card>
       </div>
 
+      {/* Attendance history + auto warning */}
+      <Card className="print:hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              سجل الحضور والغياب في الامتحانات
+              {history && (
+                <Badge variant="outline" className="mr-1 font-normal">
+                  {history.scheduled - history.absent}/{history.scheduled} حضور
+                </Badge>
+              )}
+            </CardTitle>
+            {history && history.absent >= 3 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> غاب عن {history.absent} امتحانات
+                </Badge>
+                <WhatsAppButton
+                  phone={student.parent_whatsapp ?? student.parent_phone}
+                  label="إرسال إنذار لولي الأمر"
+                  variant="default"
+                  message={buildAbsenceAlert({
+                    parent: student.parent_name ?? "",
+                    name: student.full_name,
+                    absent: history.absent,
+                    scheduled: history.scheduled,
+                    lastMissed: history.rows.filter((r) => !r.attended).slice(0, 5),
+                  })}
+                />
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!history || history.rows.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              لا توجد امتحانات مخصصة لهذا الطالب بعد.
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto divide-y">
+              {history.rows.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/30">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {r.attended ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{r.title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {formatArabicDateTime(r.starts_at)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs shrink-0">
+                    {r.attended ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" variant="outline">
+                        حضر {r.percentage != null ? `— ${Math.round(Number(r.percentage))}%` : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30">
+                        غاب
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 print:hidden">
         <QuickAction icon={FileText} label="الامتحانات" href="/admin/exams" />
         <QuickAction icon={MessageSquare} label="الرسائل" href="/admin/messages" />
