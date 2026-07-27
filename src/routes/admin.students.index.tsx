@@ -6,14 +6,18 @@ import { toast } from "sonner";
 import {
   Users, Plus, Search, Download, Upload, Layers, GraduationCap,
   ChevronRight, TrendingUp, UserCheck, UserX, AlertTriangle, Sparkles,
-  Loader2, Eye, Edit, MessageCircle, Trophy, ExternalLink, X,
+  Loader2, Eye, Edit, MessageCircle, Trophy, ExternalLink, X, Filter,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -23,9 +27,16 @@ import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import {
   treeListClasses, treeListGroups, treeListStudents,
+  getStudentsOverview,
   type TreeClassRow, type TreeGroupRow, type TreeStudentRow,
+  type StudentOverviewRow,
 } from "@/lib/students-overview.functions";
 import { useDebounce } from "@/hooks/use-debounce";
+
+type ExamFilter = "" | "attended_last" | "missed_last" | "never_attempted" | "high_scores" | "low_scores" | "absent_3plus" | "absent_5plus";
+type InactiveFilter = "" | "3" | "7" | "14" | "30";
+type SortMode = "name" | "avg_desc" | "avg_asc" | "attempts_desc" | "attendance_desc";
+
 
 export const Route = createFileRoute("/admin/students/")({
   head: () => ({
