@@ -391,14 +391,16 @@ export const approveRegistration = createServerFn({ method: "POST" })
       password: res.password,
       loginUrl,
     });
+    const parentWa = normalizeIntlPhone(patched.parent_phone);
+    const studentWa = normalizeIntlPhone(patched.student_phone);
     return {
       ok: true,
       studentId: res.studentId,
       credentials: { code: res.code, password: res.password, loginUrl },
       whatsapp: {
-        parent: `https://wa.me/${patched.parent_phone}?text=${encodeURIComponent(waText)}`,
-        student: settings.sendToStudent
-          ? `https://wa.me/${patched.student_phone}?text=${encodeURIComponent(waText)}`
+        parent: parentWa ? `https://wa.me/${parentWa}?text=${encodeURIComponent(waText)}` : null,
+        student: settings.sendToStudent && studentWa
+          ? `https://wa.me/${studentWa}?text=${encodeURIComponent(waText)}`
           : null,
       },
     };
