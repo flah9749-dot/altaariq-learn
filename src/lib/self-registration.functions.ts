@@ -320,6 +320,12 @@ export const deleteJoinCode = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: unlinkError } = await supabaseAdmin
+      .from("registration_requests")
+      .update({ code_id: null })
+      .eq("code_id", data.id);
+    if (unlinkError) throw new Error(unlinkError.message);
+
     const { error } = await supabaseAdmin.from("join_codes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
