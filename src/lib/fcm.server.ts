@@ -103,26 +103,29 @@ export async function sendFcm(payloads: FcmPayload[]): Promise<FcmSendResult[]> 
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   const results = await Promise.all(payloads.map(async (p) => {
     try {
+      // Data-only message: the service worker (public/firebase-messaging-sw.js)
+      // renders the notification exactly once via onBackgroundMessage. If we
+      // also send `notification` / `webpush.notification`, Chrome renders it
+      // itself AND fires onBackgroundMessage, so the user sees two toasts.
       const message: any = {
         token: p.token,
         webpush: {
-          notification: {
-            title: p.title,
-            body: p.body,
-            icon: "/icon-192.png",
-            badge: "/icon-192.png",
-            dir: "rtl",
-            lang: "ar",
-            data: { link: p.link ?? "/" },
-          },
+          headers: { Urgency: "high", TTL: "86400" },
+          fcmOptions: { link: p.link ?? "/" },
         },
-        data: { ...(p.data ?? {}), title: p.title, body: p.body, link: p.link ?? "/" },
+        data: {
+          ...(p.data ?? {}),
+          title: p.title,
+          body: p.body,
+          link: p.link ?? "/",
+        },
       };
       const res = await fetch(url, {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       });
+
       if (res.ok) return { token: p.token, ok: true };
       const text = await res.text();
       // Detect unregistered / invalid token

@@ -95,12 +95,15 @@ async function getExistingSW(): Promise<ServiceWorkerRegistration | undefined> {
 }
 
 async function saveToken(userId: string, token: string) {
+  // Unique on `token` (see migration). Two users on the same device would
+  // rebind the token to the current user rather than create a duplicate row.
   const { error } = await supabase.from("push_tokens").upsert(
     { user_id: userId, token, platform: "web", user_agent: navigator.userAgent, last_seen: new Date().toISOString() },
-    { onConflict: "user_id,token" },
+    { onConflict: "token" },
   );
   if (error) throw new Error(`تعذّر حفظ جهاز الإشعارات: ${error.message}`);
 }
+
 
 export async function hasSavedPushDevice(userId: string): Promise<boolean> {
   if (!userId || typeof navigator === "undefined") return false;
