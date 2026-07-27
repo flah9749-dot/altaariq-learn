@@ -17,6 +17,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { BroadcastDialog } from "@/components/chat/BroadcastDialog";
+import { HierarchicalTree } from "@/components/common/HierarchicalTree";
+
 import { getAllAdminPeerIds } from "@/lib/messaging.functions";
 import { formatChatTime } from "@/lib/message-utils";
 
