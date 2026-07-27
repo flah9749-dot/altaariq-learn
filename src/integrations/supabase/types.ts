@@ -2278,6 +2278,36 @@ export type Database = {
     }
     Functions: {
       admin_get_exam_questions: { Args: { _exam_id: string }; Returns: Json }
+      admin_students_overview: {
+        Args: { _class_id?: string; _group_id?: string; _status?: string }
+        Returns: {
+          absent_count: number
+          attended_count: number
+          avatar_url: string
+          avg_percentage: number
+          class_id: string
+          class_name: string
+          code: string
+          created_at: string
+          full_name: string
+          group_id: string
+          group_name: string
+          id: string
+          last_exam_attended: boolean
+          last_exam_id: string
+          last_exam_percentage: number
+          last_exam_title: string
+          last_seen: string
+          level: number
+          parent_name: string
+          parent_phone: string
+          parent_whatsapp: string
+          phone: string
+          points: number
+          scheduled_count: number
+          status: string
+        }[]
+      }
       dispatch_due_exam_start_notifications: { Args: never; Returns: number }
       get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
       get_my_role: {
