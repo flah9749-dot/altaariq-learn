@@ -86,7 +86,7 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
   const Icon = staged ? fileIconFor(staged.type) : null;
 
   return (
-    <div ref={dropRef} className="border-t bg-background p-2 md:p-3 space-y-2 shrink-0 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+    <div ref={dropRef} className="border-t bg-background px-2 pt-2 md:px-3 md:pt-3 space-y-2 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       {replyTo && (
         <div className="flex items-center gap-2 bg-muted rounded-lg p-2 text-xs">
           <span className="me-auto truncate">↩️ رد على: {replyTo.body?.slice(0, 60) ?? "مرفق"}</span>
@@ -102,10 +102,10 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setStaged(null)} aria-label="إزالة المرفق"><X className="h-3 w-3"/></Button>
         </div>
       )}
-      <div className="flex items-end gap-1">
+      <div className="flex items-end gap-1.5">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" title="إيموجي" aria-label="اختر إيموجي"><Smile className="h-5 w-5"/></Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" title="إيموجي" aria-label="اختر إيموجي"><Smile className="h-5 w-5"/></Button>
           </PopoverTrigger>
           <PopoverContent side="top" className="w-72 p-2" dir="rtl">
             <div className="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto">
@@ -116,11 +116,11 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
             </div>
           </PopoverContent>
         </Popover>
-        <Button variant="ghost" size="icon" title="إرفاق ملف" aria-label="إرفاق ملف" onClick={() => fileRef.current?.click()}>
+        <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" title="إرفاق ملف" aria-label="إرفاق ملف" onClick={() => fileRef.current?.click()}>
           <Paperclip className="h-5 w-5"/>
         </Button>
         {onOpenCamera && (
-          <Button variant="ghost" size="icon" title="كاميرا" aria-label="فتح الكاميرا" onClick={onOpenCamera}>
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" title="كاميرا" aria-label="فتح الكاميرا" onClick={onOpenCamera}>
             <Camera className="h-5 w-5"/>
           </Button>
         )}
@@ -133,10 +133,10 @@ export function MessageComposer({ onSend, replyTo, onClearReply, onOpenCamera, d
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           rows={1}
-          className="resize-none min-h-[42px] max-h-32 flex-1 text-base md:text-sm"
+          className="resize-none min-h-[44px] max-h-32 flex-1 text-base md:text-sm rounded-2xl px-4 py-2.5"
           disabled={disabled}
         />
-        <Button onClick={handleSend} size="icon" disabled={disabled || pending || (!text.trim() && !staged)} aria-label="إرسال">
+        <Button onClick={handleSend} size="icon" className="h-11 w-11 shrink-0 rounded-full" disabled={disabled || pending || (!text.trim() && !staged)} aria-label="إرسال">
           {pending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
         </Button>
       </div>
