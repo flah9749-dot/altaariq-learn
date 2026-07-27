@@ -23,6 +23,7 @@ import { Route as StudentMessagesRouteImport } from './routes/student.messages'
 import { Route as StudentFilesRouteImport } from './routes/student.files'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
+import { Route as StudentCompetitionsRouteImport } from './routes/student.competitions'
 import { Route as StudentAssistantRouteImport } from './routes/student.assistant'
 import { Route as StudentAchievementsRouteImport } from './routes/student.achievements'
 import { Route as AdminSystemRouteImport } from './routes/admin.system'
@@ -140,6 +141,11 @@ const StudentExamsRoute = StudentExamsRouteImport.update({
 const StudentDashboardRoute = StudentDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentCompetitionsRoute = StudentCompetitionsRouteImport.update({
+  id: '/competitions',
+  path: '/competitions',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentAssistantRoute = StudentAssistantRouteImport.update({
@@ -414,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
+  '/student/competitions': typeof StudentCompetitionsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/files': typeof StudentFilesRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByTo {
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
+  '/student/competitions': typeof StudentCompetitionsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/files': typeof StudentFilesRoute
   '/student/messages': typeof StudentMessagesRoute
@@ -537,6 +545,7 @@ export interface FileRoutesById {
   '/admin/system': typeof AdminSystemRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
+  '/student/competitions': typeof StudentCompetitionsRoute
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRouteWithChildren
   '/student/files': typeof StudentFilesRoute
@@ -603,6 +612,7 @@ export interface FileRouteTypes {
     | '/admin/system'
     | '/student/achievements'
     | '/student/assistant'
+    | '/student/competitions'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/files'
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
     | '/admin/system'
     | '/student/achievements'
     | '/student/assistant'
+    | '/student/competitions'
     | '/student/dashboard'
     | '/student/files'
     | '/student/messages'
@@ -725,6 +736,7 @@ export interface FileRouteTypes {
     | '/admin/system'
     | '/student/achievements'
     | '/student/assistant'
+    | '/student/competitions'
     | '/student/dashboard'
     | '/student/exams'
     | '/student/files'
@@ -870,6 +882,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/student/dashboard'
       preLoaderRoute: typeof StudentDashboardRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/competitions': {
+      id: '/student/competitions'
+      path: '/competitions'
+      fullPath: '/student/competitions'
+      preLoaderRoute: typeof StudentCompetitionsRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/assistant': {
@@ -1357,6 +1376,7 @@ const StudentExamsRouteWithChildren = StudentExamsRoute._addFileChildren(
 interface StudentRouteChildren {
   StudentAchievementsRoute: typeof StudentAchievementsRoute
   StudentAssistantRoute: typeof StudentAssistantRoute
+  StudentCompetitionsRoute: typeof StudentCompetitionsRoute
   StudentDashboardRoute: typeof StudentDashboardRoute
   StudentExamsRoute: typeof StudentExamsRouteWithChildren
   StudentFilesRoute: typeof StudentFilesRoute
@@ -1370,6 +1390,7 @@ interface StudentRouteChildren {
 const StudentRouteChildren: StudentRouteChildren = {
   StudentAchievementsRoute: StudentAchievementsRoute,
   StudentAssistantRoute: StudentAssistantRoute,
+  StudentCompetitionsRoute: StudentCompetitionsRoute,
   StudentDashboardRoute: StudentDashboardRoute,
   StudentExamsRoute: StudentExamsRouteWithChildren,
   StudentFilesRoute: StudentFilesRoute,
