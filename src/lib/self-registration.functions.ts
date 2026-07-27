@@ -83,7 +83,7 @@ async function performApproval(admin: any, req: {
   class_id: string;
   group_id: string;
   avatar_url: string | null;
-  code_id: string;
+  code_id: string | null;
 }, opts: { autoApproved: boolean; reviewerId?: string | null }) {
   // Duplicate phone re-check
   const { data: dup } = await admin.from("students").select("id").eq("phone", req.student_phone).maybeSingle();
