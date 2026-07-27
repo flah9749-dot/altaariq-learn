@@ -133,7 +133,7 @@ export const treeListStudents = createServerFn({ method: "POST" })
       _group_id: data.group_id,
       _limit: data.limit ?? 200,
       _offset: data.offset ?? 0,
-      _search: data.search ?? null,
+      _search: data.search ?? undefined,
     });
     if (error) throw new Error(error.message);
     return (rows ?? []) as TreeStudentRow[];
