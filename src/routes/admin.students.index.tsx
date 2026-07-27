@@ -40,6 +40,8 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAdminScope } from "@/lib/admin-scope";
+
 
 
 export const Route = createFileRoute("/admin/students/")({
@@ -57,10 +59,15 @@ function StudentsPage() {
   });
   useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("students.viewMode", viewMode); }, [viewMode]);
 
+  const scope = useAdminScope();
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState<string>("");
-  const [groupFilter, setGroupFilter] = useState<string>("");
+  const [classOverride, setClassOverride] = useState<string>("");
+  const [groupOverride, setGroupOverride] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  // Global scope wins; a per-page override clears its own field only.
+  const classFilter = classOverride || scope.classId || "";
+  const groupFilter = groupOverride || scope.groupId || "";
+
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [formOpen, setFormOpen] = useState(false);
