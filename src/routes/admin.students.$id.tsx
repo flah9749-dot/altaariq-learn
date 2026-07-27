@@ -427,6 +427,29 @@ function StudentDetailPage() {
   );
 }
 
+function buildAbsenceAlert(opts: {
+  parent: string;
+  name: string;
+  absent: number;
+  scheduled: number;
+  lastMissed: { title: string; starts_at: string | null }[];
+}): string {
+  const lines = [
+    `⚠️ إشعار غياب متكرر`,
+    ``,
+    `السلام عليكم ولي أمر الطالب/ة *${opts.name}* 🌿`,
+    ``,
+    `نحيطكم علمًا بأن الطالب/ة تغيّب عن *${opts.absent}* من إجمالي ${opts.scheduled} امتحان.`,
+    ``,
+    `الامتحانات التي تغيّب عنها مؤخرًا:`,
+    ...opts.lastMissed.map((m) => `• ${m.title}${m.starts_at ? ` — ${formatArabicDateTime(m.starts_at)}` : ""}`),
+    ``,
+    `نأمل متابعة الطالب/ة وحثّه/ها على الالتزام بمواعيد الامتحانات.`,
+    `نشكر لكم تعاونكم 🌹`,
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
 function Stat({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
   return (
     <div className="rounded-xl border bg-card p-3 text-center">
