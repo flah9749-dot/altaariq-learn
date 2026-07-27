@@ -2308,6 +2308,65 @@ export type Database = {
           status: string
         }[]
       }
+      admin_tree_classes_overview: {
+        Args: never
+        Returns: {
+          absent_last_count: number
+          active_count: number
+          attendance_rate: number
+          avg_percentage: number
+          chronic_absent_count: number
+          class_id: string
+          class_name: string
+          students_count: number
+          top_count: number
+        }[]
+      }
+      admin_tree_groups_overview: {
+        Args: { _class_id: string }
+        Returns: {
+          absent_last_count: number
+          active_count: number
+          attendance_rate: number
+          avg_percentage: number
+          chronic_absent_count: number
+          group_id: string
+          group_name: string
+          students_count: number
+          top_count: number
+        }[]
+      }
+      admin_tree_students_in_group: {
+        Args: {
+          _class_id: string
+          _group_id: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+        }
+        Returns: {
+          absent_count: number
+          attended_count: number
+          avatar_url: string
+          avg_percentage: number
+          code: string
+          full_name: string
+          id: string
+          last_exam_attended: boolean
+          last_exam_id: string
+          last_exam_percentage: number
+          last_exam_title: string
+          last_seen: string
+          level: number
+          parent_name: string
+          parent_phone: string
+          parent_whatsapp: string
+          phone: string
+          points: number
+          scheduled_count: number
+          status: string
+        }[]
+      }
       dispatch_due_exam_start_notifications: { Args: never; Returns: number }
       get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
       get_my_role: {
