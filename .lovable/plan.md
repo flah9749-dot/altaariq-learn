@@ -1,135 +1,148 @@
-# نظام التسجيل الذاتي للطلاب (Self Registration)
+# نظام الشجرة الهرمية (Hierarchical Tree) لكل أقسام المنصة
 
-نظام يتيح للطالب إنشاء حسابه بنفسه عبر كود انضمام (Invitation Code) خاص بصفٍ ومجموعة، مع خيار مراجعة الأدمن اليدوية وإرسال بيانات الدخول عبر واتساب.
-
----
-
-## 1) قاعدة البيانات (Migration واحدة)
-
-### جدول `join_codes`
-- `code` (نص فريد، uppercase)
-- `class_id`, `group_id` (FK — كلاهما إجباري)
-- `active` (bool)
-- `expires_at` (timestamptz — اختياري)
-- `max_uses` (int — اختياري، NULL = بلا حد)
-- `used_count` (int, default 0)
-- `notes` (نص)
-- `created_by`, `created_at`, `updated_at`
-
-**Grants + RLS**: قراءة/كتابة للأدمن فقط. مع ذلك التحقق للطالب يتم عبر **دالة SECURITY DEFINER** (لا يحتاج قراءة الجدول مباشرة).
-
-### جدول `registration_requests`
-- `code_id` (FK → join_codes)
-- `full_name`, `student_phone`, `parent_phone`, `parent_name`
-- `class_id`, `group_id` (منسوخة من الكود)
-- `avatar_url` (اختياري)
-- `status` (`pending` | `approved` | `rejected` | `auto_approved`)
-- `student_id` (FK → students بعد الاعتماد)
-- `reject_reason`
-- `ip_address`, `user_agent`
-- `created_at`, `reviewed_at`, `reviewed_by`
-
-**Grants + RLS**: كتابة الأنونيموس ممنوعة (تمر عبر server function). الأدمن فقط يقرأ ويعدل.
-
-### إعدادات في `settings`
-- `self_registration.enabled` (bool)
-- `self_registration.auto_approve` (bool)
-- `self_registration.send_to_student_phone` (bool)
-
-### دوال قاعدة البيانات
-- `public.validate_join_code(_code text)` — SECURITY DEFINER تُرجع `{valid, class_id, group_id, class_name, group_name, reason}` للاستخدام من الطالب دون كشف الجدول.
-- `public.increment_join_code_use(_code_id uuid)` — تزيد `used_count` بذرية.
+الهدف: بدلًا من تحميل آلاف الصفوف دفعة واحدة، يفتح المدرس مستوى واحدًا في كل مرة (صف → مجموعة → عنصر)، والبيانات تُجلب من الخادم عند الحاجة فقط.
 
 ---
 
-## 2) Server Functions
+## 1) نمط موحّد (Design System)
 
-ملف `src/lib/self-registration.functions.ts` (thin wrappers فقط):
+مكوّن جديد `HierarchicalTree` يُستخدم في كل الصفحات، يقدم:
 
-- `validateJoinCode({ code })` — عام (بدون Auth) → تُرجع الصف والمجموعة أو خطأ.
-- `submitRegistration({ code, full_name, student_phone, parent_phone, avatar_url })` — عام. تتحقق من:
-  - صحة الكود + انتهاء الصلاحية + الحد الأقصى.
-  - عدم تكرار رقم الطالب في `students`.
-  - Rate limit بسيط عبر IP + كود (قيد على `registration_requests` أو فحص عدد الطلبات في آخر 10 دقائق).
-  - عدم تكرار الطلب المعلّق بنفس الرقم.
-  - يُنشئ سجل `registration_requests`.
-  - إذا `auto_approve = true` → يستدعي `approveRegistration` داخلياً.
-  - يُرجع `{ status, message, credentials? }`.
+- عقدة (Node) قابلة للطي/الفتح مع أيقونة، عنوان، شارات (Badges) للإحصائيات.
+- Lazy loading: عند أول فتح للعقدة تُنفَّذ دالة `loadChildren` وتُخزَّن نتيجتها في React Query.
+- عرض هيكلي (Skeleton) أثناء التحميل، ورسالة "لا توجد بيانات" عند الفراغ.
+- بحث لحظي داخل كل مستوى (يُفعّل تحميل جميع الأبناء عند البحث).
+- Drawer/Sheet جانبي لعرض تفاصيل العنصر (طالب/امتحان/رسالة…) دون مغادرة الشاشة.
+- تذكّر آخر عقدة مفتوحة عبر URL search params (`?class=..&group=..&item=..`) حتى يعمل زر Back ومشاركة الروابط.
 
-ملف `src/lib/self-registration.admin.functions.ts` (محمي بـ `requireSupabaseAuth` + فحص دور admin):
-- `listJoinCodes`, `createJoinCode`, `updateJoinCode`, `deleteJoinCode`.
-- `listRegistrationRequests({ status? })`, `approveRegistration({ id, overrides? })`, `rejectRegistration({ id, reason })`.
-- `getRegistrationStats()` — يوميات + إجماليات.
-
-`approveRegistration` يستخدم `supabaseAdmin` داخل الـ handler لـ:
-1. إنشاء مستخدم Auth عبر `auth.admin.createUser` بإيميل وهمي وكلمة مرور عشوائية قوية.
-2. إنشاء صف في `students` مع `class_id`, `group_id`, `student_code`, `plaintext_password`.
-3. تعيين دور `student` في `user_roles`.
-4. `increment_join_code_use`.
-5. تحديث `registration_requests.status` و `student_id`.
-6. توليد نص رسالة واتساب (لا نُرسل من الخادم — نُرجع رابط `wa.me` للأدمن، ويُعرض تلقائياً بعد التسجيل الذاتي للطالب لفتحه).
+نُنشئ في قاعدة البيانات دوال RPC مخصصة (SECURITY DEFINER) لكل مستوى إحصائي، لتفادي جلب البيانات الخام إلى المتصفح.
 
 ---
 
-## 3) الصفحات (Routes)
+## 2) الطلاب `admin/students`
 
-### واجهات عامة
-- `src/routes/register.tsx` — واجهة تسجيل الطالب (خطوتين):
-  1. إدخال كود الانضمام → تحقق فوري → يعرض الصف والمجموعة.
-  2. نموذج البيانات (اسم رباعي، هاتف الطالب، هاتف ولي الأمر، صورة اختيارية، موافقة على الشروط).
-  - بعد الإرسال: شاشة نجاح تعرض كود الطالب وكلمة المرور (إن `auto_approve`) + زر واتساب لولي الأمر جاهز، أو "طلبك قيد المراجعة" (إن يدوي).
-- زر "🎓 التسجيل لأول مرة" في `src/routes/login.tsx`.
+المستويات: **الصف → المجموعة → الطالب → Drawer التفاصيل**
 
-### واجهات الأدمن
-- `src/routes/admin.join-codes.tsx` — CRUD + إحصائيات لكل كود (عدد الطلاب، تاريخ الانتهاء، تفعيل/تعطيل، نسخ الكود، طباعة QR).
-- `src/routes/admin.registration-requests.tsx` — قائمة الطلبات المعلقة/المعتمدة/المرفوضة مع فلاتر + تبويبات، وأزرار قبول/رفض/تعديل قبل الاعتماد.
-- إضافة رابطين في `AdminSidebar`.
-- بلوك إعدادات جديد في `src/routes/admin.settings.tsx` لتفعيل النظام + الموافقة التلقائية + الإرسال لرقم الطالب.
+- المستوى 1: `admin_list_classes_overview()` يُرجع لكل صف: عدد الطلاب، متوسط الدرجات، متوسط الحضور، عدد الغائبين، عدد المتفوقين.
+- المستوى 2 (عند فتح صف): `admin_list_groups_overview(class_id)` — نفس الإحصائيات مقسّمة على المجموعات.
+- المستوى 3 (عند فتح مجموعة): `admin_list_students_lite(group_id, limit, offset)` — بطاقات مصغّرة (اسم، كود، حالة، آخر امتحان).
+- المستوى 4 (عند اختيار طالب): Drawer يستخدم بروفايل الطالب الحالي (`StudentRichCard` + سجل الحضور والغياب + بيانات ولي الأمر + الأزرار).
+
+يتم استبدال الصفحة الحالية بالكامل بـ Tree View. صفحة `/admin/students/$id` تبقى للوصول المباشر.
 
 ---
 
-## 4) الأمان
+## 3) الامتحانات `admin/exams`
 
-- كل الكتابات العامة تمر عبر server functions مع `zod` validation.
-- منع تسجيل نفس رقم الهاتف مرتين (فحص + قيد UNIQUE على `students.phone` إن لم يوجد).
-- تسجيل `ip_address` و `user_agent` من `getRequest()`.
-- Rate limit: منع أكثر من 5 طلبات من نفس IP في 10 دقائق (استعلام بسيط قبل الإدراج).
-- RLS: `registration_requests` لا تسمح للأنون بالقراءة (تُرجع الحالة عبر الـ server function).
-- الكود يُخزّن ويُقارن بعد `upper(trim())`.
+المستويات: **الصف → المجموعة → الامتحان → Drawer فيه تبويبات (الأسئلة، النتائج، الإعدادات)**
 
----
-
-## 5) الاختبار
-
-بعد التنفيذ سأشغّل السيناريوهات التالية عبر Playwright أو استدعاءات مباشرة:
-- تسجيل ناجح بكود صالح.
-- كود منتهي / معطّل / تجاوز الحد.
-- تكرار رقم الطالب.
-- Auto-approve مقابل مراجعة يدوية.
-- زر واتساب يحمل البيانات الصحيحة.
+- المستوى 1: صفوف بها إحصائية (عدد الامتحانات المنشورة، القادمة، المسودّات).
+- المستوى 2: مجموعات + عدد امتحاناتها + نسبة الحضور الإجمالية.
+- المستوى 3: قائمة الامتحانات (اسم، تاريخ، حالة، نسبة الحضور).
+- Drawer: يعرض تفاصيل الامتحان مع تبويبات دون مغادرة الشاشة (زر "فتح كامل" اختياري).
 
 ---
 
-## تفاصيل تقنية موجزة
+## 4) النتائج `admin/results`
 
-- استخدام `random_bytes` لكلمة المرور: 12 حرف A-Za-z0-9.
-- كود الطالب: نفس النمط الحالي المستخدم في `students` (سيتم استخراج المنطق من `students.functions.ts`).
-- إيميل وهمي: `{student_code}@altaariq.local` (يتماشى مع نظام الطلاب الحالي).
-- QR: يستخدم مكوّن `StudentIDCard` الموجود.
-- رسالة واتساب: قالب من `message_templates` إن وجد، وإلا نص افتراضي.
+نفس هيكل الامتحانات لكن الطبقة الأخيرة نتيجة طالب:
 
-## ملفات جديدة
+**الصف → المجموعة → الامتحان → الطالب → Drawer المراجعة**
 
-- `src/lib/self-registration.functions.ts` (عام)
-- `src/lib/self-registration.admin.functions.ts` (أدمن)
-- `src/lib/self-registration.server.ts` (مساعدات)
-- `src/routes/register.tsx`
-- `src/routes/admin.join-codes.tsx`
-- `src/routes/admin.registration-requests.tsx`
-- Migration واحدة تشمل الجدولين + الدوال + السياسات + الإعدادات.
+- إحصائيات كل مستوى: متوسط، أعلى، أقل، عدد الحاضرين/الغائبين.
+- عند اختيار طالب يُفتح Drawer فيه مراجعة الإجابات وأزرار الاعتماد.
 
-## ملفات معدّلة
+---
 
-- `src/routes/login.tsx` (زر التسجيل)
-- `src/components/admin/AdminSidebar.tsx` (رابطان)
-- `src/routes/admin.settings.tsx` (إعدادات النظام)
+## 5) الرسائل `admin/messages`
+
+المستويات: **الصف → المجموعة → الطالب → لوحة المحادثة**
+
+- المستوى 1/2: عدد غير المقروء، آخر رسالة، عدد الطلاب النشطين.
+- المستوى 3: قائمة الطلاب مع Preview آخر رسالة + شارة عدد الرسائل غير المقروءة.
+- عند فتح طالب: تظهر نافذة المحادثة الحالية في اللوحة اليمنى (يُحافظ على `ChatWindow` كما هو).
+
+---
+
+## 6) بنك الأسئلة `admin/question-bank`
+
+المستويات: **الصف → المجموعة (أو "عام") → الوسم/المصدر → السؤال → Drawer**
+
+- إحصائيات كل مستوى: عدد الأسئلة، عدد المستخدم منها في امتحانات، عدد الوسائط.
+- Drawer السؤال: عرض المحتوى، الوسائط، الاستخدام، والتحرير.
+
+---
+
+## 7) مكتبة الخرائط `admin/maps`
+
+المستويات: **الصف → المجموعة → القالب → Drawer التفاصيل**
+
+- كل قالب يعرض عدد النقاط، عدد الامتحانات التي تستخدمه، آخر تحديث.
+
+---
+
+## 8) التقارير `admin/reports`
+
+نفس نمط شجرة الطلاب لكن Drawer نهاية الشجرة يعرض رسم بياني تفاعلي:
+
+**الصف → المجموعة → الطالب/الامتحان → Drawer الرسم**
+
+- المستوى الأعلى: مؤشرات عامة (توزيع الدرجات، معدل الحضور).
+- المستويات السفلى: تفصيلي.
+
+---
+
+## 9) الجوائز والمسابقات `admin/rewards` و `admin/competitions`
+
+المستويات: **الصف → المجموعة → الطالب → Drawer الجوائز/المسابقات**
+
+- الجوائز: قائمة الجوائز المستحقة/المستبدلة لكل طالب.
+- المسابقات: قائمة مسابقات المجموعة + عدد المشاركين + الترتيب.
+
+---
+
+## 10) شارة الغياب (تنبيه ولي الأمر)
+
+تظهر شارة حمراء على العقدة المُقابلة (المجموعة والصف) عندما يحتوي المستوى على طلاب غابوا 3 امتحانات فأكثر، مع رابط سريع لصفحة الطلاب المرشحين لإرسال إنذار واتساب.
+
+---
+
+## Technical Details
+
+### قاعدة البيانات (Migration واحدة)
+
+دوال `SECURITY DEFINER` تجمّع الإحصائيات في استعلام واحد لكل مستوى:
+
+- `admin_tree_classes_overview()` — إحصائيات كل صف (يستخدم في: طلاب، امتحانات، نتائج، رسائل).
+- `admin_tree_groups_overview(_class_id uuid)` — إحصائيات مجموعات صف.
+- `admin_tree_students_in_group(_group_id uuid, _limit int, _offset int)` — طلاب مجموعة (Pagination).
+- `admin_tree_exams_in_group(_class_id uuid, _group_id uuid)` — امتحانات + إحصائيات الحضور.
+- `admin_tree_results_by_exam_group(_exam_id uuid, _group_id uuid)` — نتائج طلاب مجموعة في امتحان.
+- `admin_tree_messages_by_group(_group_id uuid)` — إحصائيات المحادثات.
+- `admin_tree_qbank_by_group(_class_id uuid, _group_id uuid)` — إحصائيات الأسئلة.
+
+كل دالة تتحقق من دور admin أولًا.
+
+### الواجهة
+
+- مكوّن جديد: `src/components/common/HierarchicalTree.tsx` (Accordion متعدد المستويات + Sheet).
+- Hook مساعد: `src/hooks/use-tree-node.ts` يغلّف React Query مع مفتاح مبني على مسار العقدة.
+- Router state: كل صفحة تستخدم `validateSearch` لحفظ العقدة النشطة.
+- الأداء: `staleTime: 60_000` للعقد العليا، `staleTime: 30_000` للعقد الوسطى، عدم تحميل الأبناء حتى تُفتح العقدة.
+- `React.memo` على العقد، مع virtualization (`@tanstack/react-virtual`) في المستوى الأخير عندما يتجاوز 100 عنصر.
+
+### التوافق مع الحالي
+
+- الصفحات الحالية تبقى كـ Fallback عبر زر "العرض الكلاسيكي" في كل شاشة (تبديل بـ URL param).
+- بروفايل الطالب الحالي `/admin/students/$id` يظل يعمل ويُفتح إما كصفحة أو داخل Drawer.
+- لا تُحذف أي وظيفة موجودة؛ فقط تُغلَّف بواجهة الشجرة.
+
+### التسليم على مراحل
+
+نظرًا لحجم العمل، أنفّذ الآن **المرحلة الأولى فقط** (البنية التحتية + قسم الطلاب) لتأكيد التصميم قبل التوسّع:
+
+1. Migration للدوال الجديدة (الطلاب/الصفوف/المجموعات).
+2. `HierarchicalTree` + `use-tree-node`.
+3. إعادة بناء `admin/students` بالكامل بالشجرة + Drawer.
+
+ثم بعد موافقتك ننتقل مرحلة تلو الأخرى: الامتحانات، النتائج، الرسائل، بنك الأسئلة، الخرائط، التقارير، الجوائز والمسابقات.
