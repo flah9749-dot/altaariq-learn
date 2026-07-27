@@ -135,8 +135,8 @@ function AdminMessagesPage() {
 
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3 h-[calc(100vh-8rem)]">
-      <Card className="flex flex-col overflow-hidden">
+    <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3 h-[calc(100dvh-8rem)]">
+      <Card className={`flex-col overflow-hidden ${selected ? "hidden md:flex" : "flex"}`}>
         <div className="p-3 border-b space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-bold flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/>المحادثات</h2>
@@ -151,7 +151,6 @@ function AdminMessagesPage() {
           <div className="grid grid-cols-2 gap-2">
             <Select value={classId} onValueChange={(v) => {
               setClassId(v);
-              // احتفظ بالمجموعة إذا كانت تنتمي للصف الجديد، وإلا أعد التعيين
               if (v !== "all" && groupId !== "all") {
                 const g = groups.find((x: any) => x.id === groupId);
                 if (!g || g.class_id !== v) setGroupId("all");
@@ -165,7 +164,6 @@ function AdminMessagesPage() {
             </Select>
             <Select value={groupId} onValueChange={(v) => {
               setGroupId(v);
-              // عند اختيار مجموعة، اضبط الصف تلقائياً على صف تلك المجموعة
               if (v !== "all") {
                 const g = groups.find((x: any) => x.id === v);
                 if (g?.class_id && g.class_id !== classId) setClassId(g.class_id);
@@ -244,7 +242,7 @@ function AdminMessagesPage() {
 
       </Card>
 
-      <Card className="flex flex-col overflow-hidden min-h-0">
+      <Card className={`flex-col overflow-hidden min-h-0 ${selected ? "flex" : "hidden md:flex"}`}>
         {selected ? (
           <ChatWindow
             peerId={selected.userId}
@@ -252,9 +250,16 @@ function AdminMessagesPage() {
             peerSubtitle={`${selected.code}${selected.className ? " • " + selected.className : ""}${selected.groupName ? " • " + selected.groupName : ""}`}
             templateVars={{ student_name: selected.name, code: selected.code }}
             selfPeerIds={otherAdminIds}
-            headerRight={selected.parentPhone ? (
-              <WhatsAppButton phone={selected.parentPhone} template="wa.tpl.parent_intro" vars={{ name: selected.name }} label="واتساب ولي الأمر" size="sm" />
-            ) : null}
+            headerRight={
+              <div className="flex items-center gap-1">
+                {selected.parentPhone ? (
+                  <WhatsAppButton phone={selected.parentPhone} template="wa.tpl.parent_intro" vars={{ name: selected.name }} label="واتساب ولي الأمر" size="sm" />
+                ) : null}
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelected(null)} aria-label="رجوع">
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+            }
           />
 
         ) : (
@@ -270,3 +275,4 @@ function AdminMessagesPage() {
     </div>
   );
 }
+
