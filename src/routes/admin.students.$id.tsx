@@ -73,6 +73,54 @@ function StudentDetailPage() {
     },
   });
 
+  // Per-exam attendance history for this student (published exams targeting their class/group).
+  const { data: history } = useQuery({
+    queryKey: ["student-exam-history", id, student?.class_id, student?.group_id],
+    enabled: !!student,
+    queryFn: async () => {
+      const classId = student?.class_id ?? null;
+      const groupId = student?.group_id ?? null;
+      let q = supabase
+        .from("exams")
+        .select("id,title,starts_at,ends_at,class_id,group_ids,created_at")
+        .eq("published", true)
+        .order("starts_at", { ascending: false, nullsFirst: false })
+        .limit(100);
+      if (classId) q = q.or(`class_id.is.null,class_id.eq.${classId}`);
+      const { data: exams } = await q;
+      const filtered = (exams ?? []).filter((e: any) => {
+        const gids: string[] = Array.isArray(e.group_ids) ? e.group_ids : [];
+        if (gids.length === 0) return true;
+        return groupId ? gids.includes(groupId) : false;
+      }).filter((e: any) => !e.starts_at || new Date(e.starts_at).getTime() <= Date.now());
+
+      const ids = filtered.map((e: any) => e.id);
+      const { data: atts } = ids.length
+        ? await supabase
+            .from("exam_attempts")
+            .select("exam_id,submitted_at,percentage,score,total")
+            .eq("student_id", id)
+            .in("exam_id", ids)
+        : { data: [] as any[] };
+      const byExam = new Map<string, any>();
+      (atts ?? []).forEach((a: any) => byExam.set(a.exam_id, a));
+      const rows = filtered.map((e: any) => {
+        const a = byExam.get(e.id);
+        return {
+          id: e.id,
+          title: e.title,
+          starts_at: e.starts_at,
+          attended: !!a?.submitted_at,
+          percentage: a?.percentage ?? null,
+          score: a?.score ?? null,
+          total: a?.total ?? null,
+        };
+      });
+      const absent = rows.filter((r) => !r.attended).length;
+      return { rows, absent, scheduled: rows.length };
+    },
+  });
+
   const resetPw = useMutation({
     mutationFn: async () => {
       const pw = generateStudentPassword();
