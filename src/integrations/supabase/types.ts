@@ -2277,6 +2277,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _sanitize_map_correct: { Args: { _ca: Json }; Returns: Json }
       admin_get_exam_questions: { Args: { _exam_id: string }; Returns: Json }
       admin_students_overview: {
         Args: { _class_id?: string; _group_id?: string; _status?: string }
@@ -2382,6 +2383,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_take_exam_questions: { Args: { _exam_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
