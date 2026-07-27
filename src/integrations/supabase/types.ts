@@ -1144,6 +1144,66 @@ export type Database = {
           },
         ]
       }
+      join_codes: {
+        Row: {
+          active: boolean
+          class_id: string
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          group_id: string
+          id: string
+          max_uses: number | null
+          notes: string | null
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          class_id: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          group_id: string
+          id?: string
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          class_id?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          group_id?: string
+          id?: string
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_codes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_codes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           active: boolean
@@ -1746,6 +1806,95 @@ export type Database = {
           },
         ]
       }
+      registration_requests: {
+        Row: {
+          avatar_url: string | null
+          class_id: string
+          code_id: string
+          created_at: string
+          full_name: string
+          group_id: string
+          id: string
+          ip_address: string | null
+          parent_name: string | null
+          parent_phone: string
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string | null
+          student_phone: string
+          user_agent: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          class_id: string
+          code_id: string
+          created_at?: string
+          full_name: string
+          group_id: string
+          id?: string
+          ip_address?: string | null
+          parent_name?: string | null
+          parent_phone: string
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string | null
+          student_phone: string
+          user_agent?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          class_id?: string
+          code_id?: string
+          created_at?: string
+          full_name?: string
+          group_id?: string
+          id?: string
+          ip_address?: string | null
+          parent_name?: string | null
+          parent_phone?: string
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string | null
+          student_phone?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_requests_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_requests_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "join_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_requests_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       results: {
         Row: {
           created_at: string
@@ -2151,12 +2300,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_join_code_use: {
+        Args: { _code_id: string }
+        Returns: undefined
+      }
       recompute_student_level: {
         Args: { _student_id: string }
         Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      validate_join_code: { Args: { _code: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "student"
