@@ -7,6 +7,7 @@ import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
   KeyRound, Copy, Check, RefreshCw, Eye, IdCard, Plus, Minus,
+  ClipboardList, AlertTriangle, CheckCircle2, XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
