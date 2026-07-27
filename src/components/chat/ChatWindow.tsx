@@ -264,7 +264,7 @@ export function ChatWindow({ peerId, peerName, peerSubtitle, headerRight, templa
         </div>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-3 space-y-2 bg-gradient-to-b from-muted/20 to-background min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 space-y-3 bg-gradient-to-b from-muted/20 to-background min-h-0">
         {isLoading ? (
           <div className="p-4 space-y-2">
             <Skeleton className="h-12 w-64" /><Skeleton className="h-12 w-72 ms-auto" /><Skeleton className="h-12 w-56" />

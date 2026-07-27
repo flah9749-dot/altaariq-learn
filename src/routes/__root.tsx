@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // iOS PWA support (Safari / iPhone / iPad)
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "الطارق" },
       { name: "format-detection", content: "telephone=no" },
       { property: "og:title", content: "الطارق التعليمية" },
@@ -133,7 +133,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-dvh bg-background text-foreground antialiased">
+      <body className="min-h-dvh bg-background text-foreground antialiased pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}
         <Scripts />
       </body>

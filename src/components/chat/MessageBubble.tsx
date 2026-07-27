@@ -23,8 +23,8 @@ function MessageBubbleImpl({ m, own, onReply, onDelete }: Props) {
     : "bg-card border rounded-2xl rounded-tr-md";
 
   return (
-    <div className={`group flex ${own ? "justify-end" : "justify-start"} px-2`}>
-      <div className={`relative max-w-[85%] sm:max-w-[70%] ${bubbleClass} p-2.5 shadow-sm animate-in fade-in slide-in-from-bottom-1`}>
+    <div className={`group flex ${own ? "justify-end" : "justify-start"} px-3 sm:px-2`}>
+      <div className={`relative max-w-[88%] sm:max-w-[70%] ${bubbleClass} px-3.5 py-2.5 shadow-sm animate-in fade-in slide-in-from-bottom-1`}>
         {m.deleted_at ? (
           <p className="text-xs italic opacity-70">🚫 تم حذف الرسالة</p>
         ) : (
