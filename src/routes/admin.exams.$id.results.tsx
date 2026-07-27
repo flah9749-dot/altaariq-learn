@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight, Award, TrendingUp, Users, CheckCircle2, XCircle, FileEdit,
-  ShieldCheck, RotateCcw, Sparkles, Download, FileSpreadsheet, MessageCircle, Save,
+  ShieldCheck, RotateCcw, Sparkles, Download, FileSpreadsheet, MessageCircle, Save, BarChart3,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend,
