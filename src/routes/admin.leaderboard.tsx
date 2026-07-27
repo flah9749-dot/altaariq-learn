@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { exportToExcel } from "@/lib/reports-lazy";
 import { SectionTabs } from "@/components/admin/SectionTabs";
 import { PointsAdjustDialog } from "@/components/admin/PointsAdjustDialog";
+import { WeeklyChampionsCard } from "@/components/admin/WeeklyChampionsCard";
 import { Search, Sparkles } from "lucide-react";
 
 
@@ -97,6 +98,8 @@ function LeaderboardPage() {
         </div>
         <Button onClick={doExport} variant="outline"><Download className="h-4 w-4 ml-1" />تصدير Excel</Button>
       </div>
+
+      <WeeklyChampionsCard />
 
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-center">

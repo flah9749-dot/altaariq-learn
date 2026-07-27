@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight, Award, TrendingUp, Users, CheckCircle2, XCircle, FileEdit,
-  ShieldCheck, RotateCcw, Sparkles, Download, FileSpreadsheet, MessageCircle, Save,
+  ShieldCheck, RotateCcw, Sparkles, Download, FileSpreadsheet, MessageCircle, Save, BarChart3,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend,
@@ -221,6 +221,9 @@ function ExamResultsPage() {
           <h1 className="text-2xl font-bold">{exam?.title ?? "..."}</h1>
           <p className="text-sm text-muted-foreground">{exam?.classes?.name ?? ""} — {stats.count} مشارك — {stats.approvedCount} معتمدة</p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/admin/exams/$id/analytics" params={{ id }}><BarChart3 className="h-4 w-4 ml-1"/>تحليل ذكي</Link>
+        </Button>
         <Button variant="outline" size="sm" onClick={doExcel}><FileSpreadsheet className="h-4 w-4 ml-1"/>Excel</Button>
         <Button variant="outline" size="sm" onClick={doPdf}><Download className="h-4 w-4 ml-1"/>PDF</Button>
       </div>

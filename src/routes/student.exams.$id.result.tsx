@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Trophy as TrophyIcon, Target, HelpCircle, Users, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Trophy as TrophyIcon, Target, HelpCircle, Users, GraduationCap, Award, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import { formatDuration, computeGrade, evalMapSubQuestion, textAnswerMatches } from "@/lib/exam-utils";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/student/exams/$id/result")({
@@ -140,12 +142,23 @@ function ResultPage() {
         </CardContent></Card>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <WhatsAppButton
           phone={student?.parent_whatsapp ?? student?.parent_phone}
           template={pickResultTemplate(pct)}
           vars={waVars}
           label="إرسال النتيجة لولي الأمر عبر واتساب"
+        />
+        <CertificateButton
+          attemptId={attempt.id}
+          studentName={student?.full_name ?? ""}
+          examTitle={attempt.exams?.title ?? ""}
+          score={attempt.score}
+          total={attempt.total}
+          percentage={pct}
+          grade={grade}
+          rank={rank?.classRank ? `${rank.classRank} / ${rank.classTotal}` : undefined}
+          submittedAt={attempt.submitted_at}
         />
       </div>
 
@@ -277,5 +290,46 @@ function MiniCard({ icon: Icon, label, value, color }: { icon: any; label: strin
       <Icon className={`h-8 w-8 ${color ?? "text-primary"}`} />
       <div><p className="text-xs text-muted-foreground">{label}</p><p className="text-2xl font-bold">{value}</p></div>
     </CardContent></Card>
+  );
+}
+
+function CertificateButton(props: {
+  attemptId: string;
+  studentName: string;
+  examTitle: string;
+  score: number | string;
+  total: number | string;
+  percentage: number;
+  grade?: string;
+  rank?: string;
+  submittedAt?: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const onClick = async () => {
+    setLoading(true);
+    try {
+      const { generateCertificatePdf } = await import("@/lib/certificate");
+      await generateCertificatePdf({
+        attemptId: props.attemptId,
+        studentName: props.studentName,
+        examTitle: props.examTitle,
+        score: props.score,
+        total: props.total,
+        percentage: props.percentage,
+        grade: props.grade,
+        rank: props.rank,
+        date: props.submittedAt ? new Date(props.submittedAt).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "تعذر توليد الشهادة");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <Button onClick={onClick} disabled={loading} className="bg-gold text-primary hover:bg-gold/90">
+      {loading ? <Loader2 className="h-4 w-4 ml-1 animate-spin" /> : <Award className="h-4 w-4 ml-1" />}
+      تحميل الشهادة
+    </Button>
   );
 }
