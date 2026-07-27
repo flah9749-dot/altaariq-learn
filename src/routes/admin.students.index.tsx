@@ -148,6 +148,8 @@ function StudentsPage() {
       if (examFilter === "never_attempted" && s.attended_count > 0) return false;
       if (examFilter === "high_scores" && Number(s.avg_percentage) < 80) return false;
       if (examFilter === "low_scores" && (s.attended_count === 0 || Number(s.avg_percentage) >= 50)) return false;
+      if (examFilter === "absent_3plus" && s.absent_count < 3) return false;
+      if (examFilter === "absent_5plus" && s.absent_count < 5) return false;
       if (inactiveFilter) {
         const threshold = Number(inactiveFilter);
         if (!s.last_seen) return true;
