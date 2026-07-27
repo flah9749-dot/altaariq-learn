@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Trophy as TrophyIcon, Target, HelpCircle, Users, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, XCircle, Clock, ArrowRight, Trophy, Trophy as TrophyIcon, Target, HelpCircle, Users, GraduationCap, Award, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { pickResultTemplate } from "@/lib/whatsapp-templates";
 import { formatDuration, computeGrade, evalMapSubQuestion, textAnswerMatches } from "@/lib/exam-utils";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/student/exams/$id/result")({

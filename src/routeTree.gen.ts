@@ -17,6 +17,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentIndexRouteImport } from './routes/student.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as VerifyAttemptIdRouteImport } from './routes/verify.$attemptId'
 import { Route as StudentRewardsRouteImport } from './routes/student.rewards'
 import { Route as StudentQuestionBankRouteImport } from './routes/student.question-bank'
 import { Route as StudentPointsRouteImport } from './routes/student.points'
@@ -75,6 +76,7 @@ import { Route as AdminStudentsQuickCodeRouteImport } from './routes/admin.stude
 import { Route as AdminStudentsIdAnalyticsRouteImport } from './routes/admin.students.$id.analytics'
 import { Route as AdminExamsMapNewRouteImport } from './routes/admin.exams.map.new'
 import { Route as AdminExamsIdResultsRouteImport } from './routes/admin.exams.$id.results'
+import { Route as AdminExamsIdAnalyticsRouteImport } from './routes/admin.exams.$id.analytics'
 
 const StudentRoute = StudentRouteImport.update({
   id: '/student',
@@ -115,6 +117,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const VerifyAttemptIdRoute = VerifyAttemptIdRouteImport.update({
+  id: '/verify/$attemptId',
+  path: '/verify/$attemptId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const StudentRewardsRoute = StudentRewardsRouteImport.update({
   id: '/rewards',
@@ -408,6 +415,11 @@ const AdminExamsIdResultsRoute = AdminExamsIdResultsRouteImport.update({
   path: '/results',
   getParentRoute: () => AdminExamsIdRoute,
 } as any)
+const AdminExamsIdAnalyticsRoute = AdminExamsIdAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminExamsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -450,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/student/points': typeof StudentPointsRoute
   '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
+  '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
@@ -464,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
+  '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -514,6 +528,7 @@ export interface FileRoutesByTo {
   '/student/points': typeof StudentPointsRoute
   '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
+  '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
@@ -526,6 +541,7 @@ export interface FileRoutesByTo {
   '/admin/exams': typeof AdminExamsIndexRoute
   '/admin/students': typeof AdminStudentsIndexRoute
   '/student/exams': typeof StudentExamsIndexRoute
+  '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -581,6 +597,7 @@ export interface FileRoutesById {
   '/student/points': typeof StudentPointsRoute
   '/student/question-bank': typeof StudentQuestionBankRoute
   '/student/rewards': typeof StudentRewardsRoute
+  '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
@@ -595,6 +612,7 @@ export interface FileRoutesById {
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
+  '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
   '/admin/students/$id/analytics': typeof AdminStudentsIdAnalyticsRoute
@@ -651,6 +669,7 @@ export interface FileRouteTypes {
     | '/student/points'
     | '/student/question-bank'
     | '/student/rewards'
+    | '/verify/$attemptId'
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
@@ -665,6 +684,7 @@ export interface FileRouteTypes {
     | '/admin/exams/'
     | '/admin/students/'
     | '/student/exams/'
+    | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
@@ -715,6 +735,7 @@ export interface FileRouteTypes {
     | '/student/points'
     | '/student/question-bank'
     | '/student/rewards'
+    | '/verify/$attemptId'
     | '/admin'
     | '/student'
     | '/admin/ai/mapping'
@@ -727,6 +748,7 @@ export interface FileRouteTypes {
     | '/admin/exams'
     | '/admin/students'
     | '/student/exams'
+    | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
@@ -781,6 +803,7 @@ export interface FileRouteTypes {
     | '/student/points'
     | '/student/question-bank'
     | '/student/rewards'
+    | '/verify/$attemptId'
     | '/admin/'
     | '/student/'
     | '/admin/ai/mapping'
@@ -795,6 +818,7 @@ export interface FileRouteTypes {
     | '/admin/exams/'
     | '/admin/students/'
     | '/student/exams/'
+    | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
     | '/admin/students/$id/analytics'
@@ -816,6 +840,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   SetupRoute: typeof SetupRoute
   StudentRoute: typeof StudentRouteWithChildren
+  VerifyAttemptIdRoute: typeof VerifyAttemptIdRoute
   ApiPublicFcmDispatchRoute: typeof ApiPublicFcmDispatchRoute
   ApiPublicV1LeaderboardRoute: typeof ApiPublicV1LeaderboardRoute
   ApiPublicV1StatsRoute: typeof ApiPublicV1StatsRoute
@@ -879,6 +904,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/verify/$attemptId': {
+      id: '/verify/$attemptId'
+      path: '/verify/$attemptId'
+      fullPath: '/verify/$attemptId'
+      preLoaderRoute: typeof VerifyAttemptIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/student/rewards': {
       id: '/student/rewards'
@@ -1286,6 +1318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExamsIdResultsRouteImport
       parentRoute: typeof AdminExamsIdRoute
     }
+    '/admin/exams/$id/analytics': {
+      id: '/admin/exams/$id/analytics'
+      path: '/analytics'
+      fullPath: '/admin/exams/$id/analytics'
+      preLoaderRoute: typeof AdminExamsIdAnalyticsRouteImport
+      parentRoute: typeof AdminExamsIdRoute
+    }
   }
 }
 
@@ -1307,11 +1346,13 @@ const AdminAiRouteWithChildren =
   AdminAiRoute._addFileChildren(AdminAiRouteChildren)
 
 interface AdminExamsIdRouteChildren {
+  AdminExamsIdAnalyticsRoute: typeof AdminExamsIdAnalyticsRoute
   AdminExamsIdResultsRoute: typeof AdminExamsIdResultsRoute
   AdminExamsIdIndexRoute: typeof AdminExamsIdIndexRoute
 }
 
 const AdminExamsIdRouteChildren: AdminExamsIdRouteChildren = {
+  AdminExamsIdAnalyticsRoute: AdminExamsIdAnalyticsRoute,
   AdminExamsIdResultsRoute: AdminExamsIdResultsRoute,
   AdminExamsIdIndexRoute: AdminExamsIdIndexRoute,
 }
@@ -1474,6 +1515,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   SetupRoute: SetupRoute,
   StudentRoute: StudentRouteWithChildren,
+  VerifyAttemptIdRoute: VerifyAttemptIdRoute,
   ApiPublicFcmDispatchRoute: ApiPublicFcmDispatchRoute,
   ApiPublicV1LeaderboardRoute: ApiPublicV1LeaderboardRoute,
   ApiPublicV1StatsRoute: ApiPublicV1StatsRoute,
