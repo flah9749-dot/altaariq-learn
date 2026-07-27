@@ -292,3 +292,44 @@ function MiniCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     </CardContent></Card>
   );
 }
+
+function CertificateButton(props: {
+  attemptId: string;
+  studentName: string;
+  examTitle: string;
+  score: number | string;
+  total: number | string;
+  percentage: number;
+  grade?: string;
+  rank?: string;
+  submittedAt?: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const onClick = async () => {
+    setLoading(true);
+    try {
+      const { generateCertificatePdf } = await import("@/lib/certificate");
+      await generateCertificatePdf({
+        attemptId: props.attemptId,
+        studentName: props.studentName,
+        examTitle: props.examTitle,
+        score: props.score,
+        total: props.total,
+        percentage: props.percentage,
+        grade: props.grade,
+        rank: props.rank,
+        date: props.submittedAt ? new Date(props.submittedAt).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "تعذر توليد الشهادة");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <Button onClick={onClick} disabled={loading} className="bg-gold text-primary hover:bg-gold/90">
+      {loading ? <Loader2 className="h-4 w-4 ml-1 animate-spin" /> : <Award className="h-4 w-4 ml-1" />}
+      تحميل الشهادة
+    </Button>
+  );
+}
