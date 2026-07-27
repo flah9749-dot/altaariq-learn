@@ -14,8 +14,10 @@ import { exportToExcel } from "@/lib/reports-lazy";
 import { SectionTabs } from "@/components/admin/SectionTabs";
 import { PointsAdjustDialog } from "@/components/admin/PointsAdjustDialog";
 import { Search, Sparkles } from "lucide-react";
+import { useAdminScope } from "@/lib/admin-scope";
 
 export const Route = createFileRoute("/admin/leaderboard")({
+
   head: () => ({ meta: [{ title: "ترتيب الطلاب — الطارق التعليمية" }] }),
   component: LeaderboardPage,
 });
@@ -23,11 +25,15 @@ export const Route = createFileRoute("/admin/leaderboard")({
 type SortKey = "points" | "total_score" | "avg_score" | "pass_rate";
 
 function LeaderboardPage() {
+  const scope = useAdminScope();
   const [sortBy, setSortBy] = useState<SortKey>("points");
-  const [classFilter, setClassFilter] = useState<string>("all");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [classOverride, setClassOverride] = useState<string>("all");
+  const [groupOverride, setGroupOverride] = useState<string>("all");
+  const classFilter = classOverride !== "all" ? classOverride : (scope.classId ?? "all");
+  const groupFilter = groupOverride !== "all" ? groupOverride : (scope.groupId ?? "all");
   const [period, setPeriod] = useState<"all" | "30" | "7">("all");
   const [search, setSearch] = useState("");
+
 
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [] });
   const { data: groups } = useQuery({ queryKey: ["groups"], queryFn: async () => (await supabase.from("groups").select("id,name").order("name")).data ?? [] });
