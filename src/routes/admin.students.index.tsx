@@ -61,6 +61,31 @@ function StudentsTreePage() {
   const [editStudent, setEditStudent] = useState<TreeStudentRow | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [classFilter, setClassFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "active" | "suspended">("");
+  const [examFilter, setExamFilter] = useState<ExamFilter>("");
+  const [inactiveFilter, setInactiveFilter] = useState<InactiveFilter>("");
+  const [sortMode, setSortMode] = useState<SortMode>("name");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtersActive =
+    debouncedSearch.trim() !== "" ||
+    classFilter !== "" || groupFilter !== "" || statusFilter !== "" ||
+    examFilter !== "" || inactiveFilter !== "" || sortMode !== "name";
+
+  // Classes/groups for filter selects
+  const { data: allClasses } = useQuery({
+    queryKey: ["filter-classes"],
+    queryFn: async () => (await supabase.from("classes").select("id,name").order("name")).data ?? [],
+    staleTime: 300_000,
+  });
+  const { data: allGroups } = useQuery({
+    queryKey: ["filter-groups"],
+    queryFn: async () => (await supabase.from("groups").select("id,name,class_id").order("name")).data ?? [],
+    staleTime: 300_000,
+  });
+
 
   const listClasses = useServerFn(treeListClasses);
   const { data: classes, isLoading: loadingClasses } = useQuery({
