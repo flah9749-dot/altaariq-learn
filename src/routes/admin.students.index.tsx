@@ -836,3 +836,57 @@ function mapToStudentForm(s: TreeStudentRow): any {
     level: s.level,
   };
 }
+
+function overviewToTree(s: StudentOverviewRow): TreeStudentRow {
+  return {
+    id: s.id, code: s.code, full_name: s.full_name, avatar_url: s.avatar_url,
+    phone: s.phone, parent_name: s.parent_name, parent_phone: s.parent_phone,
+    parent_whatsapp: s.parent_whatsapp, status: s.status, points: s.points,
+    level: s.level, last_seen: s.last_seen,
+    scheduled_count: s.scheduled_count, attended_count: s.attended_count,
+    absent_count: s.absent_count, last_exam_id: s.last_exam_id,
+    last_exam_title: s.last_exam_title, last_exam_attended: s.last_exam_attended,
+    last_exam_percentage: s.last_exam_percentage, avg_percentage: s.avg_percentage,
+  };
+}
+
+function FlatStudentRow({ s, onClick }: { s: StudentOverviewRow; onClick: () => void }) {
+  const missedLast = s.last_exam_id != null && !s.last_exam_attended;
+  const rate = s.scheduled_count > 0 ? Math.round((s.attended_count / s.scheduled_count) * 100) : null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-right p-2.5 rounded-lg border-2 border-border/60 hover:border-primary/50 hover:shadow-sm transition-all bg-card flex items-center gap-2.5 group"
+    >
+      <Avatar className="h-9 w-9 shrink-0 ring-2 ring-primary/10">
+        <AvatarImage src={s.avatar_url ?? undefined} />
+        <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+          {s.full_name.slice(0, 2)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{s.full_name}</div>
+        <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5 flex-wrap" dir="ltr">
+          <span className="font-mono">{s.code}</span>
+          {s.class_name && <><span>•</span><span dir="rtl">{s.class_name}</span></>}
+          {s.group_name && <><span>•</span><span dir="rtl">{s.group_name}</span></>}
+          {rate !== null && <><span>•</span><span dir="rtl">{rate}% حضور</span></>}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {s.status === "suspended" && <Badge variant="destructive" className="text-[9px] h-4 px-1.5">موقوف</Badge>}
+        {missedLast && (
+          <Badge variant="destructive" className="text-[9px] h-4 px-1.5 gap-0.5">
+            <AlertTriangle className="h-2.5 w-2.5" /> غاب
+          </Badge>
+        )}
+        {s.avg_percentage >= 80 && s.attended_count > 0 && (
+          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+            {Math.round(Number(s.avg_percentage))}%
+          </Badge>
+        )}
+      </div>
+    </button>
+  );
+}
