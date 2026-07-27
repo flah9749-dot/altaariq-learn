@@ -62,9 +62,11 @@ function TakeExamPage() {
   });
   const { data: questions } = useQuery({
     queryKey: ["take-questions", id], enabled: !!exam,
-    queryFn: async () => (await supabase.from("questions")
-      .select("id,exam_id,text,type,points,order_index,image_url,difficulty,suggested_time_sec,correct_answer,question_options(id,text,image_url,order_index,match_key)")
-      .eq("exam_id", id).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_take_exam_questions", { _exam_id: id });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
   });
 
   // Start attempt on load
