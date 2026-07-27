@@ -119,6 +119,16 @@ function LoginPage() {
               </CardContent>
             </Card>
 
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4 text-center space-y-2">
+                <p className="text-sm font-semibold">🎓 طالب جديد؟</p>
+                <p className="text-xs text-muted-foreground">أنشئ حسابك بنفسك عبر كود الانضمام</p>
+                <Button asChild variant="outline" size="sm" className="mt-1">
+                  <Link to="/register">التسجيل لأول مرة</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
             <p className="text-center text-xs text-muted-foreground">© {new Date().getFullYear()} الطارق التعليمية — جميع الحقوق محفوظة</p>
           </div>
         </div>
