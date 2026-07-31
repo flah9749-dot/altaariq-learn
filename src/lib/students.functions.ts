@@ -67,7 +67,7 @@ export const createStudent = createServerFn({ method: "POST" })
     const { password: _pw, ...rest } = data;
     const { data: row, error: sErr } = await supabaseAdmin
       .from("students")
-      .insert({ ...rest, user_id: userId, plaintext_password: password })
+      .insert({ ...rest, user_id: userId })
       .select("id")
       .single();
 
@@ -105,7 +105,6 @@ export const updateStudent = createServerFn({ method: "POST" })
       const { data: row } = await supabaseAdmin.from("students").select("user_id").eq("id", data.id).maybeSingle();
       if (row?.user_id) {
         await supabaseAdmin.auth.admin.updateUserById(row.user_id, { password });
-        patch.plaintext_password = password;
       }
     }
 
@@ -171,7 +170,6 @@ export const resetStudentPassword = createServerFn({ method: "POST" })
     const { data: row } = await supabaseAdmin.from("students").select("user_id").eq("id", data.id).maybeSingle();
     if (!row?.user_id) throw new Error("الطالب غير موجود");
     await supabaseAdmin.auth.admin.updateUserById(row.user_id, { password: data.password });
-    await supabaseAdmin.from("students").update({ plaintext_password: data.password }).eq("id", data.id);
     await logActivity(supabaseAdmin, context.userId, "reset_password", data.id, {});
     return { ok: true };
   });
@@ -184,10 +182,11 @@ export const getStudentPassword = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("students")
-      .select("code, plaintext_password")
+      .select("code")
       .eq("id", data.id)
       .maybeSingle();
-    return { code: row?.code ?? null, password: (row as any)?.plaintext_password ?? null };
+    // Passwords are never stored in plaintext; callers must reset to obtain a new one.
+    return { code: row?.code ?? null, password: null as string | null };
   });
 
 
@@ -211,7 +210,7 @@ export const bulkCreateStudents = createServerFn({ method: "POST" })
         if (cErr || !u.user) { errors.push({ code: s.code, error: cErr?.message ?? "فشل الإنشاء" }); continue; }
         await supabaseAdmin.from("user_roles").insert({ user_id: u.user.id, role: "student" });
         const { password: _pw, ...rest } = s;
-        const { error: sErr } = await supabaseAdmin.from("students").insert({ ...rest, user_id: u.user.id, plaintext_password: password });
+        const { error: sErr } = await supabaseAdmin.from("students").insert({ ...rest, user_id: u.user.id });
 
         if (sErr) { errors.push({ code: s.code, error: sErr.message }); await supabaseAdmin.auth.admin.deleteUser(u.user.id); continue; }
         created++;

@@ -120,7 +120,6 @@ async function performApproval(admin: any, req: {
     class_id: req.class_id,
     group_id: req.group_id,
     avatar_url: req.avatar_url,
-    plaintext_password: password,
     status: "active",
   }).select("id").single();
   if (sErr || !st) { await admin.auth.admin.deleteUser(userId); throw new Error(sErr?.message ?? "فشل حفظ بيانات الطالب"); }
