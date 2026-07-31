@@ -124,6 +124,13 @@ async function performApproval(admin: any, req: {
   }).select("id").single();
   if (sErr || !st) { await admin.auth.admin.deleteUser(userId); throw new Error(sErr?.message ?? "فشل حفظ بيانات الطالب"); }
 
+  try {
+    await admin.from("student_credentials").upsert(
+      { student_id: st.id, password, updated_at: new Date().toISOString() },
+      { onConflict: "student_id" },
+    );
+  } catch {}
+
   await admin.rpc("increment_join_code_use", { _code_id: req.code_id });
 
   await admin.from("registration_requests").update({
