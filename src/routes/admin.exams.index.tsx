@@ -167,7 +167,7 @@ function ExamsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild><Link to="/admin/exams/$id" params={{ id: e.id }}><Edit className="h-4 w-4 ml-2" />تعديل</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link to="/admin/exams/$id/results" params={{ id: e.id }}><BarChart3 className="h-4 w-4 ml-2" />التقارير</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/admin/exams/$id/results" params={{ id: e.id }} search={{ attempt: undefined }}><BarChart3 className="h-4 w-4 ml-2" />التقارير</Link></DropdownMenuItem>
                     <DropdownMenuItem onClick={() => pubMut.mutate({ id: e.id, published: !e.published })}>
                       {e.published ? <><XCircle className="h-4 w-4 ml-2" />إلغاء النشر</> : <><CheckCircle2 className="h-4 w-4 ml-2" />نشر</>}
                     </DropdownMenuItem>
