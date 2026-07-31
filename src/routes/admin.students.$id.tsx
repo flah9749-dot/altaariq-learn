@@ -28,7 +28,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { resetStudentPassword, deleteStudents } from "@/lib/students.functions";
+import { resetStudentPassword, deleteStudents, getStudentPassword } from "@/lib/students.functions";
 import { awardPoints } from "@/lib/gamification";
 import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
@@ -49,8 +49,14 @@ function StudentDetailPage() {
   const [copied, setCopied] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const getPwFn = useServerFn(getStudentPassword);
   const deleteFn = useServerFn(deleteStudents);
   const qc = useQueryClient();
+
+  const { data: savedCreds } = useQuery({
+    queryKey: ["student-creds", id],
+    queryFn: async () => (await getPwFn({ data: { id } })) as { code: string | null; password: string | null },
+  });
 
   const { data: student, isLoading } = useQuery({
     queryKey: ["student", id],
@@ -133,7 +139,11 @@ function StudentDetailPage() {
       await resetFn({ data: { id, password: pw } });
       return pw;
     },
-    onSuccess: (pw) => { setCreds({ code: student?.code ?? "", password: pw }); toast.success("تم توليد كلمة مرور جديدة"); },
+    onSuccess: (pw) => {
+      setCreds({ code: student?.code ?? "", password: pw });
+      qc.invalidateQueries({ queryKey: ["student-creds", id] });
+      toast.success("تم توليد كلمة مرور جديدة");
+    },
     onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
   });
 
@@ -168,7 +178,7 @@ function StudentDetailPage() {
 
   async function copyCreds() {
     if (!creds && !student) return;
-    const text = `الكود: ${student?.code}\n${creds?.password ? `كلمة المرور: ${creds.password}` : ""}`.trim();
+    const text = `الكود: ${student?.code}\n${shownPassword ? `كلمة المرور: ${shownPassword}` : ""}`.trim();
     await navigator.clipboard.writeText(text);
     setCopied(true); setTimeout(() => setCopied(false), 1500);
   }
@@ -183,6 +193,7 @@ function StudentDetailPage() {
     );
   }
 
+  const shownPassword = creds?.password ?? savedCreds?.password ?? null;
   const nextLevelAt = (student.level ?? 1) * 100;
   const progressPct = Math.min(100, Math.round((student.points / nextLevelAt) * 100));
 
@@ -215,10 +226,10 @@ function StudentDetailPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">كلمة المرور</p>
-            {creds?.password ? (
-              <p dir="ltr" className="font-mono font-bold text-lg tracking-wider text-primary">{creds.password}</p>
+            {shownPassword ? (
+              <p dir="ltr" className="font-mono font-bold text-lg tracking-wider text-primary">{shownPassword}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">محفوظة مشفّرة — اضغط "توليد كلمة مرور" لعرض كلمة جديدة</p>
+              <p className="text-sm text-muted-foreground">غير محفوظة لهذا الطالب — اضغط "توليد كلمة مرور" لإنشاء واحدة</p>
             )}
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
@@ -228,12 +239,12 @@ function StudentDetailPage() {
             <Button size="sm" onClick={() => resetPw.mutate()} disabled={resetPw.isPending}>
               <RefreshCw className={`h-4 w-4 ml-1 ${resetPw.isPending ? "animate-spin" : ""}`}/>توليد كلمة مرور وعرضها
             </Button>
-            {creds && (
+            {(creds || shownPassword) && (
               <Button size="sm" variant="secondary" onClick={() => setCardOpen(true)}><Eye className="h-4 w-4 ml-1"/>عرض الكارت مع البيانات</Button>
             )}
           </div>
           {creds && (
-            <p className="sm:col-span-3 text-xs text-warning">⚠️ كلمة المرور تظهر مرة واحدة فقط — انسخها أو أرسلها لولي الأمر الآن.</p>
+            <p className="sm:col-span-3 text-xs text-warning">⚠️ تم تغيير كلمة المرور — أرسلها لولي الأمر.</p>
           )}
         </CardContent>
       </Card>
@@ -432,7 +443,7 @@ function StudentDetailPage() {
       </AlertDialog>
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
-      <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
+      <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds ?? (shownPassword ? { code: student.code, password: shownPassword } : null)} />
 
       <Dialog open={pointsOpen} onOpenChange={setPointsOpen}>
         <DialogContent className="max-w-md" dir="rtl">

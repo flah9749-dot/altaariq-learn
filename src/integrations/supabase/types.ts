@@ -2149,6 +2149,35 @@ export type Database = {
           },
         ]
       }
+      student_credentials: {
+        Row: {
+          created_at: string
+          password: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          password: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          password?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_credentials_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           address: string | null
