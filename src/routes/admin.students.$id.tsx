@@ -7,7 +7,7 @@ import {
   ArrowRight, Edit, Printer, Trophy, Star, FileText, MessageSquare,
   Phone, Calendar, MapPin, User, Award, TrendingUp,
   KeyRound, Copy, Check, RefreshCw, Eye, IdCard, Plus, Minus,
-  ClipboardList, AlertTriangle, CheckCircle2, XCircle,
+  ClipboardList, AlertTriangle, CheckCircle2, XCircle, Trash2, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,11 @@ import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { StudentCardDialog } from "@/components/students/StudentCardDialog";
-import { resetStudentPassword } from "@/lib/students.functions";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { resetStudentPassword, deleteStudents } from "@/lib/students.functions";
 import { awardPoints } from "@/lib/gamification";
 import { formatArabicDate, formatArabicDateTime, generateStudentPassword, type StudentRow } from "@/lib/students-utils";
 
@@ -43,7 +47,9 @@ function StudentDetailPage() {
   const [pointsReason, setPointsReason] = useState<string>("");
   const [creds, setCreds] = useState<{ code: string; password: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
+  const deleteFn = useServerFn(deleteStudents);
   const qc = useQueryClient();
 
   const { data: student, isLoading } = useQuery({
@@ -131,6 +137,17 @@ function StudentDetailPage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل إعادة التعيين"),
   });
 
+  const deleteAccount = useMutation({
+    mutationFn: async () => { await deleteFn({ data: { ids: [id] } }); },
+    onSuccess: () => {
+      toast.success("تم حذف حساب الطالب نهائياً");
+      setDeleteOpen(false);
+      qc.invalidateQueries({ queryKey: ["students"] });
+      navigate({ to: "/admin/students" });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "فشل حذف الحساب"),
+  });
+
   const adjustPoints = useMutation({
     mutationFn: async () => {
       const delta = Math.trunc(Number(pointsDelta));
@@ -180,6 +197,9 @@ function StudentDetailPage() {
           <Button variant="outline" size="sm" onClick={() => setCardOpen(true)}><IdCard className="h-4 w-4 ml-1" />عرض الكارت</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
           <Button size="sm" onClick={() => setEditOpen(true)}><Edit className="h-4 w-4 ml-1" />تعديل</Button>
+          <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="h-4 w-4 ml-1" />حذف الحساب بالكامل
+          </Button>
         </div>
       </div>
 
@@ -198,15 +218,15 @@ function StudentDetailPage() {
             {creds?.password ? (
               <p dir="ltr" className="font-mono font-bold text-lg tracking-wider text-primary">{creds.password}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">مخفية — اضغط "إعادة تعيين" لتوليد كلمة جديدة</p>
+              <p className="text-sm text-muted-foreground">محفوظة مشفّرة — اضغط "توليد كلمة مرور" لعرض كلمة جديدة</p>
             )}
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={copyCreds} disabled={!creds}>
+            <Button size="sm" variant="outline" onClick={copyCreds}>
               {copied ? <Check className="h-4 w-4 ml-1"/> : <Copy className="h-4 w-4 ml-1"/>}نسخ
             </Button>
             <Button size="sm" onClick={() => resetPw.mutate()} disabled={resetPw.isPending}>
-              <RefreshCw className={`h-4 w-4 ml-1 ${resetPw.isPending ? "animate-spin" : ""}`}/>إعادة تعيين كلمة المرور
+              <RefreshCw className={`h-4 w-4 ml-1 ${resetPw.isPending ? "animate-spin" : ""}`}/>توليد كلمة مرور وعرضها
             </Button>
             {creds && (
               <Button size="sm" variant="secondary" onClick={() => setCardOpen(true)}><Eye className="h-4 w-4 ml-1"/>عرض الكارت مع البيانات</Button>
@@ -388,6 +408,28 @@ function StudentDetailPage() {
         <QuickAction icon={Award} label="الجوائز" href="/admin/rewards" />
         <QuickAction icon={Trophy} label="النقاط والنتائج" href="/admin/reports" />
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف حساب {student.full_name} نهائياً؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف حساب الدخول وكل بيانات الطالب (النقاط، المحاولات، النتائج) نهائياً ولا يمكن التراجع.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deleteAccount.mutate(); }}
+              disabled={deleteAccount.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAccount.isPending ? <Loader2 className="h-4 w-4 ml-1 animate-spin" /> : <Trash2 className="h-4 w-4 ml-1" />}
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <StudentFormDialog open={editOpen} onOpenChange={setEditOpen} student={student} />
       <StudentCardDialog open={cardOpen} onOpenChange={setCardOpen} student={student} credentials={creds} />
