@@ -81,7 +81,7 @@ function ExamAnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/admin/exams/$id/results" params={{ id }}>
+          <Link to="/admin/exams/$id/results" params={{ id }} search={{ attempt: undefined }}>
             <ArrowRight className="h-4 w-4 ml-1" />رجوع للنتائج
           </Link>
         </Button>
