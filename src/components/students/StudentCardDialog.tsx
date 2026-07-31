@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StudentIdCard } from "./StudentIdCard";
 import type { StudentRow } from "@/lib/students-utils";
 import { generateStudentPassword } from "@/lib/students-utils";
-import { resetStudentPassword, getStudentPassword } from "@/lib/students.functions";
+import { resetStudentPassword } from "@/lib/students.functions";
 import { normalizePhoneForWhatsApp } from "@/lib/whatsapp";
 import { useDefaultCountryCode } from "@/hooks/use-default-country-code";
 import { buildWaMessage } from "@/lib/whatsapp-templates";
@@ -26,9 +26,7 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
   const [localCreds, setLocalCreds] = useState<{ code: string; password: string } | null>(null);
   const [resetting, setResetting] = useState(false);
   const resetFn = useServerFn(resetStudentPassword);
-  const getPwFn = useServerFn(getStudentPassword);
   const defaultCountryCode = useDefaultCountryCode();
-  const [loadingPw, setLoadingPw] = useState(false);
 
 
   const creds = credentials ?? localCreds;
@@ -60,27 +58,11 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
     }
   }
 
-  // Fetch existing plaintext password on open (only regenerates if none stored).
+  // Passwords are stored hashed only; reset the dialog state per student so the
+  // admin explicitly generates a fresh password when they need to share it.
   useEffect(() => {
-    if (!open || !student || credentials || localCreds) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingPw(true);
-      try {
-        const res = await getPwFn({ data: { id: student.id } });
-        if (cancelled) return;
-        if (res?.password) {
-          setLocalCreds({ code: res.code ?? student.code, password: res.password });
-        }
-      } catch {
-        /* ignore */
-      } finally {
-        if (!cancelled) setLoadingPw(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, student?.id]);
+    setLocalCreds(null);
+  }, [student?.id, open]);
 
   if (!student) return null;
 
@@ -231,8 +213,6 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
             <span className="text-muted-foreground">كلمة المرور</span>
             {creds?.password ? (
               <span dir="ltr" className="font-mono font-semibold text-primary">{creds.password}</span>
-            ) : loadingPw ? (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/>
             ) : (
               <Button size="sm" variant="outline" onClick={generatePw} disabled={resetting}>
                 {resetting ? <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin"/> : <KeyRound className="h-3.5 w-3.5 ml-1"/>}
@@ -240,7 +220,12 @@ export function StudentCardDialog({ open, onOpenChange, student, credentials }: 
               </Button>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="w-full" onClick={copyCreds} disabled={!creds?.password}>
+          {!creds?.password && (
+            <p className="text-[11px] text-muted-foreground">
+              كلمة المرور محفوظة مشفّرة ولا يمكن استرجاعها — ولّد كلمة جديدة لإرسالها لولي الأمر.
+            </p>
+          )}
+          <Button variant="ghost" size="sm" className="w-full" onClick={copyCreds}>
             {copied ? <Check className="h-4 w-4 ml-1"/> : <Copy className="h-4 w-4 ml-1"/>}
             نسخ بيانات الدخول
           </Button>
