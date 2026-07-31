@@ -36,6 +36,15 @@ async function logActivity(admin: any, actorId: string, action: string, entityId
   await admin.from("activity_log").insert({ actor_id: actorId, action, entity_type: "student", entity_id: entityId, meta });
 }
 
+// Admin-only credential vault (service_role access only, never exposed to clients directly)
+async function saveCredential(admin: any, studentId: string, password: string) {
+  try {
+    await admin
+      .from("student_credentials")
+      .upsert({ student_id: studentId, password, updated_at: new Date().toISOString() }, { onConflict: "student_id" });
+  } catch {}
+}
+
 export const createStudent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => StudentInput.parse(data))
