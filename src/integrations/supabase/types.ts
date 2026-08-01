@@ -262,6 +262,7 @@ export type Database = {
       ai_providers: {
         Row: {
           avg_latency_ms: number
+          base_url: string | null
           created_at: string
           default_model: string | null
           enabled: boolean
@@ -280,6 +281,7 @@ export type Database = {
         }
         Insert: {
           avg_latency_ms?: number
+          base_url?: string | null
           created_at?: string
           default_model?: string | null
           enabled?: boolean
@@ -298,6 +300,7 @@ export type Database = {
         }
         Update: {
           avg_latency_ms?: number
+          base_url?: string | null
           created_at?: string
           default_model?: string | null
           enabled?: boolean
@@ -1200,6 +1203,144 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_chunks: {
+        Row: {
+          chunk_index: number
+          class_id: string | null
+          content: string
+          created_at: string
+          doc_type: string
+          document_id: string
+          embedding: string | null
+          heading: string | null
+          id: string
+          lesson: string | null
+          page_number: number | null
+          token_estimate: number
+          unit: string | null
+        }
+        Insert: {
+          chunk_index?: number
+          class_id?: string | null
+          content: string
+          created_at?: string
+          doc_type?: string
+          document_id: string
+          embedding?: string | null
+          heading?: string | null
+          id?: string
+          lesson?: string | null
+          page_number?: number | null
+          token_estimate?: number
+          unit?: string | null
+        }
+        Update: {
+          chunk_index?: number
+          class_id?: string | null
+          content?: string
+          created_at?: string
+          doc_type?: string
+          document_id?: string
+          embedding?: string | null
+          heading?: string | null
+          id?: string
+          lesson?: string | null
+          page_number?: number | null
+          token_estimate?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_chunks_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kb_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "kb_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_documents: {
+        Row: {
+          char_count: number | null
+          chunk_count: number
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          error: string | null
+          file_id: string | null
+          id: string
+          mime_type: string | null
+          page_count: number | null
+          status: string
+          storage_path: string | null
+          subject: string
+          term: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          char_count?: number | null
+          chunk_count?: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          error?: string | null
+          file_id?: string | null
+          id?: string
+          mime_type?: string | null
+          page_count?: number | null
+          status?: string
+          storage_path?: string | null
+          subject?: string
+          term?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          char_count?: number | null
+          chunk_count?: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          error?: string | null
+          file_id?: string | null
+          id?: string
+          mime_type?: string | null
+          page_count?: number | null
+          status?: string
+          storage_path?: string | null
+          subject?: string
+          term?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_documents_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kb_documents_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
             referencedColumns: ["id"]
           },
         ]
@@ -2277,6 +2418,69 @@ export type Database = {
           },
         ]
       }
+      teacher_questions: {
+        Row: {
+          added_to_kb: boolean
+          ai_draft: string | null
+          answer: string | null
+          answered_at: string | null
+          answered_by: string | null
+          class_id: string | null
+          created_at: string
+          id: string
+          question: string
+          status: string
+          student_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          added_to_kb?: boolean
+          ai_draft?: string | null
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          question: string
+          status?: string
+          student_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          added_to_kb?: boolean
+          ai_draft?: string | null
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          question?: string
+          status?: string
+          student_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_questions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_questions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2425,6 +2629,27 @@ export type Database = {
       increment_join_code_use: {
         Args: { _code_id: string }
         Returns: undefined
+      }
+      match_kb_chunks: {
+        Args: {
+          filter_class_id?: string
+          filter_doc_type?: string
+          match_count?: number
+          min_similarity?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          doc_type: string
+          document_id: string
+          heading: string
+          id: string
+          lesson: string
+          page_number: number
+          similarity: number
+          title: string
+          unit: string
+        }[]
       }
       recompute_student_level: {
         Args: { _student_id: string }
