@@ -125,7 +125,30 @@ export async function callAI(
     return result;
   };
 
-  // --- 3a. Try Lovable Gateway across configured models ---
+  // --- 3a. Configured OpenAI-compatible providers (OpenRouter/Qwen, Together, Ollama, custom) ---
+  const textOnly = messages.every((m) => typeof m.content === "string");
+  try {
+    const { getProviderChain, callOpenAiCompatible } = await import("./providers.server");
+    const chain = await getProviderChain();
+    for (const provider of chain) {
+      // Attachments need a multimodal-capable gateway model; skip text-only providers.
+      if (!textOnly) continue;
+      try {
+        const r = await callOpenAiCompatible(provider, {
+          messages: messages as any,
+          maxTokens,
+          temperature: task.temperature,
+          responseJson: opts.responseJson,
+        });
+        return finish(
+          { text: r.text, cached: false, model: r.model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, latencyMs: Date.now() - start },
+          provider.slug,
+        );
+      } catch (e: any) { lastErr = e; }
+    }
+  } catch (e: any) { lastErr = lastErr ?? e; }
+
+  // --- 3b. Lovable Gateway across configured models ---
   if (lovableKey) {
     for (const model of models) {
       try {
@@ -158,6 +181,7 @@ export async function callAI(
       } catch (e: any) { lastErr = e; }
     }
   }
+
 
   // --- 3b. Fallback: user-configured providers (Gemini → OpenAI → …) ---
   try {
