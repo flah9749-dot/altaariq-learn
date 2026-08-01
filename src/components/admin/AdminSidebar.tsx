@@ -22,6 +22,9 @@ const items: Array<{ title: string; url: string; icon: any; badge: BadgeKey }> =
 
   { title: "النتائج", url: "/admin/results", icon: ClipboardCheck, badge: "results" },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot, badge: null },
+  { title: "قاعدة المعرفة", url: "/admin/ai/knowledge", icon: Bot, badge: null },
+  { title: "أسئلة الطلاب", url: "/admin/ai/questions", icon: Bot, badge: null },
+
   { title: "الرسائل", url: "/admin/messages", icon: MessageSquare, badge: "messages" },
   { title: "الجوائز والمسابقات", url: "/admin/rewards", icon: Award, badge: null },
   { title: "الترتيب والتقارير", url: "/admin/reports", icon: BarChart3, badge: null },
