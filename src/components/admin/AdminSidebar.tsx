@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, Archive, HeartPulse, ClipboardCheck, Map, Ticket, ClipboardList,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, HeartPulse, ClipboardCheck, Ticket, ClipboardList,
 } from "lucide-react";
+
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
@@ -16,10 +17,9 @@ const items: Array<{ title: string; url: string; icon: any; badge: BadgeKey }> =
   { title: "الطلاب", url: "/admin/students", icon: Users, badge: null },
   { title: "أكواد الانضمام", url: "/admin/join-codes", icon: Ticket, badge: null },
   { title: "طلبات التسجيل", url: "/admin/registration-requests", icon: ClipboardList, badge: null },
-  { title: "الأرشيف", url: "/admin/archive", icon: Archive, badge: null },
   { title: "الصفوف الدراسية", url: "/admin/classes", icon: GraduationCap, badge: null },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText, badge: null },
-  { title: "مكتبة الخرائط", url: "/admin/maps", icon: Map, badge: null },
+
   { title: "النتائج", url: "/admin/results", icon: ClipboardCheck, badge: "results" },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot, badge: null },
   { title: "الرسائل", url: "/admin/messages", icon: MessageSquare, badge: "messages" },
