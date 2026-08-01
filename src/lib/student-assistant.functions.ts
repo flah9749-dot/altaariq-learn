@@ -4,6 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAI, type AiMessage } from "@/lib/ai/router.server";
 import { trimHistory } from "@/lib/ai/context-manager.server";
 import { hashDataUrl, lookupDocumentByHash, saveExtractedDocument, clampText } from "@/lib/ai/document-cache.server";
+import {
+  searchKnowledge, buildContextBlock, toSources, confidenceOf, getStudentClass,
+} from "@/lib/ai/kb-search.server";
 
 const Input = z.object({
   messages: z.array(z.object({
@@ -15,10 +18,15 @@ const Input = z.object({
     name: z.string(),
     data_url: z.string(),
   })).default([]),
+  /** Temporarily search outside the student's own grade. */
+  wideSearch: z.boolean().default(false),
 });
 
 const SYSTEM_PROMPT =
-  "أنت مساعد الطلاب في منصة الطارق (دراسات اجتماعية). اشرح بالعربية البسيطة بعناوين ونقاط. لو رُفع ملف اقرأه واستخرج المفاهيم. لا تعطِ إجابات امتحان مباشرة. لا تعتذر عن قراءة الملفات.";
+  "أنت مدرس دراسات اجتماعية في منصة الطارق. اشرح بالعربية البسيطة المناسبة لسن الطالب، بعناوين ونقاط قصيرة. " +
+  "اعتمد أولاً على المقاطع المرفقة من المنهج ولا تخترع معلومات خارجها؛ إن نقص شيء قل ذلك صراحة. " +
+  "لو رُفع ملف اقرأه واستخرج المفاهيم. لا تعطِ إجابات امتحان مباشرة. لا تعتذر عن قراءة الملفات.";
+
 
 export const askStudentAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -45,7 +53,27 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
       }
     }
 
+    // --- RAG: retrieve curriculum context scoped to the student's own grade ---
+    const { classId, className } = await getStudentClass(context.userId);
+    const question = last?.content?.trim() ?? "";
+    const hits = question
+      ? await searchKnowledge({
+          question,
+          classId: data.wideSearch ? null : classId,
+          limit: 6,
+        })
+      : [];
+    const confidence = confidenceOf(hits);
+    const sources = toSources(hits);
+
     const raw: AiMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    if (className) raw.push({ role: "system", content: `الطالب في: ${className}. لا تسأله عن صفه.` });
+    if (hits.length) {
+      raw.push({
+        role: "system",
+        content: `مقاطع من منهج الطالب — اعتمد عليها في إجابتك:\n\n${buildContextBlock(hits)}`,
+      });
+    }
     for (const m of history) raw.push({ role: m.role, content: m.content });
     raw.push({ role: "user", content: parts });
 
@@ -80,5 +108,15 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
       });
     }
 
-    return { reply: result.text, cached: result.cached };
+    // Low grounding and no attachment → offer "اسأل المدرس" instead of guessing.
+    const needsTeacher = !hasAttachment && confidence < 0.35;
+
+    return {
+      reply: result.text,
+      cached: result.cached,
+      sources,
+      confidence: Math.round(confidence * 100),
+      needsTeacher,
+    };
+
   });

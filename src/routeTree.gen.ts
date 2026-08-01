@@ -63,7 +63,9 @@ import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
 import { Route as AdminAiUsageRouteImport } from './routes/admin.ai.usage'
 import { Route as AdminAiQuotasRouteImport } from './routes/admin.ai.quotas'
+import { Route as AdminAiQuestionsRouteImport } from './routes/admin.ai.questions'
 import { Route as AdminAiMappingRouteImport } from './routes/admin.ai.mapping'
+import { Route as AdminAiKnowledgeRouteImport } from './routes/admin.ai.knowledge'
 import { Route as StudentExamsIdIndexRouteImport } from './routes/student.exams.$id.index'
 import { Route as AdminExamsIdIndexRouteImport } from './routes/admin.exams.$id.index'
 import { Route as StudentExamsIdTakeRouteImport } from './routes/student.exams.$id.take'
@@ -349,9 +351,19 @@ const AdminAiQuotasRoute = AdminAiQuotasRouteImport.update({
   path: '/quotas',
   getParentRoute: () => AdminAiRoute,
 } as any)
+const AdminAiQuestionsRoute = AdminAiQuestionsRouteImport.update({
+  id: '/questions',
+  path: '/questions',
+  getParentRoute: () => AdminAiRoute,
+} as any)
 const AdminAiMappingRoute = AdminAiMappingRouteImport.update({
   id: '/mapping',
   path: '/mapping',
+  getParentRoute: () => AdminAiRoute,
+} as any)
+const AdminAiKnowledgeRoute = AdminAiKnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => AdminAiRoute,
 } as any)
 const StudentExamsIdIndexRoute = StudentExamsIdIndexRouteImport.update({
@@ -465,7 +477,9 @@ export interface FileRoutesByFullPath {
   '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
+  '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
@@ -531,7 +545,9 @@ export interface FileRoutesByTo {
   '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
+  '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/ai': typeof AdminExamsAiRoute
@@ -600,7 +616,9 @@ export interface FileRoutesById {
   '/verify/$attemptId': typeof VerifyAttemptIdRoute
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
+  '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
@@ -672,7 +690,9 @@ export interface FileRouteTypes {
     | '/verify/$attemptId'
     | '/admin/'
     | '/student/'
+    | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
@@ -738,7 +758,9 @@ export interface FileRouteTypes {
     | '/verify/$attemptId'
     | '/admin'
     | '/student'
+    | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/ai'
@@ -806,7 +828,9 @@ export interface FileRouteTypes {
     | '/verify/$attemptId'
     | '/admin/'
     | '/student/'
+    | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
@@ -1227,11 +1251,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiQuotasRouteImport
       parentRoute: typeof AdminAiRoute
     }
+    '/admin/ai/questions': {
+      id: '/admin/ai/questions'
+      path: '/questions'
+      fullPath: '/admin/ai/questions'
+      preLoaderRoute: typeof AdminAiQuestionsRouteImport
+      parentRoute: typeof AdminAiRoute
+    }
     '/admin/ai/mapping': {
       id: '/admin/ai/mapping'
       path: '/mapping'
       fullPath: '/admin/ai/mapping'
       preLoaderRoute: typeof AdminAiMappingRouteImport
+      parentRoute: typeof AdminAiRoute
+    }
+    '/admin/ai/knowledge': {
+      id: '/admin/ai/knowledge'
+      path: '/knowledge'
+      fullPath: '/admin/ai/knowledge'
+      preLoaderRoute: typeof AdminAiKnowledgeRouteImport
       parentRoute: typeof AdminAiRoute
     }
     '/student/exams/$id/': {
@@ -1329,14 +1367,18 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminAiRouteChildren {
+  AdminAiKnowledgeRoute: typeof AdminAiKnowledgeRoute
   AdminAiMappingRoute: typeof AdminAiMappingRoute
+  AdminAiQuestionsRoute: typeof AdminAiQuestionsRoute
   AdminAiQuotasRoute: typeof AdminAiQuotasRoute
   AdminAiUsageRoute: typeof AdminAiUsageRoute
   AdminAiIndexRoute: typeof AdminAiIndexRoute
 }
 
 const AdminAiRouteChildren: AdminAiRouteChildren = {
+  AdminAiKnowledgeRoute: AdminAiKnowledgeRoute,
   AdminAiMappingRoute: AdminAiMappingRoute,
+  AdminAiQuestionsRoute: AdminAiQuestionsRoute,
   AdminAiQuotasRoute: AdminAiQuotasRoute,
   AdminAiUsageRoute: AdminAiUsageRoute,
   AdminAiIndexRoute: AdminAiIndexRoute,
