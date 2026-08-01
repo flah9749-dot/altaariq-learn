@@ -4,6 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { callAI, type AiMessage } from "@/lib/ai/router.server";
 import { trimHistory } from "@/lib/ai/context-manager.server";
 import { hashDataUrl, lookupDocumentByHash, saveExtractedDocument, clampText } from "@/lib/ai/document-cache.server";
+import {
+  searchKnowledge, buildContextBlock, toSources, confidenceOf, getStudentClass,
+} from "@/lib/ai/kb-search.server";
 
 const Input = z.object({
   messages: z.array(z.object({
@@ -15,10 +18,15 @@ const Input = z.object({
     name: z.string(),
     data_url: z.string(),
   })).default([]),
+  /** Temporarily search outside the student's own grade. */
+  wideSearch: z.boolean().default(false),
 });
 
 const SYSTEM_PROMPT =
-  "أنت مساعد الطلاب في منصة الطارق (دراسات اجتماعية). اشرح بالعربية البسيطة بعناوين ونقاط. لو رُفع ملف اقرأه واستخرج المفاهيم. لا تعطِ إجابات امتحان مباشرة. لا تعتذر عن قراءة الملفات.";
+  "أنت مدرس دراسات اجتماعية في منصة الطارق. اشرح بالعربية البسيطة المناسبة لسن الطالب، بعناوين ونقاط قصيرة. " +
+  "اعتمد أولاً على المقاطع المرفقة من المنهج ولا تخترع معلومات خارجها؛ إن نقص شيء قل ذلك صراحة. " +
+  "لو رُفع ملف اقرأه واستخرج المفاهيم. لا تعطِ إجابات امتحان مباشرة. لا تعتذر عن قراءة الملفات.";
+
 
 export const askStudentAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
