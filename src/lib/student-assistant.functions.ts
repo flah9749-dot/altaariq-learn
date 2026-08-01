@@ -53,7 +53,27 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
       }
     }
 
+    // --- RAG: retrieve curriculum context scoped to the student's own grade ---
+    const { classId, className } = await getStudentClass(context.userId);
+    const question = last?.content?.trim() ?? "";
+    const hits = question
+      ? await searchKnowledge({
+          question,
+          classId: data.wideSearch ? null : classId,
+          limit: 6,
+        })
+      : [];
+    const confidence = confidenceOf(hits);
+    const sources = toSources(hits);
+
     const raw: AiMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+    if (className) raw.push({ role: "system", content: `الطالب في: ${className}. لا تسأله عن صفه.` });
+    if (hits.length) {
+      raw.push({
+        role: "system",
+        content: `مقاطع من منهج الطالب — اعتمد عليها في إجابتك:\n\n${buildContextBlock(hits)}`,
+      });
+    }
     for (const m of history) raw.push({ role: m.role, content: m.content });
     raw.push({ role: "user", content: parts });
 
@@ -88,5 +108,15 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
       });
     }
 
-    return { reply: result.text, cached: result.cached };
+    // Low grounding and no attachment → offer "اسأل المدرس" instead of guessing.
+    const needsTeacher = !hasAttachment && confidence < 0.35;
+
+    return {
+      reply: result.text,
+      cached: result.cached,
+      sources,
+      confidence: Math.round(confidence * 100),
+      needsTeacher,
+    };
+
   });
