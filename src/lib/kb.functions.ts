@@ -116,13 +116,14 @@ export const updateKbDocument = createServerFn({ method: "POST" })
     if (data.docType !== undefined) patch.doc_type = data.docType;
     if (data.classId !== undefined) patch.class_id = data.classId;
     if (data.term !== undefined) patch.term = data.term;
-    const { error } = await context.supabase.from("kb_documents").update(patch).eq("id", data.documentId);
+    const { error } = await context.supabase.from("kb_documents").update(patch as any).eq("id", data.documentId);
     if (error) throw new Error(error.message);
     if (data.classId !== undefined || data.docType !== undefined) {
       const chunkPatch: Record<string, unknown> = {};
       if (data.classId !== undefined) chunkPatch.class_id = data.classId;
       if (data.docType !== undefined) chunkPatch.doc_type = data.docType;
-      await context.supabase.from("kb_chunks").update(chunkPatch).eq("document_id", data.documentId);
+      await context.supabase.from("kb_chunks").update(chunkPatch as any).eq("document_id", data.documentId);
+
     }
     return { ok: true };
   });
