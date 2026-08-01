@@ -55,7 +55,7 @@ async function extractPdf(file: File, onProgress?: (p: number) => void): Promise
 }
 
 async function extractDocx(file: File): Promise<PageText[]> {
-  const mammoth: any = await import("mammoth/mammoth.browser");
+  const mammoth: any = await import(/* @vite-ignore */ "mammoth/mammoth.browser" as string);
   const buf = await file.arrayBuffer();
   const { value } = await mammoth.extractRawText({ arrayBuffer: buf });
   if (!value?.trim()) throw new Error("لم يُعثر على نص داخل الملف");
