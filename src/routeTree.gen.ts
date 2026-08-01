@@ -63,6 +63,7 @@ import { Route as AdminExamsAiRouteImport } from './routes/admin.exams.ai'
 import { Route as AdminExamsIdRouteImport } from './routes/admin.exams.$id'
 import { Route as AdminAiUsageRouteImport } from './routes/admin.ai.usage'
 import { Route as AdminAiQuotasRouteImport } from './routes/admin.ai.quotas'
+import { Route as AdminAiQuestionsRouteImport } from './routes/admin.ai.questions'
 import { Route as AdminAiMappingRouteImport } from './routes/admin.ai.mapping'
 import { Route as AdminAiKnowledgeRouteImport } from './routes/admin.ai.knowledge'
 import { Route as StudentExamsIdIndexRouteImport } from './routes/student.exams.$id.index'
@@ -350,6 +351,11 @@ const AdminAiQuotasRoute = AdminAiQuotasRouteImport.update({
   path: '/quotas',
   getParentRoute: () => AdminAiRoute,
 } as any)
+const AdminAiQuestionsRoute = AdminAiQuestionsRouteImport.update({
+  id: '/questions',
+  path: '/questions',
+  getParentRoute: () => AdminAiRoute,
+} as any)
 const AdminAiMappingRoute = AdminAiMappingRouteImport.update({
   id: '/mapping',
   path: '/mapping',
@@ -473,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/student/': typeof StudentIndexRoute
   '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   '/student': typeof StudentIndexRoute
   '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/ai': typeof AdminExamsAiRoute
@@ -610,6 +618,7 @@ export interface FileRoutesById {
   '/student/': typeof StudentIndexRoute
   '/admin/ai/knowledge': typeof AdminAiKnowledgeRoute
   '/admin/ai/mapping': typeof AdminAiMappingRoute
+  '/admin/ai/questions': typeof AdminAiQuestionsRoute
   '/admin/ai/quotas': typeof AdminAiQuotasRoute
   '/admin/ai/usage': typeof AdminAiUsageRoute
   '/admin/exams/$id': typeof AdminExamsIdRouteWithChildren
@@ -683,6 +692,7 @@ export interface FileRouteTypes {
     | '/student/'
     | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
@@ -750,6 +760,7 @@ export interface FileRouteTypes {
     | '/student'
     | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/ai'
@@ -819,6 +830,7 @@ export interface FileRouteTypes {
     | '/student/'
     | '/admin/ai/knowledge'
     | '/admin/ai/mapping'
+    | '/admin/ai/questions'
     | '/admin/ai/quotas'
     | '/admin/ai/usage'
     | '/admin/exams/$id'
@@ -1239,6 +1251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiQuotasRouteImport
       parentRoute: typeof AdminAiRoute
     }
+    '/admin/ai/questions': {
+      id: '/admin/ai/questions'
+      path: '/questions'
+      fullPath: '/admin/ai/questions'
+      preLoaderRoute: typeof AdminAiQuestionsRouteImport
+      parentRoute: typeof AdminAiRoute
+    }
     '/admin/ai/mapping': {
       id: '/admin/ai/mapping'
       path: '/mapping'
@@ -1350,6 +1369,7 @@ declare module '@tanstack/react-router' {
 interface AdminAiRouteChildren {
   AdminAiKnowledgeRoute: typeof AdminAiKnowledgeRoute
   AdminAiMappingRoute: typeof AdminAiMappingRoute
+  AdminAiQuestionsRoute: typeof AdminAiQuestionsRoute
   AdminAiQuotasRoute: typeof AdminAiQuotasRoute
   AdminAiUsageRoute: typeof AdminAiUsageRoute
   AdminAiIndexRoute: typeof AdminAiIndexRoute
@@ -1358,6 +1378,7 @@ interface AdminAiRouteChildren {
 const AdminAiRouteChildren: AdminAiRouteChildren = {
   AdminAiKnowledgeRoute: AdminAiKnowledgeRoute,
   AdminAiMappingRoute: AdminAiMappingRoute,
+  AdminAiQuestionsRoute: AdminAiQuestionsRoute,
   AdminAiQuotasRoute: AdminAiQuotasRoute,
   AdminAiUsageRoute: AdminAiUsageRoute,
   AdminAiIndexRoute: AdminAiIndexRoute,
