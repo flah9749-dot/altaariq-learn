@@ -92,11 +92,27 @@ function KnowledgePage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
   });
 
+  function checkSize(file: File) {
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      toast.error(`حجم الملف أكبر من ${MAX_UPLOAD_MB} ميجابايت`);
+      return false;
+    }
+    return true;
+  }
+
   async function handleUpload(file: File) {
+    if (!checkSize(file)) return;
     setProgress(0);
     setBusyLabel("جاري استخراج النص...");
     try {
-      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)));
+      const pages = await extractPages(
+        file,
+        (p) => {
+          setProgress(Math.round(p * 0.5));
+          if (p > 40) setBusyLabel("قراءة الصفحات المصوّرة بالذكاء الاصطناعي...");
+        },
+        runOcr,
+      );
       setBusyLabel("جاري الفهرسة الدلالية...");
       setProgress(60);
       const res = await ingestFn({
@@ -122,10 +138,11 @@ function KnowledgePage() {
   }
 
   async function handleReindex(file: File, documentId: string) {
+    if (!checkSize(file)) return;
     setProgress(0);
     setBusyLabel("إعادة الفهرسة...");
     try {
-      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)));
+      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)), runOcr);
       setProgress(60);
       const res = await reindexFn({ data: { documentId, pages } });
       toast.success(`تمت إعادة فهرسة ${res.chunks} مقطعاً`);
@@ -138,6 +155,7 @@ function KnowledgePage() {
       setReindexId(null);
     }
   }
+
 
   const docs = (data?.documents ?? []) as any[];
   const hits = searchMut.data?.hits ?? [];
