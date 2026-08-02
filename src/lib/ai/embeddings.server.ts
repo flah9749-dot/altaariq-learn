@@ -6,7 +6,10 @@ export const EMBED_MODEL = "openai/text-embedding-3-small";
 export const EMBED_DIMS = 1536;
 
 /** Max inputs we send in a single request (well under provider caps). */
-const BATCH_SIZE = 64;
+const BATCH_SIZE = 32;
+/** Gap between consecutive batches, to stay under the gateway rate limit. */
+const BATCH_DELAY_MS = 450;
+const MAX_RETRIES = 6;
 
 function apiKey(): string {
   const k = process.env.LOVABLE_API_KEY;
@@ -14,25 +17,43 @@ function apiKey(): string {
   return k;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function embedBatch(inputs: string[]): Promise<number[][]> {
-  const res = await fetch(EMBED_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey() },
-    body: JSON.stringify({ model: EMBED_MODEL, input: inputs }),
-  });
-  if (!res.ok) {
+  let lastError = "";
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(EMBED_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey() },
+      body: JSON.stringify({ model: EMBED_MODEL, input: inputs }),
+    });
+
+    if (res.ok) {
+      const json = (await res.json()) as any;
+      const data = (json?.data ?? []) as Array<{ index: number; embedding: number[] }>;
+      const out: number[][] = new Array(inputs.length);
+      for (const d of data) out[d.index ?? 0] = d.embedding;
+      for (let i = 0; i < inputs.length; i++) if (!out[i]) throw new Error("بصمة دلالية مفقودة");
+      return out;
+    }
+
     const t = await res.text();
-    if (res.status === 429) throw new Error("تجاوز حد الطلبات — أعد المحاولة بعد قليل (429)");
     if (res.status === 402) throw new Error("انتهى رصيد الذكاء الاصطناعي (402)");
+    // Retryable: rate limit + transient upstream failures.
+    if (res.status === 429 || res.status >= 500) {
+      lastError = `${res.status}: ${t.slice(0, 120)}`;
+      if (attempt < MAX_RETRIES) {
+        const wait = Math.min(30_000, 1200 * 2 ** attempt) + Math.floor(Math.random() * 500);
+        await sleep(wait);
+        continue;
+      }
+      throw new Error("تجاوز حد الطلبات — أعد المحاولة بعد قليل (429)");
+    }
     throw new Error(`فشل توليد البصمات الدلالية ${res.status}: ${t.slice(0, 200)}`);
   }
-  const json = (await res.json()) as any;
-  const data = (json?.data ?? []) as Array<{ index: number; embedding: number[] }>;
-  const out: number[][] = new Array(inputs.length);
-  for (const d of data) out[d.index ?? 0] = d.embedding;
-  for (let i = 0; i < inputs.length; i++) if (!out[i]) throw new Error("بصمة دلالية مفقودة");
-  return out;
+  throw new Error(`فشل توليد البصمات الدلالية ${lastError}`);
 }
+
 
 /** Embed one string. */
 export async function embedOne(text: string): Promise<number[]> {
