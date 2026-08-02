@@ -44,6 +44,13 @@ function KnowledgePage() {
   const reindexFn = useServerFn(reindexKbDocument);
   const searchFn = useServerFn(previewKbSearch);
   const statsFn = useServerFn(kbStats);
+  const ocrFn = useServerFn(ocrKbPages);
+
+  const runOcr = async (images: { page: number; dataUrl: string }[]) => {
+    const r = await ocrFn({ data: { images } });
+    return (r as any).pages as { page: number; text: string }[];
+  };
+
 
   const fileRef = useRef<HTMLInputElement>(null);
   const reindexRef = useRef<HTMLInputElement>(null);
