@@ -105,6 +105,60 @@ export function toSources(hits: KbHit[]): KbSource[] {
   return out.slice(0, 5);
 }
 
+const AR_ORDINALS: Record<string, number> = {
+  "الأول": 1, "الاول": 1, "الأولى": 1, "الاولى": 1,
+  "الثاني": 2, "الثانية": 2, "التاني": 2,
+  "الثالث": 3, "الثالثة": 3, "التالت": 3,
+  "الرابع": 4, "الرابعة": 4,
+  "الخامس": 5, "الخامسة": 5,
+  "السادس": 6, "السادسة": 6,
+  "السابع": 7, "السابعة": 7,
+  "الثامن": 8, "الثامنة": 8,
+};
+
+function ordinalOf(token: string): number | null {
+  const t = token.trim();
+  if (/^\d+$/.test(t)) return Number(t);
+  return AR_ORDINALS[t] ?? null;
+}
+
+export type KbScope = {
+  /** unit / term number ("الفصل الأول" / "الوحدة الثانية") */
+  unit: number | null;
+  /** lesson number ("الدرس الأول") */
+  lesson: number | null;
+  /** grade name fragment ("الأول الإعدادي") */
+  gradeHint: string | null;
+};
+
+/** Understand requests like "امتحان من الفصل الأول للصف الأول الإعدادي". */
+export function parseScope(text: string): KbScope {
+  const q = text.replace(/\s+/g, " ");
+  const unitM = q.match(/(?:الوحدة|الوحده|الفصل|الباب|الترم)\s+(\S+)/);
+  const lessonM = q.match(/(?:الدرس|الموضوع)\s+(\S+)/);
+  const gradeM = q.match(/الصف\s+(\S+(?:\s+(?:الإعدادي|الاعدادي|الثانوي|الابتدائي))?)/);
+  return {
+    unit: unitM ? ordinalOf(unitM[1]) : null,
+    lesson: lessonM ? ordinalOf(lessonM[1]) : null,
+    gradeHint: gradeM ? gradeM[1] : null,
+  };
+}
+
+/** Keep only hits whose unit/lesson labels match the requested scope (when any match). */
+export function applyScope(hits: KbHit[], scope: KbScope): KbHit[] {
+  if (scope.unit == null && scope.lesson == null) return hits;
+  const matches = (label: string | null, n: number | null) => {
+    if (n == null) return true;
+    if (!label) return false;
+    const digits = label.match(/\d+/);
+    if (digits && Number(digits[0]) === n) return true;
+    const words = Object.entries(AR_ORDINALS).filter(([, v]) => v === n).map(([k]) => k);
+    return words.some((w) => label.includes(w));
+  };
+  const filtered = hits.filter((h) => matches(h.unit, scope.unit) && matches(h.lesson, scope.lesson));
+  return filtered.length ? filtered : hits;
+}
+
 /** The student's class, read from their profile — never asked in chat. */
 export async function getStudentClass(userId: string): Promise<{ studentId: string | null; classId: string | null; className: string | null }> {
   try {
@@ -124,3 +178,4 @@ export async function getStudentClass(userId: string): Promise<{ studentId: stri
     return { studentId: null, classId: null, className: null };
   }
 }
+

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ingestDocument } from "@/lib/ai/kb-ingest.server";
 import { searchKnowledge } from "@/lib/ai/kb-search.server";
+import { callAI, type AiMessage } from "@/lib/ai/router.server";
 
 const DOC_TYPES = ["book", "notes", "question_bank", "revision", "exam", "answer"] as const;
 
@@ -10,6 +11,43 @@ async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!data) throw new Error("غير مصرح");
 }
+
+const OCR_PROMPT =
+  "استخرج كل النص العربي والإنجليزي الظاهر في هذه الصور بدقة وبالترتيب، مع الحفاظ على العناوين والفقرات والأسئلة. " +
+  "لا تلخّص ولا تشرح. أعد النص فقط، وافصل بين كل صفحة والتالية بسطر: ===PAGE===";
+
+/** OCR for scanned pages / images uploaded to the knowledge base. */
+export const ocrKbPages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      images: z.array(z.object({ page: z.number().int(), dataUrl: z.string().min(20) })).min(1).max(4),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const parts: Array<Record<string, unknown>> = [{ type: "text", text: OCR_PROMPT }];
+    for (const img of data.images) parts.push({ type: "image_url", image_url: { url: img.dataUrl } });
+
+    const msgs: AiMessage[] = [
+      { role: "system", content: "أنت محرك OCR دقيق للغة العربية. أعد النص الخام فقط." },
+      { role: "user", content: parts },
+    ];
+
+    const res = await callAI("map_analysis", msgs, {
+      userId: context.userId,
+      role: "admin",
+      systemCall: true,
+      maxTokens: 6000,
+    });
+
+    const blocks = res.text.split(/={2,}\s*PAGE\s*={2,}/i).map((s) => s.trim());
+    return {
+      pages: data.images.map((img, i) => ({ page: img.page, text: blocks[i] ?? (i === 0 ? res.text : "") })),
+    };
+  });
+
 
 export const listKbDocuments = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

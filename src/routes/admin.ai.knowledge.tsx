@@ -13,8 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { extractPages, DOC_TYPE_LABELS } from "@/lib/kb-extract";
 import {
-  listKbDocuments, ingestKbDocument, deleteKbDocument, reindexKbDocument, previewKbSearch, kbStats,
+  listKbDocuments, ingestKbDocument, deleteKbDocument, reindexKbDocument, previewKbSearch, kbStats, ocrKbPages,
 } from "@/lib/kb.functions";
+
+const MAX_UPLOAD_MB = 200;
+const ACCEPT = ".pdf,.docx,.txt,.md,.csv,image/*";
+
 
 export const Route = createFileRoute("/admin/ai/knowledge")({
   head: () => ({
@@ -40,6 +44,13 @@ function KnowledgePage() {
   const reindexFn = useServerFn(reindexKbDocument);
   const searchFn = useServerFn(previewKbSearch);
   const statsFn = useServerFn(kbStats);
+  const ocrFn = useServerFn(ocrKbPages);
+
+  const runOcr = async (images: { page: number; dataUrl: string }[]) => {
+    const r = await ocrFn({ data: { images } });
+    return (r as any).pages as { page: number; text: string }[];
+  };
+
 
   const fileRef = useRef<HTMLInputElement>(null);
   const reindexRef = useRef<HTMLInputElement>(null);
@@ -81,11 +92,27 @@ function KnowledgePage() {
     onError: (e: any) => toast.error(e?.message ?? "فشل الحذف"),
   });
 
+  function checkSize(file: File) {
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      toast.error(`حجم الملف أكبر من ${MAX_UPLOAD_MB} ميجابايت`);
+      return false;
+    }
+    return true;
+  }
+
   async function handleUpload(file: File) {
+    if (!checkSize(file)) return;
     setProgress(0);
     setBusyLabel("جاري استخراج النص...");
     try {
-      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)));
+      const pages = await extractPages(
+        file,
+        (p) => {
+          setProgress(Math.round(p * 0.5));
+          if (p > 40) setBusyLabel("قراءة الصفحات المصوّرة بالذكاء الاصطناعي...");
+        },
+        runOcr,
+      );
       setBusyLabel("جاري الفهرسة الدلالية...");
       setProgress(60);
       const res = await ingestFn({
@@ -111,10 +138,11 @@ function KnowledgePage() {
   }
 
   async function handleReindex(file: File, documentId: string) {
+    if (!checkSize(file)) return;
     setProgress(0);
     setBusyLabel("إعادة الفهرسة...");
     try {
-      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)));
+      const pages = await extractPages(file, (p) => setProgress(Math.round(p * 0.5)), runOcr);
       setProgress(60);
       const res = await reindexFn({ data: { documentId, pages } });
       toast.success(`تمت إعادة فهرسة ${res.chunks} مقطعاً`);
@@ -128,6 +156,7 @@ function KnowledgePage() {
     }
   }
 
+
   const docs = (data?.documents ?? []) as any[];
   const hits = searchMut.data?.hits ?? [];
   const busy = progress !== null;
@@ -136,6 +165,19 @@ function KnowledgePage() {
     ready: docs.filter((d) => d.status === "ready").length,
     failed: docs.filter((d) => d.status === "failed").length,
   }), [docs]);
+
+  /** Documents grouped by grade so each class has its own section. */
+  const grouped = useMemo(() => {
+    const map = new Map<string, { name: string; items: any[] }>();
+    for (const d of docs) {
+      const key = d.class_id ?? "none";
+      const name = d.classes?.name ?? "كل الصفوف / غير محدد";
+      if (!map.has(key)) map.set(key, { name, items: [] });
+      map.get(key)!.items.push(d);
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  }, [docs]);
+
 
   return (
     <div className="space-y-6">
@@ -161,7 +203,7 @@ function KnowledgePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />رفع مستند جديد</CardTitle>
-          <CardDescription>PDF أو Word أو ملف نصي. يُستخرج النص في المتصفح ثم يُفهرس على الخادم.</CardDescription>
+          <CardDescription>PDF أو Word أو نص أو صورة — حتى {MAX_UPLOAD_MB} ميجابايت. الملفات الممسوحة ضوئياً تُقرأ تلقائياً بالذكاء الاصطناعي.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -194,7 +236,7 @@ function KnowledgePage() {
             ref={fileRef}
             type="file"
             className="hidden"
-            accept=".pdf,.docx,.txt,.md,.csv"
+            accept={ACCEPT}
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";
@@ -205,7 +247,7 @@ function KnowledgePage() {
             ref={reindexRef}
             type="file"
             className="hidden"
-            accept=".pdf,.docx,.txt,.md,.csv"
+            accept={ACCEPT}
             onChange={(e) => {
               const f = e.target.files?.[0];
               const id = reindexId;
@@ -260,48 +302,57 @@ function KnowledgePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" />المستندات المفهرسة</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-5">
           {isLoading && <p className="text-sm text-muted-foreground">جاري التحميل...</p>}
           {!isLoading && docs.length === 0 && (
             <p className="text-sm text-muted-foreground">لا توجد مستندات بعد.</p>
           )}
-          {docs.map((d) => (
-            <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 font-medium">
-                  {d.status === "ready"
-                    ? <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    : d.status === "failed"
-                      ? <AlertTriangle className="h-4 w-4 text-red-600" />
-                      : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  <span className="truncate">{d.title}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</Badge>
-                  <span>{d.classes?.name ?? "كل الصفوف"}</span>
-                  <span>• {d.chunk_count} مقطع</span>
-                  {d.page_count ? <span>• {d.page_count} صفحة</span> : null}
-                </div>
-                {d.error && <p className="mt-1 text-xs text-red-600">{d.error}</p>}
+          {grouped.map((g) => (
+            <div key={g.name} className="space-y-2">
+              <div className="flex items-center gap-2 border-b pb-1">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-sm">{g.name}</span>
+                <Badge variant="secondary" className="text-[11px]">{g.items.length} مستند</Badge>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm" variant="outline" className="gap-1" disabled={busy}
-                  onClick={() => { setReindexId(d.id); reindexRef.current?.click(); }}
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />إعادة فهرسة
-                </Button>
-                <Button
-                  size="sm" variant="outline" className="gap-1"
-                  disabled={removeMut.isPending}
-                  onClick={() => { if (confirm("حذف المستند وكل مقاطعه؟")) removeMut.mutate(d.id); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />حذف
-                </Button>
-              </div>
+              {g.items.map((d) => (
+                <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 font-medium">
+                      {d.status === "ready"
+                        ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        : d.status === "failed"
+                          ? <AlertTriangle className="h-4 w-4 text-red-600" />
+                          : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                      <span className="truncate">{d.title}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</Badge>
+                      <span>• {d.chunk_count} مقطع</span>
+                      {d.page_count ? <span>• {d.page_count} صفحة</span> : null}
+                    </div>
+                    {d.error && <p className="mt-1 text-xs text-red-600">{d.error}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm" variant="outline" className="gap-1" disabled={busy}
+                      onClick={() => { setReindexId(d.id); reindexRef.current?.click(); }}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />إعادة فهرسة
+                    </Button>
+                    <Button
+                      size="sm" variant="outline" className="gap-1"
+                      disabled={removeMut.isPending}
+                      onClick={() => { if (confirm("حذف المستند وكل مقاطعه؟")) removeMut.mutate(d.id); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />حذف
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </CardContent>
+
       </Card>
     </div>
   );

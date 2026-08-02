@@ -2,14 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Sparkles, User, Loader2, Trash2, Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
+import {
+  Bot, Send, Sparkles, User, Loader2, Trash2, Paperclip, X, FileText, Image as ImageIcon,
+  BookOpen, HelpCircle, Baby, ScrollText, ListTree, Network, MessageCircleQuestion,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
+import { askTeacher } from "@/lib/teacher-questions.functions";
 import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
 import { upsertSession } from "@/lib/assistant-archive";
 import { useAuth } from "@/lib/auth-context";
@@ -20,7 +25,14 @@ export const Route = createFileRoute("/student/assistant")({
 });
 
 type Attach = { kind: "image" | "pdf"; name: string; data_url: string; size: number };
-type Msg = { role: "user" | "assistant"; content: string; files?: string[] };
+type Source = { title: string; unit: string | null; lesson: string | null; page: number | null; similarity: number };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  files?: string[];
+  sources?: Source[];
+  needsTeacher?: boolean;
+};
 
 const QUICK_PROMPTS = [
   "لخّص لي درس اليوم في نقاط",
@@ -29,7 +41,19 @@ const QUICK_PROMPTS = [
   "ساعدني أفهم خرائط الجغرافيا",
 ];
 
+type StyleKey = "normal" | "simple" | "very_simple" | "story" | "qa" | "outline" | "mindmap";
+
+const STYLES: { key: StyleKey; label: string; icon: any }[] = [
+  { key: "simple", label: "بسّطها", icon: Sparkles },
+  { key: "very_simple", label: "بسّطها جدًا", icon: Baby },
+  { key: "story", label: "في شكل حكاية", icon: ScrollText },
+  { key: "qa", label: "سؤال وجواب", icon: HelpCircle },
+  { key: "outline", label: "مخطط منظّم", icon: ListTree },
+  { key: "mindmap", label: "خريطة ذهنية", icon: Network },
+];
+
 const MAX_MB = 50;
+
 
 function fileToDataUrl(f: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -57,9 +81,11 @@ function StudentAssistantPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const askFn = useServerFn(askStudentAssistant);
+  const askTeacherFn = useServerFn(askTeacher);
+  const [askedTeacher, setAskedTeacher] = useState<Record<number, boolean>>({});
 
   const mut = useMutation({
-    mutationFn: async ({ text, atts }: { text: string; atts: Attach[] }) => {
+    mutationFn: async ({ text, atts, style }: { text: string; atts: Attach[]; style?: StyleKey }) => {
       const userMsg: Msg = { role: "user", content: text, files: atts.map((a) => a.name) };
       const next: Msg[] = [...messages, userMsg];
       setMessages(next);
@@ -67,9 +93,13 @@ function StudentAssistantPage() {
         data: {
           messages: next.map((m) => ({ role: m.role, content: m.content })),
           attachments: atts.map((a) => ({ kind: a.kind, name: a.name, data_url: a.data_url })),
+          style: style ?? "normal",
         },
       });
-      const finalMsgs: Msg[] = [...next, { role: "assistant", content: r.reply }];
+      const finalMsgs: Msg[] = [
+        ...next,
+        { role: "assistant", content: r.reply, sources: (r as any).sources ?? [], needsTeacher: !!(r as any).needsTeacher },
+      ];
       setMessages(finalMsgs);
       const saved = upsertSession(
         "student",
@@ -84,6 +114,20 @@ function StudentAssistantPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الاتصال بالمساعد"),
   });
+
+  const teacherMut = useMutation({
+    mutationFn: async ({ index }: { index: number }) => {
+      const question = [...messages].slice(0, index).reverse().find((m) => m.role === "user")?.content ?? "";
+      if (!question) throw new Error("لم يُعثر على السؤال");
+      await askTeacherFn({ data: { question, aiDraft: messages[index]?.content ?? null } });
+      setAskedTeacher((p) => ({ ...p, [index]: true }));
+    },
+    onSuccess: () => toast.success("تم إرسال سؤالك للمدرس — سيصلك الرد قريبًا"),
+    onError: (e: any) => toast.error(e?.message ?? "تعذّر إرسال السؤال"),
+  });
+
+  const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
 
 
   useEffect(() => {
@@ -106,15 +150,21 @@ function StudentAssistantPage() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const send = (text?: string) => {
+  const send = (text?: string, style?: StyleKey) => {
     const t = (text ?? input).trim();
     if ((!t && attachments.length === 0) || mut.isPending) return;
     const finalText = t || "لخّص لي هذا الملف واشرح أهم النقاط.";
-    setInput("");
+    if (text === undefined) setInput("");
     const atts = attachments;
     setAttachments([]);
-    mut.mutate({ text: finalText, atts });
+    mut.mutate({ text: finalText, atts, style });
   };
+
+  const reformat = (style: StyleKey) => {
+    if (!lastUserText || mut.isPending) return;
+    send(lastUserText, style);
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-4" dir="rtl">
@@ -199,13 +249,66 @@ function StudentAssistantPage() {
                         </div>
                       )}
                       {m.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        <div className="space-y-3">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                          </div>
+
+                          {m.sources && m.sources.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
+                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <BookOpen className="h-3 w-3" /> المصادر:
+                              </span>
+                              {m.sources.map((s, k) => (
+                                <Badge key={k} variant="secondary" className="text-[11px] font-normal">
+                                  {s.title}
+                                  {s.lesson ? ` — ${s.lesson}` : s.unit ? ` — ${s.unit}` : ""}
+                                  {s.page ? ` — صفحة ${s.page}` : ""}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {i === messages.length - 1 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {STYLES.map((s) => (
+                                <Button
+                                  key={s.key}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-[11px] px-2"
+                                  disabled={mut.isPending}
+                                  onClick={() => reformat(s.key)}
+                                >
+                                  <s.icon className="h-3 w-3 ml-1" />
+                                  {s.label}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+
+                          {m.needsTeacher && (
+                            <div className="rounded-lg border border-dashed p-3 space-y-2">
+                              <p className="text-xs text-muted-foreground">
+                                لم أجد إجابة مؤكدة داخل ملفات المنهج — تقدر ترسل السؤال للمدرس ليجيبك بنفسه.
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={askedTeacher[i] || teacherMut.isPending}
+                                onClick={() => teacherMut.mutate({ index: i })}
+                              >
+                                <MessageCircleQuestion className="h-4 w-4 ml-1" />
+                                {askedTeacher[i] ? "تم إرسال السؤال للمدرس" : "اسأل المدرس"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p className="whitespace-pre-wrap">{m.content}</p>
                       )}
                     </div>
+
                   </div>
                 ))}
                 {mut.isPending && (
