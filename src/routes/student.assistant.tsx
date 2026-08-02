@@ -2,14 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Sparkles, User, Loader2, Trash2, Paperclip, X, FileText, Image as ImageIcon } from "lucide-react";
+import {
+  Bot, Send, Sparkles, User, Loader2, Trash2, Paperclip, X, FileText, Image as ImageIcon,
+  BookOpen, HelpCircle, Baby, ScrollText, ListTree, Network, MessageCircleQuestion,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
+import { askTeacher } from "@/lib/teacher-questions.functions";
 import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
 import { upsertSession } from "@/lib/assistant-archive";
 import { useAuth } from "@/lib/auth-context";
@@ -20,7 +25,14 @@ export const Route = createFileRoute("/student/assistant")({
 });
 
 type Attach = { kind: "image" | "pdf"; name: string; data_url: string; size: number };
-type Msg = { role: "user" | "assistant"; content: string; files?: string[] };
+type Source = { title: string; unit: string | null; lesson: string | null; page: number | null; similarity: number };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  files?: string[];
+  sources?: Source[];
+  needsTeacher?: boolean;
+};
 
 const QUICK_PROMPTS = [
   "لخّص لي درس اليوم في نقاط",
@@ -29,7 +41,19 @@ const QUICK_PROMPTS = [
   "ساعدني أفهم خرائط الجغرافيا",
 ];
 
+type StyleKey = "normal" | "simple" | "very_simple" | "story" | "qa" | "outline" | "mindmap";
+
+const STYLES: { key: StyleKey; label: string; icon: any }[] = [
+  { key: "simple", label: "بسّطها", icon: Sparkles },
+  { key: "very_simple", label: "بسّطها جدًا", icon: Baby },
+  { key: "story", label: "في شكل حكاية", icon: ScrollText },
+  { key: "qa", label: "سؤال وجواب", icon: HelpCircle },
+  { key: "outline", label: "مخطط منظّم", icon: ListTree },
+  { key: "mindmap", label: "خريطة ذهنية", icon: Network },
+];
+
 const MAX_MB = 50;
+
 
 function fileToDataUrl(f: File): Promise<string> {
   return new Promise((resolve, reject) => {
