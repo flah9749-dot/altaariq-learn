@@ -249,13 +249,66 @@ function StudentAssistantPage() {
                         </div>
                       )}
                       {m.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        <div className="space-y-3">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                          </div>
+
+                          {m.sources && m.sources.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
+                              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <BookOpen className="h-3 w-3" /> المصادر:
+                              </span>
+                              {m.sources.map((s, k) => (
+                                <Badge key={k} variant="secondary" className="text-[11px] font-normal">
+                                  {s.title}
+                                  {s.lesson ? ` — ${s.lesson}` : s.unit ? ` — ${s.unit}` : ""}
+                                  {s.page ? ` — صفحة ${s.page}` : ""}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {i === messages.length - 1 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {STYLES.map((s) => (
+                                <Button
+                                  key={s.key}
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-[11px] px-2"
+                                  disabled={mut.isPending}
+                                  onClick={() => reformat(s.key)}
+                                >
+                                  <s.icon className="h-3 w-3 ml-1" />
+                                  {s.label}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+
+                          {m.needsTeacher && (
+                            <div className="rounded-lg border border-dashed p-3 space-y-2">
+                              <p className="text-xs text-muted-foreground">
+                                لم أجد إجابة مؤكدة داخل ملفات المنهج — تقدر ترسل السؤال للمدرس ليجيبك بنفسه.
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={askedTeacher[i] || teacherMut.isPending}
+                                onClick={() => teacherMut.mutate({ index: i })}
+                              >
+                                <MessageCircleQuestion className="h-4 w-4 ml-1" />
+                                {askedTeacher[i] ? "تم إرسال السؤال للمدرس" : "اسأل المدرس"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p className="whitespace-pre-wrap">{m.content}</p>
                       )}
                     </div>
+
                   </div>
                 ))}
                 {mut.isPending && (
