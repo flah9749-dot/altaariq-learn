@@ -302,48 +302,57 @@ function KnowledgePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" />المستندات المفهرسة</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-5">
           {isLoading && <p className="text-sm text-muted-foreground">جاري التحميل...</p>}
           {!isLoading && docs.length === 0 && (
             <p className="text-sm text-muted-foreground">لا توجد مستندات بعد.</p>
           )}
-          {docs.map((d) => (
-            <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 font-medium">
-                  {d.status === "ready"
-                    ? <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    : d.status === "failed"
-                      ? <AlertTriangle className="h-4 w-4 text-red-600" />
-                      : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  <span className="truncate">{d.title}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</Badge>
-                  <span>{d.classes?.name ?? "كل الصفوف"}</span>
-                  <span>• {d.chunk_count} مقطع</span>
-                  {d.page_count ? <span>• {d.page_count} صفحة</span> : null}
-                </div>
-                {d.error && <p className="mt-1 text-xs text-red-600">{d.error}</p>}
+          {grouped.map((g) => (
+            <div key={g.name} className="space-y-2">
+              <div className="flex items-center gap-2 border-b pb-1">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-sm">{g.name}</span>
+                <Badge variant="secondary" className="text-[11px]">{g.items.length} مستند</Badge>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm" variant="outline" className="gap-1" disabled={busy}
-                  onClick={() => { setReindexId(d.id); reindexRef.current?.click(); }}
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />إعادة فهرسة
-                </Button>
-                <Button
-                  size="sm" variant="outline" className="gap-1"
-                  disabled={removeMut.isPending}
-                  onClick={() => { if (confirm("حذف المستند وكل مقاطعه؟")) removeMut.mutate(d.id); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />حذف
-                </Button>
-              </div>
+              {g.items.map((d) => (
+                <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 font-medium">
+                      {d.status === "ready"
+                        ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        : d.status === "failed"
+                          ? <AlertTriangle className="h-4 w-4 text-red-600" />
+                          : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                      <span className="truncate">{d.title}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</Badge>
+                      <span>• {d.chunk_count} مقطع</span>
+                      {d.page_count ? <span>• {d.page_count} صفحة</span> : null}
+                    </div>
+                    {d.error && <p className="mt-1 text-xs text-red-600">{d.error}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm" variant="outline" className="gap-1" disabled={busy}
+                      onClick={() => { setReindexId(d.id); reindexRef.current?.click(); }}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />إعادة فهرسة
+                    </Button>
+                    <Button
+                      size="sm" variant="outline" className="gap-1"
+                      disabled={removeMut.isPending}
+                      onClick={() => { if (confirm("حذف المستند وكل مقاطعه؟")) removeMut.mutate(d.id); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />حذف
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </CardContent>
+
       </Card>
     </div>
   );
