@@ -166,6 +166,19 @@ function KnowledgePage() {
     failed: docs.filter((d) => d.status === "failed").length,
   }), [docs]);
 
+  /** Documents grouped by grade so each class has its own section. */
+  const grouped = useMemo(() => {
+    const map = new Map<string, { name: string; items: any[] }>();
+    for (const d of docs) {
+      const key = d.class_id ?? "none";
+      const name = d.classes?.name ?? "كل الصفوف / غير محدد";
+      if (!map.has(key)) map.set(key, { name, items: [] });
+      map.get(key)!.items.push(d);
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  }, [docs]);
+
+
   return (
     <div className="space-y-6">
       <div>
