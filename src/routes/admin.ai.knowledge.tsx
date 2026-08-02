@@ -13,8 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { extractPages, DOC_TYPE_LABELS } from "@/lib/kb-extract";
 import {
-  listKbDocuments, ingestKbDocument, deleteKbDocument, reindexKbDocument, previewKbSearch, kbStats,
+  listKbDocuments, ingestKbDocument, deleteKbDocument, reindexKbDocument, previewKbSearch, kbStats, ocrKbPages,
 } from "@/lib/kb.functions";
+
+const MAX_UPLOAD_MB = 200;
+const ACCEPT = ".pdf,.docx,.txt,.md,.csv,image/*";
+
 
 export const Route = createFileRoute("/admin/ai/knowledge")({
   head: () => ({
