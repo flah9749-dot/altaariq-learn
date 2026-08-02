@@ -150,15 +150,21 @@ function StudentAssistantPage() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const send = (text?: string) => {
+  const send = (text?: string, style?: StyleKey) => {
     const t = (text ?? input).trim();
     if ((!t && attachments.length === 0) || mut.isPending) return;
     const finalText = t || "لخّص لي هذا الملف واشرح أهم النقاط.";
-    setInput("");
+    if (text === undefined) setInput("");
     const atts = attachments;
     setAttachments([]);
-    mut.mutate({ text: finalText, atts });
+    mut.mutate({ text: finalText, atts, style });
   };
+
+  const reformat = (style: StyleKey) => {
+    if (!lastUserText || mut.isPending) return;
+    send(lastUserText, style);
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-4" dir="rtl">
