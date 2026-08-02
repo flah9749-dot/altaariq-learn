@@ -65,12 +65,14 @@ export async function embedOne(text: string): Promise<number[]> {
 export async function embedMany(texts: string[]): Promise<number[][]> {
   const all: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    if (i > 0) await sleep(BATCH_DELAY_MS);
     const slice = texts.slice(i, i + BATCH_SIZE).map(normalize);
     const vectors = await embedBatch(slice);
     all.push(...vectors);
   }
   return all;
 }
+
 
 function normalize(t: string): string {
   const clean = t.replace(/\s+/g, " ").trim();
