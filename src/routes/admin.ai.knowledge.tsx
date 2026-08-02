@@ -203,7 +203,7 @@ function KnowledgePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />رفع مستند جديد</CardTitle>
-          <CardDescription>PDF أو Word أو ملف نصي. يُستخرج النص في المتصفح ثم يُفهرس على الخادم.</CardDescription>
+          <CardDescription>PDF أو Word أو نص أو صورة — حتى {MAX_UPLOAD_MB} ميجابايت. الملفات الممسوحة ضوئياً تُقرأ تلقائياً بالذكاء الاصطناعي.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -236,7 +236,7 @@ function KnowledgePage() {
             ref={fileRef}
             type="file"
             className="hidden"
-            accept=".pdf,.docx,.txt,.md,.csv"
+            accept={ACCEPT}
             onChange={(e) => {
               const f = e.target.files?.[0];
               e.target.value = "";
@@ -247,7 +247,7 @@ function KnowledgePage() {
             ref={reindexRef}
             type="file"
             className="hidden"
-            accept=".pdf,.docx,.txt,.md,.csv"
+            accept={ACCEPT}
             onChange={(e) => {
               const f = e.target.files?.[0];
               const id = reindexId;
