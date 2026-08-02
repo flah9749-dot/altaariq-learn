@@ -81,9 +81,11 @@ function StudentAssistantPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const askFn = useServerFn(askStudentAssistant);
+  const askTeacherFn = useServerFn(askTeacher);
+  const [askedTeacher, setAskedTeacher] = useState<Record<number, boolean>>({});
 
   const mut = useMutation({
-    mutationFn: async ({ text, atts }: { text: string; atts: Attach[] }) => {
+    mutationFn: async ({ text, atts, style }: { text: string; atts: Attach[]; style?: StyleKey }) => {
       const userMsg: Msg = { role: "user", content: text, files: atts.map((a) => a.name) };
       const next: Msg[] = [...messages, userMsg];
       setMessages(next);
@@ -91,9 +93,13 @@ function StudentAssistantPage() {
         data: {
           messages: next.map((m) => ({ role: m.role, content: m.content })),
           attachments: atts.map((a) => ({ kind: a.kind, name: a.name, data_url: a.data_url })),
+          style: style ?? "normal",
         },
       });
-      const finalMsgs: Msg[] = [...next, { role: "assistant", content: r.reply }];
+      const finalMsgs: Msg[] = [
+        ...next,
+        { role: "assistant", content: r.reply, sources: (r as any).sources ?? [], needsTeacher: !!(r as any).needsTeacher },
+      ];
       setMessages(finalMsgs);
       const saved = upsertSession(
         "student",
@@ -108,6 +114,20 @@ function StudentAssistantPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "فشل الاتصال بالمساعد"),
   });
+
+  const teacherMut = useMutation({
+    mutationFn: async ({ index }: { index: number }) => {
+      const question = [...messages].slice(0, index).reverse().find((m) => m.role === "user")?.content ?? "";
+      if (!question) throw new Error("لم يُعثر على السؤال");
+      await askTeacherFn({ data: { question, aiDraft: messages[index]?.content ?? null } });
+      setAskedTeacher((p) => ({ ...p, [index]: true }));
+    },
+    onSuccess: () => toast.success("تم إرسال سؤالك للمدرس — سيصلك الرد قريبًا"),
+    onError: (e: any) => toast.error(e?.message ?? "تعذّر إرسال السؤال"),
+  });
+
+  const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
 
 
   useEffect(() => {
