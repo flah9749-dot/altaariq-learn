@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText, MapPin, ImagePlus } from "lucide-react";
+import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText, MapPin, ImagePlus, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { generateExamWithAI } from "@/lib/ai-exam.functions";
+import { generateExamFromKnowledge } from "@/lib/kb-exam.functions";
+import { listKbDocuments } from "@/lib/kb.functions";
 import { upsertExam, saveQuestions } from "@/lib/exams.functions";
 import { QUESTION_TYPES } from "@/lib/exam-utils";
+
 
 export const Route = createFileRoute("/admin/exams/ai")({
   head: () => ({ meta: [{ title: "إنشاء امتحان بالذكاء الاصطناعي" }] }),
@@ -38,6 +42,27 @@ function AIExamPage() {
   const upsertFn = useServerFn(upsertExam);
   const saveQFn = useServerFn(saveQuestions);
 
+  const kbGenFn = useServerFn(generateExamFromKnowledge);
+  const listDocsFn = useServerFn(listKbDocuments);
+
+  const [mode, setMode] = useState<"free" | "kb">("free");
+  const [instruction, setInstruction] = useState("");
+  const [kbClassId, setKbClassId] = useState("all");
+  const [kbDocId, setKbDocId] = useState("all");
+  const [useBank, setUseBank] = useState(false);
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-simple"],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("id, name").order("name");
+      return data ?? [];
+    },
+  });
+  const { data: kbDocs } = useQuery({
+    queryKey: ["kb-docs-simple"],
+    queryFn: async () => (await listDocsFn({ data: undefined as any })) as { documents: any[] },
+  });
+
   const [topic, setTopic] = useState("");
   const [rawText, setRawText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -50,6 +75,7 @@ function AIExamPage() {
   const [totalScore, setTotalScore] = useState(50);
   const [preview, setPreview] = useState<{ title: string; questions: any[] } | null>(null);
   const [fileProgress, setFileProgress] = useState<{ name: string; index: number; total: number } | null>(null);
+
 
   const uploadFile = async (files: FileList | null) => {
     if (!files) return;
@@ -71,11 +97,23 @@ function AIExamPage() {
   const toggleType = (v: string) => setTypes((t) => t.includes(v) ? t.filter((x) => x !== v) : [...t, v]);
 
   const genMut = useMutation({
-    mutationFn: async () => genFn({ data: {
-      topic, raw_text: rawText, attachments, num_questions: numQuestions,
-      question_types: types, difficulty, language, points_per_question: pts,
-      total_score: useTotal ? totalScore : null,
-    } }),
+    mutationFn: async () => {
+      if (mode === "kb") {
+        return kbGenFn({ data: {
+          instruction, classId: kbClassId === "all" ? null : kbClassId,
+          documentId: kbDocId === "all" ? null : kbDocId,
+          useKnowledge: true, useBank,
+          num_questions: numQuestions, question_types: types, difficulty,
+          points_per_question: pts, total_score: useTotal ? totalScore : null,
+        } });
+      }
+      return genFn({ data: {
+        topic, raw_text: rawText, attachments, num_questions: numQuestions,
+        question_types: types, difficulty, language, points_per_question: pts,
+        total_score: useTotal ? totalScore : null,
+      } });
+    },
+
     onSuccess: (r: any) => { setPreview(r); toast.success(`تم توليد ${r.questions.length} سؤال`); },
     onError: (e: any) => toast.error(e?.message ?? "فشل التوليد"),
   });
@@ -113,9 +151,62 @@ function AIExamPage() {
       {!preview ? (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
+            <div className="flex gap-2">
+              <Button variant={mode === "free" ? "default" : "outline"} size="sm" onClick={() => setMode("free")}>
+                <FileText className="h-4 w-4 ml-1" />من نص أو ملف
+              </Button>
+              <Button variant={mode === "kb" ? "default" : "outline"} size="sm" onClick={() => setMode("kb")}>
+                <BookOpen className="h-4 w-4 ml-1" />من قاعدة المعرفة وبنك الأسئلة
+              </Button>
+            </div>
+
+            {mode === "kb" ? (
+              <Card>
+                <CardHeader><CardTitle className="text-base">المصدر: منهج المدرس</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <Field label="اطلب بالعربية">
+                    <Textarea
+                      rows={3}
+                      placeholder="مثال: اعمل امتحان على الدرس الأول من الفصل الثاني للصف الثاني الثانوي"
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                    />
+                  </Field>
+                  <Field label="الصف الدراسي">
+                    <Select value={kbClassId} onValueChange={setKbClassId}>
+                      <SelectTrigger><SelectValue placeholder="كل الصفوف" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الصفوف</SelectItem>
+                        {(classes ?? []).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="مستند محدد (اختياري)">
+                    <Select value={kbDocId} onValueChange={setKbDocId}>
+                      <SelectTrigger><SelectValue placeholder="كل المستندات" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل المستندات</SelectItem>
+                        {(kbDocs?.documents ?? [])
+                          .filter((d: any) => kbClassId === "all" || d.class_id === kbClassId)
+                          .map((d: any) => (
+                            <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={useBank} onCheckedChange={(v) => setUseBank(!!v)} />
+                    <span>استخدم أيضًا أسئلة جاهزة من بنك الأسئلة</span>
+                  </label>
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardHeader><CardTitle className="text-base">المصدر</CardTitle></CardHeader>
               <CardContent className="space-y-3">
+
                 <Field label="الموضوع / العنوان">
                   <Input placeholder="مثال: الحرب العالمية الثانية — أسبابها ونتائجها" value={topic} onChange={(e) => setTopic(e.target.value)} />
                 </Field>
@@ -153,7 +244,9 @@ function AIExamPage() {
                 </Field>
               </CardContent>
             </Card>
+            )}
           </div>
+
 
           <div className="space-y-4">
             <Card>
@@ -205,7 +298,7 @@ function AIExamPage() {
                     )}
                   </div>
                 </Field>
-                <Button className="w-full" onClick={() => genMut.mutate()} disabled={!!fileProgress || genMut.isPending || (!topic && !rawText && attachments.length === 0) || types.length === 0}>
+                <Button className="w-full" onClick={() => genMut.mutate()} disabled={!!fileProgress || genMut.isPending || types.length === 0 || (mode === "kb" ? instruction.trim().length < 3 : (!topic && !rawText && attachments.length === 0))}>
                   {genMut.isPending ? <><Loader2 className="h-4 w-4 animate-spin ml-1" />جاري التوليد...</> : <><Sparkles className="h-4 w-4 ml-1" />توليد الامتحان</>}
                 </Button>
               </CardContent>

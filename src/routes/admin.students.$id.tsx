@@ -24,6 +24,8 @@ import { WhatsAppButton } from "@/components/common/WhatsAppButton";
 import { StudentIdCard } from "@/components/students/StudentIdCard";
 import { StudentFormDialog } from "@/components/students/StudentFormDialog";
 import { StudentCardDialog } from "@/components/students/StudentCardDialog";
+import { StudentQuestionsCard } from "@/components/students/StudentQuestionsCard";
+
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -412,8 +414,10 @@ function StudentDetailPage() {
         </CardContent>
       </Card>
 
+      <StudentQuestionsCard studentId={id} />
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 print:hidden">
+
         <QuickAction icon={FileText} label="الامتحانات" href="/admin/exams" />
         <QuickAction icon={MessageSquare} label="الرسائل" href="/admin/messages" />
         <QuickAction icon={Award} label="الجوائز" href="/admin/rewards" />

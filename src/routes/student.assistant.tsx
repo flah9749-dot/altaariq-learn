@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
 import { askTeacher } from "@/lib/teacher-questions.functions";
 import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
+import { MyQuestionsDrawer } from "@/components/assistant/MyQuestionsDrawer";
+
 import { upsertSession } from "@/lib/assistant-archive";
 import { useAuth } from "@/lib/auth-context";
 
@@ -179,7 +181,9 @@ function StudentAssistantPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <MyQuestionsDrawer />
           <ArchiveDrawer
+
             scope="student"
             userId={userId}
             activeId={sessionId}
@@ -287,14 +291,17 @@ function StudentAssistantPage() {
                             </div>
                           )}
 
-                          {m.needsTeacher && (
-                            <div className="rounded-lg border border-dashed p-3 space-y-2">
-                              <p className="text-xs text-muted-foreground">
-                                لم أجد إجابة مؤكدة داخل ملفات المنهج — تقدر ترسل السؤال للمدرس ليجيبك بنفسه.
-                              </p>
+                          {(m.needsTeacher || i === messages.length - 1) && (
+                            <div className={`rounded-lg p-3 space-y-2 ${m.needsTeacher ? "border border-dashed" : ""}`}>
+                              {m.needsTeacher && (
+                                <p className="text-xs text-muted-foreground">
+                                  لم أجد إجابة مؤكدة داخل ملفات المنهج — تقدر ترسل السؤال للمدرس ليجيبك بنفسه.
+                                </p>
+                              )}
                               <Button
                                 size="sm"
-                                variant="secondary"
+                                variant={m.needsTeacher ? "secondary" : "ghost"}
+                                className={m.needsTeacher ? "" : "h-7 text-[11px] px-2"}
                                 disabled={askedTeacher[i] || teacherMut.isPending}
                                 onClick={() => teacherMut.mutate({ index: i })}
                               >
@@ -303,6 +310,7 @@ function StudentAssistantPage() {
                               </Button>
                             </div>
                           )}
+
                         </div>
                       ) : (
                         <p className="whitespace-pre-wrap">{m.content}</p>
