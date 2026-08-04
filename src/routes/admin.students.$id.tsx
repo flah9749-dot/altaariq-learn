@@ -412,8 +412,10 @@ function StudentDetailPage() {
         </CardContent>
       </Card>
 
+      <StudentQuestionsCard studentId={id} />
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 print:hidden">
+
         <QuickAction icon={FileText} label="الامتحانات" href="/admin/exams" />
         <QuickAction icon={MessageSquare} label="الرسائل" href="/admin/messages" />
         <QuickAction icon={Award} label="الجوائز" href="/admin/rewards" />
