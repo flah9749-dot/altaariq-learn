@@ -298,7 +298,7 @@ function AIExamPage() {
                     )}
                   </div>
                 </Field>
-                <Button className="w-full" onClick={() => genMut.mutate()} disabled={!!fileProgress || genMut.isPending || (!topic && !rawText && attachments.length === 0) || types.length === 0}>
+                <Button className="w-full" onClick={() => genMut.mutate()} disabled={!!fileProgress || genMut.isPending || types.length === 0 || (mode === "kb" ? instruction.trim().length < 3 : (!topic && !rawText && attachments.length === 0))}>
                   {genMut.isPending ? <><Loader2 className="h-4 w-4 animate-spin ml-1" />جاري التوليد...</> : <><Sparkles className="h-4 w-4 ml-1" />توليد الامتحان</>}
                 </Button>
               </CardContent>
