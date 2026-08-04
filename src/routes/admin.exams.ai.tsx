@@ -97,11 +97,23 @@ function AIExamPage() {
   const toggleType = (v: string) => setTypes((t) => t.includes(v) ? t.filter((x) => x !== v) : [...t, v]);
 
   const genMut = useMutation({
-    mutationFn: async () => genFn({ data: {
-      topic, raw_text: rawText, attachments, num_questions: numQuestions,
-      question_types: types, difficulty, language, points_per_question: pts,
-      total_score: useTotal ? totalScore : null,
-    } }),
+    mutationFn: async () => {
+      if (mode === "kb") {
+        return kbGenFn({ data: {
+          instruction, classId: kbClassId === "all" ? null : kbClassId,
+          documentId: kbDocId === "all" ? null : kbDocId,
+          useKnowledge: true, useBank,
+          num_questions: numQuestions, question_types: types, difficulty,
+          points_per_question: pts, total_score: useTotal ? totalScore : null,
+        } });
+      }
+      return genFn({ data: {
+        topic, raw_text: rawText, attachments, num_questions: numQuestions,
+        question_types: types, difficulty, language, points_per_question: pts,
+        total_score: useTotal ? totalScore : null,
+      } });
+    },
+
     onSuccess: (r: any) => { setPreview(r); toast.success(`تم توليد ${r.questions.length} سؤال`); },
     onError: (e: any) => toast.error(e?.message ?? "فشل التوليد"),
   });
