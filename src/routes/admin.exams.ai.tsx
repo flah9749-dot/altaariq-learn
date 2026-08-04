@@ -113,9 +113,62 @@ function AIExamPage() {
       {!preview ? (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
+            <div className="flex gap-2">
+              <Button variant={mode === "free" ? "default" : "outline"} size="sm" onClick={() => setMode("free")}>
+                <FileText className="h-4 w-4 ml-1" />من نص أو ملف
+              </Button>
+              <Button variant={mode === "kb" ? "default" : "outline"} size="sm" onClick={() => setMode("kb")}>
+                <BookOpen className="h-4 w-4 ml-1" />من قاعدة المعرفة وبنك الأسئلة
+              </Button>
+            </div>
+
+            {mode === "kb" ? (
+              <Card>
+                <CardHeader><CardTitle className="text-base">المصدر: منهج المدرس</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <Field label="اطلب بالعربية">
+                    <Textarea
+                      rows={3}
+                      placeholder="مثال: اعمل امتحان على الدرس الأول من الفصل الثاني للصف الثاني الثانوي"
+                      value={instruction}
+                      onChange={(e) => setInstruction(e.target.value)}
+                    />
+                  </Field>
+                  <Field label="الصف الدراسي">
+                    <Select value={kbClassId} onValueChange={setKbClassId}>
+                      <SelectTrigger><SelectValue placeholder="كل الصفوف" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الصفوف</SelectItem>
+                        {(classes ?? []).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="مستند محدد (اختياري)">
+                    <Select value={kbDocId} onValueChange={setKbDocId}>
+                      <SelectTrigger><SelectValue placeholder="كل المستندات" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل المستندات</SelectItem>
+                        {(kbDocs?.documents ?? [])
+                          .filter((d: any) => kbClassId === "all" || d.class_id === kbClassId)
+                          .map((d: any) => (
+                            <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={useBank} onCheckedChange={(v) => setUseBank(!!v)} />
+                    <span>استخدم أيضًا أسئلة جاهزة من بنك الأسئلة</span>
+                  </label>
+                </CardContent>
+              </Card>
+            ) : (
             <Card>
               <CardHeader><CardTitle className="text-base">المصدر</CardTitle></CardHeader>
               <CardContent className="space-y-3">
+
                 <Field label="الموضوع / العنوان">
                   <Input placeholder="مثال: الحرب العالمية الثانية — أسبابها ونتائجها" value={topic} onChange={(e) => setTopic(e.target.value)} />
                 </Field>
