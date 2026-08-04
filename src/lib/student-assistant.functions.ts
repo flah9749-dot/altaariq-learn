@@ -138,8 +138,12 @@ export const askStudentAssistant = createServerFn({ method: "POST" })
       });
     }
 
-    // Low grounding and no attachment → offer "اسأل المدرس" instead of guessing.
-    const needsTeacher = !hasAttachment && confidence < 0.35;
+    // Weak grounding, or the model says it doesn't know → offer "اسأل المدرس".
+    const unsure = /(لا (أعرف|اعرف)|لم أجد|لا يوجد|غير (متوفر|موجود)|لا تتوفر|خارج المنهج|لست متأكد)/.test(
+      result.text.slice(0, 600),
+    );
+    const needsTeacher = unsure || (!hasAttachment && confidence < 0.5) || hits.length === 0;
+
 
     return {
       reply: result.text,
