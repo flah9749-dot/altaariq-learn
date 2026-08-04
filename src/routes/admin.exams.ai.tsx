@@ -206,7 +206,9 @@ function AIExamPage() {
                 </Field>
               </CardContent>
             </Card>
+            )}
           </div>
+
 
           <div className="space-y-4">
             <Card>
