@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText, MapPin, ImagePlus } from "lucide-react";
+import { ArrowRight, Sparkles, Upload, X, Loader2, Camera, FileText, MapPin, ImagePlus, BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { generateExamWithAI } from "@/lib/ai-exam.functions";
+import { generateExamFromKnowledge } from "@/lib/kb-exam.functions";
+import { listKbDocuments } from "@/lib/kb.functions";
 import { upsertExam, saveQuestions } from "@/lib/exams.functions";
 import { QUESTION_TYPES } from "@/lib/exam-utils";
+
 
 export const Route = createFileRoute("/admin/exams/ai")({
   head: () => ({ meta: [{ title: "إنشاء امتحان بالذكاء الاصطناعي" }] }),
