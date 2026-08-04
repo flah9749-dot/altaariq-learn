@@ -114,7 +114,24 @@ export const myTeacherQuestions = createServerFn({ method: "POST" })
       .select("id, question, answer, status, created_at, answered_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(50);
     if (error) throw new Error(error.message);
     return { questions: data ?? [] };
   });
+
+/** Admin view: the archive of questions asked by one student. */
+export const studentTeacherQuestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ studentId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await isAdmin(context.supabase, context.userId))) throw new Error("غير مصرح");
+    const { data: rows, error } = await context.supabase
+      .from("teacher_questions")
+      .select("id, question, answer, ai_draft, status, created_at, answered_at")
+      .eq("student_id", data.studentId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return { questions: rows ?? [] };
+  });
+
