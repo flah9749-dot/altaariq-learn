@@ -38,6 +38,27 @@ function AIExamPage() {
   const upsertFn = useServerFn(upsertExam);
   const saveQFn = useServerFn(saveQuestions);
 
+  const kbGenFn = useServerFn(generateExamFromKnowledge);
+  const listDocsFn = useServerFn(listKbDocuments);
+
+  const [mode, setMode] = useState<"free" | "kb">("free");
+  const [instruction, setInstruction] = useState("");
+  const [kbClassId, setKbClassId] = useState("all");
+  const [kbDocId, setKbDocId] = useState("all");
+  const [useBank, setUseBank] = useState(false);
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-simple"],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("id, name").order("name");
+      return data ?? [];
+    },
+  });
+  const { data: kbDocs } = useQuery({
+    queryKey: ["kb-docs-simple"],
+    queryFn: async () => (await listDocsFn({ data: undefined as any })) as { documents: any[] },
+  });
+
   const [topic, setTopic] = useState("");
   const [rawText, setRawText] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -50,6 +71,7 @@ function AIExamPage() {
   const [totalScore, setTotalScore] = useState(50);
   const [preview, setPreview] = useState<{ title: string; questions: any[] } | null>(null);
   const [fileProgress, setFileProgress] = useState<{ name: string; index: number; total: number } | null>(null);
+
 
   const uploadFile = async (files: FileList | null) => {
     if (!files) return;
