@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { askStudentAssistant } from "@/lib/student-assistant.functions";
 import { askTeacher } from "@/lib/teacher-questions.functions";
 import { ArchiveDrawer } from "@/components/assistant/ArchiveDrawer";
+import { MyQuestionsDrawer } from "@/components/assistant/MyQuestionsDrawer";
+
 import { upsertSession } from "@/lib/assistant-archive";
 import { useAuth } from "@/lib/auth-context";
 
