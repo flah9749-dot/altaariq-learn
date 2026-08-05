@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles, FolderOpen, UserRound, Menu, type LucideIcon } from "lucide-react";
+import { Home, FileText, MessageSquare, Award, LogOut, Star, Trophy, Sparkles, FolderOpen, UserRound, Menu, Video, type LucideIcon } from "lucide-react";
 
 import { Logo } from "@/components/common/Logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
