@@ -92,7 +92,7 @@ export const getVideoPlayback = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: v, error } = await supabaseAdmin
       .from("videos")
-      .select("id,title,provider,source_url,storage_path,duration_sec")
+      .select("id,title,provider,source_url,storage_path,duration_sec,views_count")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !v) throw new Error("الفيديو غير موجود");
