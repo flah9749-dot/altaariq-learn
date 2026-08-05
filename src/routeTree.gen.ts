@@ -53,6 +53,7 @@ import { Route as AdminArchiveRouteImport } from './routes/admin.archive'
 import { Route as AdminApiRouteImport } from './routes/admin.api'
 import { Route as AdminAiRouteImport } from './routes/admin.ai'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
+import { Route as StudentVideosIndexRouteImport } from './routes/student.videos.index'
 import { Route as StudentExamsIndexRouteImport } from './routes/student.exams.index'
 import { Route as AdminStudentsIndexRouteImport } from './routes/admin.students.index'
 import { Route as AdminExamsIndexRouteImport } from './routes/admin.exams.index'
@@ -302,6 +303,11 @@ const AdminActivityRoute = AdminActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AdminRoute,
 } as any)
+const StudentVideosIndexRoute = StudentVideosIndexRouteImport.update({
+  id: '/videos/',
+  path: '/videos/',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentExamsIndexRoute = StudentExamsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -498,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
+  '/student/videos/': typeof StudentVideosIndexRoute
   '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
@@ -565,6 +572,7 @@ export interface FileRoutesByTo {
   '/admin/exams': typeof AdminExamsIndexRoute
   '/admin/students': typeof AdminStudentsIndexRoute
   '/student/exams': typeof StudentExamsIndexRoute
+  '/student/videos': typeof StudentVideosIndexRoute
   '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
@@ -639,6 +647,7 @@ export interface FileRoutesById {
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
   '/student/exams/': typeof StudentExamsIndexRoute
+  '/student/videos/': typeof StudentVideosIndexRoute
   '/admin/exams/$id/analytics': typeof AdminExamsIdAnalyticsRoute
   '/admin/exams/$id/results': typeof AdminExamsIdResultsRoute
   '/admin/exams/map/new': typeof AdminExamsMapNewRoute
@@ -714,6 +723,7 @@ export interface FileRouteTypes {
     | '/admin/exams/'
     | '/admin/students/'
     | '/student/exams/'
+    | '/student/videos/'
     | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
@@ -781,6 +791,7 @@ export interface FileRouteTypes {
     | '/admin/exams'
     | '/admin/students'
     | '/student/exams'
+    | '/student/videos'
     | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
@@ -854,6 +865,7 @@ export interface FileRouteTypes {
     | '/admin/exams/'
     | '/admin/students/'
     | '/student/exams/'
+    | '/student/videos/'
     | '/admin/exams/$id/analytics'
     | '/admin/exams/$id/results'
     | '/admin/exams/map/new'
@@ -1192,6 +1204,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/activity'
       preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/student/videos/': {
+      id: '/student/videos/'
+      path: '/videos'
+      fullPath: '/student/videos/'
+      preLoaderRoute: typeof StudentVideosIndexRouteImport
+      parentRoute: typeof StudentRoute
     }
     '/student/exams/': {
       id: '/student/exams/'
@@ -1552,6 +1571,7 @@ interface StudentRouteChildren {
   StudentQuestionBankRoute: typeof StudentQuestionBankRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
   StudentIndexRoute: typeof StudentIndexRoute
+  StudentVideosIndexRoute: typeof StudentVideosIndexRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
@@ -1566,6 +1586,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentQuestionBankRoute: StudentQuestionBankRoute,
   StudentRewardsRoute: StudentRewardsRoute,
   StudentIndexRoute: StudentIndexRoute,
+  StudentVideosIndexRoute: StudentVideosIndexRoute,
 }
 
 const StudentRouteWithChildren =

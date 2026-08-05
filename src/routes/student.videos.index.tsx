@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const Route = createFileRoute("/student/videos")({
+export const Route = createFileRoute("/student/videos/")({
   head: () => ({
     meta: [
       { title: "الفيديوهات التعليمية — الطالب" },
