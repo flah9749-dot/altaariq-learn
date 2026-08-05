@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, HeartPulse, ClipboardCheck, Ticket, ClipboardList,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, HeartPulse, ClipboardCheck, Ticket, ClipboardList, Video,
 } from "lucide-react";
 
 import {
