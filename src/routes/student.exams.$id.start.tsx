@@ -22,7 +22,17 @@ function StartExamPage() {
   const { data: exam, isLoading } = useQuery({
     queryKey: ["exam-start", id],
     queryFn: async () => (await supabase.from("exams")
-      .select("*, classes(name), questions(id)").eq("id", id).eq("published", true).maybeSingle()).data,
+      .select("*, classes(name)").eq("id", id).eq("published", true).maybeSingle()).data,
+  });
+  // Students can't read `questions` directly (RLS is admin-only), so the count
+  // comes from the security-definer RPC that also powers the take page.
+  const { data: qCount = 0 } = useQuery({
+    queryKey: ["exam-start-qcount", id], enabled: !!exam,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_take_exam_questions", { _exam_id: id });
+      if (error) throw error;
+      return ((data as any[]) ?? []).length;
+    },
   });
   const { data: student } = useQuery({
     queryKey: ["me-start", user?.id], enabled: !!user,
@@ -32,7 +42,7 @@ function StartExamPage() {
   if (isLoading) return <Skeleton className="h-96" />;
   if (!exam) return <Card><CardContent className="py-16 text-center">الامتحان غير متاح</CardContent></Card>;
 
-  const qCount = exam.questions?.length ?? 0;
+
   const ac: any = exam.anti_cheat ?? {};
 
   return (
