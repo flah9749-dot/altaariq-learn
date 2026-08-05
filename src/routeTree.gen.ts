@@ -28,6 +28,7 @@ import { Route as StudentDashboardRouteImport } from './routes/student.dashboard
 import { Route as StudentCompetitionsRouteImport } from './routes/student.competitions'
 import { Route as StudentAssistantRouteImport } from './routes/student.assistant'
 import { Route as StudentAchievementsRouteImport } from './routes/student.achievements'
+import { Route as AdminVideosRouteImport } from './routes/admin.videos'
 import { Route as AdminSystemRouteImport } from './routes/admin.system'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminScanRouteImport } from './routes/admin.scan'
@@ -174,6 +175,11 @@ const StudentAchievementsRoute = StudentAchievementsRouteImport.update({
   id: '/achievements',
   path: '/achievements',
   getParentRoute: () => StudentRoute,
+} as any)
+const AdminVideosRoute = AdminVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminSystemRoute = AdminSystemRouteImport.update({
   id: '/system',
@@ -464,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
   '/student/competitions': typeof StudentCompetitionsRoute
@@ -533,6 +540,7 @@ export interface FileRoutesByTo {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
   '/student/competitions': typeof StudentCompetitionsRoute
@@ -603,6 +611,7 @@ export interface FileRoutesById {
   '/admin/scan': typeof AdminScanRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/system': typeof AdminSystemRoute
+  '/admin/videos': typeof AdminVideosRoute
   '/student/achievements': typeof StudentAchievementsRoute
   '/student/assistant': typeof StudentAssistantRoute
   '/student/competitions': typeof StudentCompetitionsRoute
@@ -677,6 +686,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/system'
+    | '/admin/videos'
     | '/student/achievements'
     | '/student/assistant'
     | '/student/competitions'
@@ -746,6 +756,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/system'
+    | '/admin/videos'
     | '/student/achievements'
     | '/student/assistant'
     | '/student/competitions'
@@ -815,6 +826,7 @@ export interface FileRouteTypes {
     | '/admin/scan'
     | '/admin/settings'
     | '/admin/system'
+    | '/admin/videos'
     | '/student/achievements'
     | '/student/assistant'
     | '/student/competitions'
@@ -1005,6 +1017,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/student/achievements'
       preLoaderRoute: typeof StudentAchievementsRouteImport
       parentRoute: typeof StudentRoute
+    }
+    '/admin/videos': {
+      id: '/admin/videos'
+      path: '/videos'
+      fullPath: '/admin/videos'
+      preLoaderRoute: typeof AdminVideosRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/system': {
       id: '/admin/system'
@@ -1440,6 +1459,7 @@ interface AdminRouteChildren {
   AdminScanRoute: typeof AdminScanRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSystemRoute: typeof AdminSystemRoute
+  AdminVideosRoute: typeof AdminVideosRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminExamsIdRoute: typeof AdminExamsIdRouteWithChildren
   AdminExamsAiRoute: typeof AdminExamsAiRoute
@@ -1475,6 +1495,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScanRoute: AdminScanRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminSystemRoute: AdminSystemRoute,
+  AdminVideosRoute: AdminVideosRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminExamsIdRoute: AdminExamsIdRouteWithChildren,
   AdminExamsAiRoute: AdminExamsAiRoute,
