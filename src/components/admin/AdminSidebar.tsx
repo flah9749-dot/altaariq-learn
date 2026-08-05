@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, HeartPulse, ClipboardCheck, Ticket, ClipboardList,
+  Home, Users, FileText, Bot, MessageSquare, Award, BarChart3, Bell, FolderOpen, Settings, GraduationCap, HeartPulse, ClipboardCheck, Ticket, ClipboardList, Video,
 } from "lucide-react";
 
 import {
@@ -19,6 +19,7 @@ const items: Array<{ title: string; url: string; icon: any; badge: BadgeKey }> =
   { title: "طلبات التسجيل", url: "/admin/registration-requests", icon: ClipboardList, badge: null },
   { title: "الصفوف الدراسية", url: "/admin/classes", icon: GraduationCap, badge: null },
   { title: "الامتحانات", url: "/admin/exams", icon: FileText, badge: null },
+  { title: "الفيديوهات التعليمية", url: "/admin/videos", icon: Video, badge: null },
 
   { title: "النتائج", url: "/admin/results", icon: ClipboardCheck, badge: "results" },
   { title: "الذكاء الاصطناعي", url: "/admin/ai", icon: Bot, badge: null },
