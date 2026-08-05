@@ -19,18 +19,33 @@ export async function collectExamContext(opts: {
 }): Promise<KbExamContext> {
   const scope = parseScope(opts.instruction);
 
-  const rawHits = await searchKnowledge({
+  let rawHits = await searchKnowledge({
     question: opts.instruction,
     classId: opts.classId,
     limit: 24,
     minSimilarity: 0.2,
   });
+  // Fallback 1: same query without the class filter / with a looser threshold.
+  if (!rawHits.length) {
+    rawHits = await searchKnowledge({
+      question: opts.instruction,
+      classId: null,
+      limit: 24,
+      minSimilarity: 0.05,
+    });
+  }
   let hits = applyScope(rawHits, scope);
   if (opts.documentId) {
     const only = hits.filter((h) => h.documentId === opts.documentId);
     if (only.length) hits = only;
   }
   hits = hits.slice(0, 14);
+
+  // Fallback 2: semantic search unavailable (no embeddings / gateway down) —
+  // read chunks straight from the selected document or class.
+  if (!hits.length) {
+    hits = await rawChunks({ documentId: opts.documentId ?? null, classId: opts.classId, scope });
+  }
 
   let bankQuestions: any[] = [];
   if (opts.useBank) {
