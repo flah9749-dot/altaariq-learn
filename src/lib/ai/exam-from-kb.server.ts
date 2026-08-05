@@ -117,3 +117,35 @@ export function normalizeGenerated(questions: any[], allowedTypes: string[], def
   }
   return out;
 }
+
+/** Direct chunk read used when semantic retrieval yields nothing. */
+async function rawChunks(opts: { documentId: string | null; classId: string | null; scope: ReturnType<typeof parseScope> }) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("kb_chunks")
+      .select("id, document_id, doc_type, unit, lesson, heading, page_number, content, kb_documents(title)")
+      .order("chunk_index", { ascending: true })
+      .limit(200);
+    if (opts.documentId) q = q.eq("document_id", opts.documentId);
+    else if (opts.classId) q = q.eq("class_id", opts.classId);
+    const { data } = await q;
+    let rows = (data ?? []) as any[];
+    if (!rows.length) return [];
+    const hits = rows.map((r) => ({
+      id: r.id,
+      documentId: r.document_id,
+      title: r.kb_documents?.title ?? "المنهج",
+      docType: r.doc_type,
+      unit: r.unit,
+      lesson: r.lesson,
+      heading: r.heading,
+      pageNumber: r.page_number,
+      content: r.content,
+      similarity: 0,
+    }));
+    return applyScope(hits as any, opts.scope).slice(0, 14);
+  } catch {
+    return [];
+  }
+}
