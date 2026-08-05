@@ -58,6 +58,7 @@ import { Route as StudentExamsIndexRouteImport } from './routes/student.exams.in
 import { Route as AdminStudentsIndexRouteImport } from './routes/admin.students.index'
 import { Route as AdminExamsIndexRouteImport } from './routes/admin.exams.index'
 import { Route as AdminAiIndexRouteImport } from './routes/admin.ai.index'
+import { Route as StudentVideosIdRouteImport } from './routes/student.videos.$id'
 import { Route as StudentExamsIdRouteImport } from './routes/student.exams.$id'
 import { Route as ApiPublicFcmDispatchRouteImport } from './routes/api/public/fcm-dispatch'
 import { Route as AdminStudentsIdRouteImport } from './routes/admin.students.$id'
@@ -328,6 +329,11 @@ const AdminAiIndexRoute = AdminAiIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAiRoute,
 } as any)
+const StudentVideosIdRoute = StudentVideosIdRouteImport.update({
+  id: '/videos/$id',
+  path: '/videos/$id',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentExamsIdRoute = StudentExamsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -500,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
   '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
+  '/student/videos/$id': typeof StudentVideosIdRoute
   '/admin/ai/': typeof AdminAiIndexRoute
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
@@ -568,6 +575,7 @@ export interface FileRoutesByTo {
   '/admin/exams/ai': typeof AdminExamsAiRoute
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
+  '/student/videos/$id': typeof StudentVideosIdRoute
   '/admin/ai': typeof AdminAiIndexRoute
   '/admin/exams': typeof AdminExamsIndexRoute
   '/admin/students': typeof AdminStudentsIndexRoute
@@ -643,6 +651,7 @@ export interface FileRoutesById {
   '/admin/students/$id': typeof AdminStudentsIdRouteWithChildren
   '/api/public/fcm-dispatch': typeof ApiPublicFcmDispatchRoute
   '/student/exams/$id': typeof StudentExamsIdRouteWithChildren
+  '/student/videos/$id': typeof StudentVideosIdRoute
   '/admin/ai/': typeof AdminAiIndexRoute
   '/admin/exams/': typeof AdminExamsIndexRoute
   '/admin/students/': typeof AdminStudentsIndexRoute
@@ -719,6 +728,7 @@ export interface FileRouteTypes {
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
     | '/student/exams/$id'
+    | '/student/videos/$id'
     | '/admin/ai/'
     | '/admin/exams/'
     | '/admin/students/'
@@ -787,6 +797,7 @@ export interface FileRouteTypes {
     | '/admin/exams/ai'
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
+    | '/student/videos/$id'
     | '/admin/ai'
     | '/admin/exams'
     | '/admin/students'
@@ -861,6 +872,7 @@ export interface FileRouteTypes {
     | '/admin/students/$id'
     | '/api/public/fcm-dispatch'
     | '/student/exams/$id'
+    | '/student/videos/$id'
     | '/admin/ai/'
     | '/admin/exams/'
     | '/admin/students/'
@@ -1240,6 +1252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAiIndexRouteImport
       parentRoute: typeof AdminAiRoute
     }
+    '/student/videos/$id': {
+      id: '/student/videos/$id'
+      path: '/videos/$id'
+      fullPath: '/student/videos/$id'
+      preLoaderRoute: typeof StudentVideosIdRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/exams/$id': {
       id: '/student/exams/$id'
       path: '/$id'
@@ -1571,6 +1590,7 @@ interface StudentRouteChildren {
   StudentQuestionBankRoute: typeof StudentQuestionBankRoute
   StudentRewardsRoute: typeof StudentRewardsRoute
   StudentIndexRoute: typeof StudentIndexRoute
+  StudentVideosIdRoute: typeof StudentVideosIdRoute
   StudentVideosIndexRoute: typeof StudentVideosIndexRoute
 }
 
@@ -1586,6 +1606,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentQuestionBankRoute: StudentQuestionBankRoute,
   StudentRewardsRoute: StudentRewardsRoute,
   StudentIndexRoute: StudentIndexRoute,
+  StudentVideosIdRoute: StudentVideosIdRoute,
   StudentVideosIndexRoute: StudentVideosIndexRoute,
 }
 
