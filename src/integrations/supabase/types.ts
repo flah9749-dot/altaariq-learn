@@ -2502,6 +2502,253 @@ export type Database = {
         }
         Relationships: []
       }
+      video_access_grants: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          group_id: string | null
+          id: string
+          notes: string | null
+          scope: string
+          student_id: string | null
+          video_id: string | null
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          notes?: string | null
+          scope?: string
+          student_id?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          notes?: string | null
+          scope?: string
+          student_id?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_access_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_access_grants_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_access_grants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_access_grants_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          size: number | null
+          url: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          size?: number | null
+          url: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          size?: number | null
+          url?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_attachments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_progress: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          last_watched_at: string
+          percent: number
+          position_sec: number
+          student_id: string
+          updated_at: string
+          video_id: string
+          views: number
+          watched_sec: number
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_watched_at?: string
+          percent?: number
+          position_sec?: number
+          student_id: string
+          updated_at?: string
+          video_id: string
+          views?: number
+          watched_sec?: number
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_watched_at?: string
+          percent?: number
+          position_sec?: number
+          student_id?: string
+          updated_at?: string
+          video_id?: string
+          views?: number
+          watched_sec?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_progress_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_progress_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          access_expires_at: string | null
+          access_type: string
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_sec: number
+          group_id: string | null
+          id: string
+          lesson: string | null
+          provider: string
+          publish_at: string | null
+          source_url: string | null
+          storage_path: string | null
+          term: string | null
+          thumbnail_url: string | null
+          title: string
+          unit: string | null
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          access_expires_at?: string | null
+          access_type?: string
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_sec?: number
+          group_id?: string | null
+          id?: string
+          lesson?: string | null
+          provider?: string
+          publish_at?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          term?: string | null
+          thumbnail_url?: string | null
+          title: string
+          unit?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          access_expires_at?: string | null
+          access_type?: string
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_sec?: number
+          group_id?: string | null
+          id?: string
+          lesson?: string | null
+          provider?: string
+          publish_at?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          term?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2598,6 +2845,15 @@ export type Database = {
           status: string
         }[]
       }
+      can_watch_video: { Args: { _video_id: string }; Returns: boolean }
+      current_student: {
+        Args: never
+        Returns: {
+          class_id: string
+          group_id: string
+          id: string
+        }[]
+      }
       dispatch_due_exam_start_notifications: { Args: never; Returns: number }
       exam_question_analytics: { Args: { _exam_id: string }; Returns: Json }
       get_attempt_review: { Args: { _attempt_id: string }; Returns: Json }
@@ -2662,6 +2918,7 @@ export type Database = {
         Returns: Json
       }
       validate_join_code: { Args: { _code: string }; Returns: Json }
+      video_targets_me: { Args: { _video_id: string }; Returns: boolean }
       weekly_champions: { Args: never; Returns: Json }
     }
     Enums: {
